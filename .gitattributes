@@ -1,0 +1,7 @@
+# Windows scripts must keep CRLF line endings (also inside the GitHub ZIP download)
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# binary assets
+*.png binary
+*.ico binary

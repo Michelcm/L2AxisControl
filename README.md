@@ -40,24 +40,37 @@ it will only be published if the server staff approves it. Without it the Bosses
 
 ## Installation
 
-Requirements: **Windows 10/11**, **Python 3.11+** and the Microsoft Edge **WebView2** runtime (already present on Windows 11).
+Requirements: **Windows 10/11** and the Microsoft Edge **WebView2** runtime (already present on Windows 11).
+Python 3.11+ is needed too — the installer offers to install it for you.
 
-1. Put this folder **inside your L2Axis client folder**, next to the `system` folder:
+1. Download this repository (**Code → Download ZIP**) and extract the folder **inside your L2Axis client folder**,
+   next to the `system` folder (the ZIP folder is called `L2AxisControl-main` — any name works):
    ```
    L2Axis\
-   ├─ system\            (game files, l2.exe)
-   └─ L2AxisControl\     (this project)
+   ├─ system\                 (game files, l2.exe)
+   └─ L2AxisControl-main\     (this project)
    ```
-2. Install the dependency:
-   ```
-   pip install -r requirements.txt
-   ```
-3. Run the panel **as administrator** (`l2.exe` itself requires administrator rights, so the panel needs them to
-   open clients and to type the auto-login):
-   ```
-   pythonw l2axis_control.pyw
-   ```
-   Tip: create a shortcut to `pythonw.exe "...\l2axis_control.pyw"` and tick *Run as administrator*.
+2. Double-click **`install.bat`**. It:
+   - checks for Python 3.11+ (and offers to install it with `winget` if missing),
+   - installs the only dependency (`pywebview`),
+   - checks that the folder is in the right place,
+   - creates **L2Axis Control** shortcuts on your Desktop and Start Menu, with the panel icon and
+     *Run as administrator* already enabled (`l2.exe` requires administrator rights, so the panel needs them to
+     open clients and to type the auto-login).
+3. Open **L2Axis Control** from your Desktop.
+
+> Windows SmartScreen may say *"Windows protected your PC"* because `install.bat` was downloaded from the internet.
+> Click **More info → Run anyway**. Both scripts are plain text — you can open them in Notepad and read them first.
+
+<details>
+<summary>Manual installation</summary>
+
+```
+pip install -r requirements.txt
+pythonw l2axis_control.pyw
+```
+Run it as administrator (create a shortcut to `pythonw.exe "...\l2axis_control.pyw"` and tick *Run as administrator*).
+</details>
 
 Your settings, vote timers, boss data and (encrypted) accounts are stored in `data.json` next to the script.
 That file is personal — it is ignored by Git and should never be shared.
@@ -83,5 +96,5 @@ Alt+B → Bosses), os 17 sites de votação com timer de 12h e um botão que abr
 Interface em português, inglês e alemão.
 
 **Não** lê memória nem tráfego do jogo e **não** automatiza nada dentro dele. O login automático é opcional e usa as suas
-próprias senhas, criptografadas pelo Windows. Instalação: coloque a pasta dentro da pasta do cliente L2Axis,
-`pip install -r requirements.txt` e rode `pythonw l2axis_control.pyw` **como administrador**.
+próprias senhas, criptografadas pelo Windows. Instalação: coloque a pasta dentro da pasta do cliente L2Axis e dê dois cliques em **`install.bat`**:
+ele instala o que falta e cria o atalho na Área de Trabalho, já como administrador.

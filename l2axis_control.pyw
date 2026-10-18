@@ -451,6 +451,10 @@ class _DatReader:
 def build_boss_db():
     """Level, coordinates and lore (raiddata-e.dat) + nearest hunting zone (HuntingZone-e.dat)."""
     raid_path, zone_path = GAME_DIR / "raiddata-e.dat", GAME_DIR / "HuntingZone-e.dat"
+    if not (raid_path.exists() and zone_path.exists()):
+        log_error("info", "game data files not found next to the panel: boss details disabled "
+                          "(is the L2AxisControl folder inside the game folder?)")
+        return {}
     stamp = f"{raid_path.stat().st_mtime}:{zone_path.stat().st_mtime}"
     try:
         cached = json.loads(BOSS_DB_FILE.read_text(encoding="utf-8"))
