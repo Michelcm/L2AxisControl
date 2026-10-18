@@ -101,7 +101,7 @@ LINKS = [
     ("linkDonate", "https://forum.l2axis.com/threads/donate-panel-update.695/"),
     ("linkRules", "https://forum.l2axis.com/threads/server-rules-enforced.18/"),
 ]
-# GM tribute (published with the GM's permission): gm.json + assets/gm_*.png.
+# About window credits (GM avatar used with permission): gm.json + assets/gm_*.png.
 # Without gm.json the panel falls back to a generic medallion.
 GM_FILE = APP_DIR / "gm.json"
 

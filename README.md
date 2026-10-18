@@ -20,8 +20,8 @@ and want ping, votes, timers and boss respawns in one place.
 
 The window stays on top, can be dragged by its title bar, resized from its edges and corner, and has a compact mode that shows only ping, loss and clients. Options include a text size setting (100% / 115% / 130%).
 
-Click the medallion in the top-left corner to open the **About** window — a small tribute to **GM RockStar**, who keeps
-L2Axis alive. His avatar is included with his permission (`gm.json` + `assets/gm_*.png`).
+The medallion in the top-left corner opens the **About** window with the project credits. The L2Axis GM avatar is
+used with permission (`gm.json` + `assets/gm_*.png`).
 
 ## What it does **not** do
 
