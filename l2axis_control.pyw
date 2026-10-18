@@ -1113,6 +1113,7 @@ _BOSS_JEWELS = re.compile(r"Antharas|Valakas|Baium|Queen Ant|Zaken|Frintezza|Fre
 
 class RecipeBook:
     def __init__(self, db):
+        self.accessories = {}
         self.recipes = {r["id"]: r for r in db["recipes"]}
         self.names = {int(k): v for k, v in db["names"].items()}
         # best recipe for each product: highest success rate, then fewest materials
@@ -1193,6 +1194,18 @@ class RecipeBook:
             self.names.setdefault(item_id, it["name"])
             if sealed:
                 self.names.setdefault(sealed, stats_db["items"][str(sealed)]["name"])
+
+    def add_accessory_entries(self, extra, in_client=None):
+        """Shirts, belts, bracelets, talismans, cloaks and hair accessories: no recipe, but they help.
+        in_client: item ids the player's client knows (items missing there do not exist on L2Axis)."""
+        self.accessories = {k: v for k, v in (extra or {}).get("accessories", {}).items()
+                            if in_client is None or int(k) in in_client}
+        for k, acc in self.accessories.items():
+            item_id = int(k)
+            self.recipes[OBTAIN_BASE + item_id] = {
+                "id": OBTAIN_BASE + item_id, "recipeItem": 0, "level": 0, "product": item_id, "count": 1,
+                "mp": 0, "rate": 100, "mats": [], "obtain": {"sealed": None, "acc": acc["slot"]}}
+            self.names.setdefault(item_id, acc["name"])
 
     def add_npc_recipes(self, extra):
         """Dual swords and dual daggers have no recipe: an NPC combines two weapons and a Dualsword
@@ -1413,6 +1426,13 @@ class RecipeBook:
             if r.get("rare") or r.get("mwStep"):
                 continue  # internal steps of a masterwork
             product = self.name(r["product"])
+            if r.get("obtain") and r["obtain"].get("acc"):
+                acc = self.accessories[str(r["product"])]
+                out.append({"id": r["id"], "productId": r["product"], "product": product, "family": "Acc",
+                            "grade": {"NONE": "—"}.get(acc["grade"], acc["grade"]), "cat": acc["slot"],
+                            "kind": "accessory", "rate": 100, "mp": 0, "level": 0, "npc": False, "mw": None,
+                            "obtain": True})
+                continue
             if r.get("obtain"):
                 stats = (stats_db or {}).get("items", {}).get(str(r["product"]))
                 if not stats:
@@ -1506,6 +1526,11 @@ class RecipeBook:
             return {"obtain": True, "product": recipe["product"], "sealed": recipe["obtain"]["sealed"],
                     "sealedName": self.name(recipe["obtain"]["sealed"]) if recipe["obtain"]["sealed"] else None,
                     "hero": name.startswith("Infinity "), "plan": [], "shopping": [], "root": None,
+                    "acc": recipe["obtain"].get("acc"),
+                    "bonus": self.accessories.get(str(recipe["product"]), {}).get("effects", [])
+                    if recipe["obtain"].get("acc") else [],
+                    "actives": self.accessories.get(str(recipe["product"]), {}).get("actives", [])
+                    if recipe["obtain"].get("acc") else [],
                     "recipeItem": None, "npc": [], "mw": None, "crafts": 0, "mp": 0, "maxLevel": 0}
         quantity = max(1, min(999, int(quantity)))
         root, shopping, plan, stats = self._expand(recipe, quantity * recipe["count"], expand_all)
@@ -1725,6 +1750,11 @@ class Api:
             self._recipes.add_npc_recipes(self._items)
             self._recipes.add_masterwork_recipes(self._items)
             self._recipes.add_obtain_entries(self._stats, self._items)
+            try:
+                in_client = set(self._icons._icon_map()) or None
+            except Exception:
+                in_client = None
+            self._recipes.add_accessory_entries(self._items, in_client)
         self._board = BoardWatcher(self._on_board_rows)
         self._board.start()
         self._adopt_running()

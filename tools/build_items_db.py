@@ -29,13 +29,29 @@ def plural_free(name):
     return re.sub(r"s\b", "", name.lower())
 
 
+# accessory slots (client body parts) shown in the Craft tab
+ACCESSORY_SLOTS = {"underwear": "shirt", "waist": "belt", "rbracelet": "bracelet", "deco1": "talisman",
+                   "back": "cloak", "hair": "hair", "hairall": "hair"}
+ACCESSORY_SKIP = re.compile(r"limited period|[Ee]vent|\{PvP\}|Shadow Item|Test|Agathion|Mount|Poison Bottle|"
+                            r"Undergarment|Swimsuit|Bikini|Underwear of|Pailaka|_|Summon")
+
+
 def load_items(data):
     items = {}
     for xml_file in (data / "stats/items").glob("*.xml"):
         for it in ET.parse(xml_file).getroot().iter("item"):
             sets = {s.get("name"): s.get("val") for s in it.findall("set")}
+            stats = []
+            for block in it.findall("for"):  # the item's own stats (enchant rows excluded)
+                for node in block:
+                    if node.tag in ("add", "mul") and node.get("stat"):
+                        try:
+                            stats.append([node.tag, node.get("stat"), float(node.get("val"))])
+                        except (TypeError, ValueError):
+                            pass
             items[int(it.get("id"))] = {"name": it.get("name"), "type": it.get("type"),
-                                        "skill": sets.get("item_skill")}
+                                        "skill": sets.get("item_skill"), "bodypart": sets.get("bodypart"),
+                                        "grade": sets.get("crystal_type") or "NONE", "stats": stats}
     return items
 
 
@@ -65,6 +81,11 @@ def skill_effects(skill, level):
 
     out = []
     for effect in skill.iter("effect"):
+        if effect.get("name") == "TalismanSlot":
+            param = effect.find("param")
+            if param is not None and param.get("slots"):
+                out.append(["add", "talismanSlots", float(param.get("slots"))])
+            continue
         pool = POOL_EFFECTS.get(effect.get("name"))
         if pool:
             param = effect.find("param")
@@ -162,12 +183,40 @@ def main(datapack):
             chain["product"] = next((c["product"] for c in combos.values()
                                      if items[c["product"]]["name"] == plain), chain["product"])
     combo_ids = {i for c in combos.values() for i, _ in c["mats"]}
+
+    # accessories: no recipe, but they help (shirts, belts, bracelets, talismans, cloaks, hair)
+    accessories = {}
+    for item_id, it in items.items():
+        slot = ACCESSORY_SLOTS.get(it["bodypart"])
+        if not slot or ACCESSORY_SKIP.search(it["name"] or ""):
+            continue
+        effects, actives = list(it["stats"]), []
+        for part in (it["skill"] or "").split(";"):
+            m = re.fullmatch(r"\s*(\d+)-(\d+)\s*", part)
+            sk = skills.get(int(m.group(1))) if m else None
+            if sk is None:
+                continue
+            if sk.find(".//set[@name='operateType'][@val='P']") is not None:
+                effects += skill_effects(sk, int(m.group(2)))
+            else:
+                sets = {s.get("name"): s.get("val") for s in sk.findall("set")}
+                active = [e for e in skill_effects(sk, int(m.group(2))) if e[2] != (1 if e[0] == "mul" else 0)]
+                actives.append({"name": sk.get("name"), "effects": active,
+                                "time": int(sets.get("abnormalTime") or 0) if (sets.get("abnormalTime") or "").isdigit() else 0,
+                                "reuse": int(sets.get("reuseDelay") or 0) // 1000
+                                if (sets.get("reuseDelay") or "").isdigit() else 0})
+        effects = [e for e in effects if e[2] != (1 if e[0] == "mul" else 0)]
+        if slot == "hair" and not effects and not any(a["effects"] for a in actives):
+            continue  # cosmetic hats
+        accessories[str(item_id)] = {"name": it["name"], "slot": slot, "grade": it["grade"],
+                                     "effects": effects, "actives": actives}
     out = {
         "source": "L2J Server datapack (High Five) - https://bitbucket.org/l2jserver/l2j-server-datapack - GPL-3.0",
         "note": "Passive item bonuses and masterwork chains, official High Five values. L2Axis may differ.",
         "bonus": bonus,
         "masterwork": masterwork,
         "combos": {k: v for k, v in combos.items() if " - " not in items[v["product"]]["name"]},
+        "accessories": accessories,
         "names": {str(k): items[k]["name"] for k in sorted({c["foundation"] for c in masterwork.values()}
                                                           | {i for c in masterwork.values() for i, _ in c["varnish"]}
                                                           | combo_ids | {int(k) for k in combos}
@@ -177,7 +226,8 @@ def main(datapack):
     }
     target = HERE / "data" / "items_db.json"
     target.write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
-    print(f"{len(bonus)} items with passive bonuses, {len(masterwork)} masterwork items -> {target} "
+    print(f"{len(accessories)} accessories, "
+          f"{len(bonus)} items with passive bonuses, {len(masterwork)} masterwork items -> {target} "
           f"({target.stat().st_size // 1024} KB)")
 
 

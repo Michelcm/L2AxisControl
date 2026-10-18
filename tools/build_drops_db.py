@@ -150,6 +150,18 @@ def main(datapack):
     wanted = wanted_items(panel)
     stats = panel.build_stats_db() or {"items": {}}
     wanted |= {int(k) for k in stats["items"]}  # gear shown in the Compare tab
+    try:  # accessories (shirts, belts, talismans...) from tools/build_items_db.py
+        acc = json.loads((HERE / "data" / "items_db.json").read_text(encoding="utf-8")).get("accessories", {})
+        wanted |= {int(k) for k in acc}
+        # and what their NPC exchanges ask for (pouches, sealed cloaks...), so those can be traced too
+        acc_ids = {int(k) for k in acc}
+        for xml_file in (datapack / "src/main/resources/data/multisell").glob("*.xml"):
+            for entry in ET.parse(xml_file).getroot().findall("item"):
+                products = [int(x.get("id")) for x in entry.findall("production")]
+                if any(i in acc_ids for i in products):
+                    wanted |= {int(x.get("id")) for x in entry.findall("ingredient") if int(x.get("id")) > 0}
+    except (OSError, ValueError):
+        pass
     zones = hunting_zones(panel)
     spawns = spawn_points(datapack)
 

@@ -406,6 +406,10 @@
   .rt.npc { color: #b8dcff; font-size: 9px; }
   .rt.mw { color: #e7c8ff; font-size: 9px; width: 52px; }
   .rt.drop { color: #a39a86; font-size: 9px; }
+  .rt.acc { color: #9fd1c6; font-size: 9px; width: 58px; }
+  .recipe.accrow .nm { color: #cfe8e1; }
+  .accbon { margin: 3px 0 0; font-size: 10px; line-height: 14px; color: #c9e3a5; }
+  .accbon .act { color: #b8dcff; }
   .recipe.droprow .nm { color: #cfc4a8; }
   .g.sx { background: linear-gradient(#d9d0b8, #8f8670); }
   .obtain { margin: 2px 0 4px; padding: 4px 6px; font-size: 10px; line-height: 14px; color: var(--text-hi);
@@ -593,6 +597,7 @@
         <button class="b" data-cf="Vorpal">Vorpal</button>
         <button class="b" data-cf="Elegia">Elegia</button>
         <button class="b" data-cf="Other" data-i18n="cOther"></button>
+        <button class="b" data-cf="Acc" data-i18n="cAcc"></button>
       </div>
       <div class="crow2">
         <select class="e" id="cKind">
@@ -600,6 +605,16 @@
           <option value="weapon" data-i18n="cWeapon"></option>
           <option value="armor" data-i18n="cArmor"></option>
           <option value="jewelry" data-i18n="cJewelry"></option>
+          <option value="accessory" data-i18n="cAcc"></option>
+        </select>
+        <select class="e" id="cAccSlot">
+          <option value="" data-i18n="accAll"></option>
+          <option value="shirt" data-i18n="acc_shirt"></option>
+          <option value="belt" data-i18n="acc_belt"></option>
+          <option value="bracelet" data-i18n="acc_bracelet"></option>
+          <option value="talisman" data-i18n="acc_talisman"></option>
+          <option value="cloak" data-i18n="acc_cloak"></option>
+          <option value="hair" data-i18n="acc_hair"></option>
         </select>
         <select class="e" id="cSrc">
           <option value="" data-i18n="cSrcAll"></option>
@@ -799,6 +814,16 @@ const I18N = {
     cObtainSummary: "<b>Este item não tem receita.</b> Em <b>Fontes</b> está quem dropa (chance, nível e região) e as trocas em NPC. Toque num ingrediente de uma troca para ver de onde ele vem.",
     cObtainHero: "<b>Arma de Herói:</b> só quem vira Herói na Olimpíada pode pegar (no Monument of Heroes).",
     cObtainSealed: "Normalmente ele vem <b>selado</b> ({sealed}) e o Blacksmith of Mammon tira o selo.",
+    cAcc: "Acessórios", accAll: "Todos os slots", acc_shirt: "Camisa", acc_belt: "Cinto", acc_bracelet: "Bracelete",
+    acc_talisman: "Talismã", acc_cloak: "Capa", acc_hair: "Cabeça",
+    accSummary: "<b>Acessório ({slot})</b>: não tem receita. Em <b>Fontes</b> está onde conseguir (troca em NPC, drop) — toque num ingrediente da troca para ver de onde ele vem.",
+    accBonus: "Bônus", accActive: "Ao usar", accTime: "{t}s", accReuse: "recarga {r}s", accNoBonus: "Sem bônus de status direto.",
+    accBracelet: "O bracelete direito libera os <b>slots de talismã</b>: sem ele, talismã não equipa.",
+    accTalisman: "Talismãs são usados como skill (atalho), dão o efeito por um tempo e precisam de slot no bracelete direito.",
+    st_talismanSlots: "slots de talismã", st_inventoryLimit: "slots de inventário", st_weightLimit: "Peso",
+    st_pvpPhysDmg: "dano físico em PvP", st_pvpPhysSkillsDmg: "dano de skill em PvP", st_pvpMagicalDmg: "dano mágico em PvP",
+    st_pvpPhysDef: "defesa física em PvP", st_pvpMagicalDef: "defesa mágica em PvP", st_pvpPhysSkillsDef: "defesa a skill em PvP",
+    st_mCritRate: "Crít. mágico", st_rShld: "Chance de bloqueio", st_defCritRate: "crítico recebido",
     cTabSrc: "Fontes", srcPick: "Toque num item para ver de onde ele vem.", srcDrop: "Drop", srcSpoil: "Spoil",
     srcBuy: "Troca em NPC", srcInto: "Vira (tirar selo / upgrade)", srcNone: "Nenhum drop ou troca nos dados oficiais: pode vir de quest, evento, Olimpíada ou loja do servidor.",
     srcNoArea: "instância / evento", srcRecipe: "receita", srcNote: "Dados oficiais da High Five (datapack L2J). O L2Axis pode ter rates e drops próprios: use como mapa, não como garantia.",
@@ -902,6 +927,16 @@ const I18N = {
     cObtainSummary: "<b>This item has no recipe.</b> <b>Sources</b> shows who drops it (chance, level and area) and the NPC exchanges. Tap an exchange ingredient to see where it comes from.",
     cObtainHero: "<b>Hero weapon:</b> only Olympiad Heroes can get it (at the Monument of Heroes).",
     cObtainSealed: "It usually comes <b>sealed</b> ({sealed}) and the Blacksmith of Mammon removes the seal.",
+    cAcc: "Accessories", accAll: "All slots", acc_shirt: "Shirt", acc_belt: "Belt", acc_bracelet: "Bracelet",
+    acc_talisman: "Talisman", acc_cloak: "Cloak", acc_hair: "Head",
+    accSummary: "<b>Accessory ({slot})</b>: no recipe. <b>Sources</b> shows where to get it (NPC exchange, drop) — tap an exchange ingredient to see where it comes from.",
+    accBonus: "Bonus", accActive: "On use", accTime: "{t}s", accReuse: "reuse {r}s", accNoBonus: "No direct stat bonus.",
+    accBracelet: "The right bracelet unlocks the <b>talisman slots</b>: without it, talismans can't be equipped.",
+    accTalisman: "Talismans are used like a skill (shortcut), give their effect for a while and need a slot on the right bracelet.",
+    st_talismanSlots: "talisman slots", st_inventoryLimit: "inventory slots", st_weightLimit: "Weight",
+    st_pvpPhysDmg: "PvP physical damage", st_pvpPhysSkillsDmg: "PvP skill damage", st_pvpMagicalDmg: "PvP magic damage",
+    st_pvpPhysDef: "PvP physical defence", st_pvpMagicalDef: "PvP magic defence", st_pvpPhysSkillsDef: "PvP skill defence",
+    st_mCritRate: "Magic crit", st_rShld: "Block chance", st_defCritRate: "crits taken",
     cTabSrc: "Sources", srcPick: "Tap an item to see where it comes from.", srcDrop: "Drop", srcSpoil: "Spoil",
     srcBuy: "NPC exchange", srcInto: "Turns into (unseal / upgrade)", srcNone: "No drop or exchange in the official data: it may come from a quest, event, the Olympiad or a server shop.",
     srcNoArea: "instance / event", srcRecipe: "recipe", srcNote: "Official High Five data (L2J datapack). L2Axis may use its own rates and drops: treat it as a map, not a promise.",
@@ -1005,6 +1040,16 @@ const I18N = {
     cObtainSummary: "<b>Dieses Item hat kein Rezept.</b> Unter <b>Quellen</b> steht, wer es droppt (Chance, Stufe, Gebiet), und die NPC-Tauschgeschäfte. Tippe auf eine Zutat, um ihre Herkunft zu sehen.",
     cObtainHero: "<b>Heldenwaffe:</b> nur Olympiade-Helden können sie erhalten (am Monument of Heroes).",
     cObtainSealed: "Es kommt meist <b>versiegelt</b> ({sealed}), der Blacksmith of Mammon entfernt das Siegel.",
+    cAcc: "Zubehör", accAll: "Alle Slots", acc_shirt: "Hemd", acc_belt: "Gürtel", acc_bracelet: "Armband",
+    acc_talisman: "Talisman", acc_cloak: "Umhang", acc_hair: "Kopf",
+    accSummary: "<b>Zubehör ({slot})</b>: kein Rezept. Unter <b>Quellen</b> steht, wo man es bekommt (NPC-Tausch, Drop) — tippe auf eine Zutat für ihre Herkunft.",
+    accBonus: "Bonus", accActive: "Bei Benutzung", accTime: "{t}s", accReuse: "Abklingzeit {r}s", accNoBonus: "Kein direkter Statusbonus.",
+    accBracelet: "Das rechte Armband schaltet die <b>Talisman-Slots</b> frei: ohne es kann man keine Talismane tragen.",
+    accTalisman: "Talismane werden wie ein Skill benutzt (Shortcut), wirken eine Zeit lang und brauchen einen Slot im rechten Armband.",
+    st_talismanSlots: "Talisman-Slots", st_inventoryLimit: "Inventarplätze", st_weightLimit: "Gewicht",
+    st_pvpPhysDmg: "PvP-Phys.-Schaden", st_pvpPhysSkillsDmg: "PvP-Skillschaden", st_pvpMagicalDmg: "PvP-Magieschaden",
+    st_pvpPhysDef: "PvP-Phys.-Verteidigung", st_pvpMagicalDef: "PvP-Magieverteidigung", st_pvpPhysSkillsDef: "PvP-Skillverteidigung",
+    st_mCritRate: "Magiekrit.", st_rShld: "Blockchance", st_defCritRate: "erlittene Krits",
     cTabSrc: "Quellen", srcPick: "Tippe auf ein Item, um zu sehen, woher es kommt.", srcDrop: "Drop", srcSpoil: "Spoil",
     srcBuy: "NPC-Tausch", srcInto: "Wird zu (Entsiegeln / Upgrade)", srcNone: "Kein Drop oder Tausch in den offiziellen Daten: evtl. Quest, Event, Olympiade oder Server-Shop.",
     srcNoArea: "Instanz / Event", srcRecipe: "Rezept", srcNote: "Offizielle High-Five-Daten (L2J-Datapack). L2Axis kann eigene Raten und Drops haben: als Karte nutzen, nicht als Garantie.",
@@ -1373,7 +1418,7 @@ function build() {
     document.querySelectorAll("[data-cf]").forEach(x => x.classList.toggle("on", x === b));
     renderCraftList();
   });
-  ["#cKind", "#cRate", "#cSrc"].forEach(id => $(id).onchange = renderCraftList);
+  ["#cKind", "#cRate", "#cSrc", "#cAccSlot"].forEach(id => $(id).onchange = renderCraftList);
   $("#cSearch").oninput = renderCraftList;
   $("#bVoteMain").onclick = () => api.vote_ready(true);
   $("#bVoteAll").onclick = () => api.vote_ready(false);
@@ -1645,14 +1690,16 @@ function renderCraftList() {
   const kind = $("#cKind").value, rate = $("#cRate").value, q = $("#cSearch").value.trim().toLowerCase();
   const list = RECIPES.filter(r => (!craftFamily || r.family === craftFamily) && (!kind || r.kind === kind) &&
     (!rate || String(r.rate) === rate) && (!q || r.product.toLowerCase().includes(q)) && classFits(r) &&
-    (!$("#cSrc").value || ($("#cSrc").value === "obtain") === !!r.obtain));
+    (!$("#cSrc").value || ($("#cSrc").value === "obtain") === !!r.obtain) &&
+    (!$("#cAccSlot").value || (r.kind === "accessory" && r.cat === $("#cAccSlot").value)));
   $("#cInfo").textContent = t("cInfo", { n: list.length });
   box.innerHTML = list.length ? "" : `<div class="small" style="padding:6px">${esc(t("cNone"))}</div>`;
   list.forEach(r => {
     const row = document.createElement("div");
-    row.className = "recipe" + (openRecipe === r.id ? " open" : "") + (r.mw ? " mwrow" : "") + (r.obtain ? " droprow" : "");
-    row.innerHTML = `<span class="g ${r.grade === "S84" ? "s84" : r.grade === "S" ? "sx" : ""}">${r.grade}</span>${ico(r.productId)}<span class="nm"></span>
-      <span class="small">${r.npc || r.obtain ? "" : "Lv " + r.level}</span>${r.obtain ? `<span class="rt drop">DROP</span>` : r.mw ? `<span class="rt mw" title="${esc(t("cMwOnly"))}">MW ${r.mw.rate.toLocaleString(LOCALES[LANG])}%</span>` : r.npc ? `<span class="rt npc">NPC</span>` : `<span class="rt ${r.rate === 100 ? "r100" : "r60"}">${r.rate}%</span>`}`;
+    row.className = "recipe" + (openRecipe === r.id ? " open" : "") + (r.mw ? " mwrow" : "") +
+      (r.kind === "accessory" ? " accrow" : r.obtain ? " droprow" : "");
+    row.innerHTML = `<span class="g ${r.grade === "S84" ? "s84" : ["S", "A", "B", "C", "D", "—"].includes(r.grade) ? "sx" : ""}">${r.grade}</span>${ico(r.productId)}<span class="nm"></span>
+      <span class="small">${r.npc || r.obtain ? "" : "Lv " + r.level}</span>${r.kind === "accessory" ? `<span class="rt acc">${esc(t("acc_" + r.cat))}</span>` : r.obtain ? `<span class="rt drop">DROP</span>` : r.mw ? `<span class="rt mw" title="${esc(t("cMwOnly"))}">MW ${r.mw.rate.toLocaleString(LOCALES[LANG])}%</span>` : r.npc ? `<span class="rt npc">NPC</span>` : `<span class="rt ${r.rate === 100 ? "r100" : "r60"}">${r.rate}%</span>`}`;
     row.querySelector(".nm").textContent = r.product;
     row.onclick = () => {
       openRecipe = openRecipe === r.id ? null : r.id; craftData = null; craftCmp = null; srcItem = null;
@@ -1682,7 +1729,7 @@ function shoppingText(r) {
 }
 
 function ico(id) {
-  return id ? `<img class="ico" src="/icon/${id}.png" loading="lazy" alt="" onerror="this.onerror=null;this.removeAttribute('src')">` : "";
+  return id ? `<img class="ico" src="/icon/${id}.png" loading="lazy" alt="" onerror="this.onerror=null;this.src='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'">` : "";
 }
 
 function fmtChance(c) {
@@ -1754,7 +1801,7 @@ function bonusText(op, stat, val) {
 function classFits(r) {
   const c = CLASSES.find(x => x.name === charProfile.cls);
   if (!c || !charProfile.only) return true;
-  if (r.kind === "jewelry" || r.cat === "jewelry") return true;
+  if (r.kind === "jewelry" || r.cat === "jewelry" || r.kind === "accessory") return true;
   if (r.kind === "weapon") return c.weapons.includes(r.cat) || r.cat === c.offhand;
   return c.armor.includes(r.cat) || r.cat === c.offhand;
 }
@@ -1962,6 +2009,7 @@ function renderObtainDetail(det, r) {
   if (!craftData) { det.innerHTML = `<div class="small">…</div>`; det.onclick = e => e.stopPropagation(); return; }
   if (craftView !== "src" && craftView !== "cmp") craftView = "src";
   const d = craftData;
+  if (d.acc) return renderAccessoryDetail(det, r, d);
   let body = `<div class="obtain">${t("cObtainSummary")}` +
     (d.hero ? `<br>${t("cObtainHero")}` : "") +
     (d.sealed ? `<br>${t("cObtainSealed", { sealed: esc(d.sealedName) })}` : "") + `</div>`;
@@ -1982,6 +2030,26 @@ function renderObtainDetail(det, r) {
     renderCraftDetail(r); loadSources(srcItem);
   });
   if (craftView === "src" && srcItem && srcData[srcItem] === undefined) loadSources(srcItem);
+}
+
+function renderAccessoryDetail(det, r, d) {
+  craftView = "src";
+  const bonus = (d.bonus || []).map(([op, s, v]) => bonusText(op, s, v));
+  const acts = (d.actives || []).filter(a => a.effects.length || a.reuse).map(a =>
+    `<span class="act">${esc(t("accActive"))}: ${esc(a.effects.map(([op, s, v]) => bonusText(op, s, v)).join(" · ") || a.name)}` +
+    `${a.time ? " · " + esc(t("accTime", { t: a.time })) : ""}${a.reuse ? " · " + esc(t("accReuse", { r: a.reuse })) : ""}</span>`);
+  let body = `<div class="obtain">${t("accSummary", { slot: esc(t("acc_" + d.acc)) })}` +
+    (d.acc === "bracelet" ? `<br>${t("accBracelet")}` : d.acc === "talisman" ? `<br>${t("accTalisman")}` : "") +
+    `<div class="accbon">${bonus.length ? `<b>${esc(t("accBonus"))}:</b> ${esc(bonus.join(" · "))}` : acts.length ? "" : esc(t("accNoBonus"))}` +
+    `${acts.length ? (bonus.length ? "<br>" : "") + acts.join("<br>") : ""}</div></div>`;
+  det.innerHTML = body + `<div class="cbody">${sourcesHtml(r)}</div>`;
+  det.onclick = e => e.stopPropagation();
+  det.querySelectorAll("[data-src], [data-pick]").forEach(el => el.onclick = e => {
+    e.stopPropagation();
+    srcItem = +(el.dataset.src || el.dataset.pick);
+    renderCraftDetail(r); loadSources(srcItem);
+  });
+  if (srcItem && srcData[srcItem] === undefined) loadSources(srcItem);
 }
 
 function bindCraftHead(det, r) {
