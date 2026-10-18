@@ -113,7 +113,19 @@
   .tab:hover { color: var(--text); }
   .tab.sel { color: var(--gold-hi); background: linear-gradient(#4a3f2b, #1e1a12);
              box-shadow: inset 0 0 0 1px rgba(201,165,90,.45); }
-  .body { flex: 1; overflow-y: auto; padding: 6px; }
+  .body { flex: 1; overflow-y: auto; padding: 6px; zoom: var(--scale, 1); }
+  .tabs { zoom: var(--scale, 1); }
+  /* resize grips: right edge, bottom edge and the corner */
+  .grip { position: absolute; z-index: 20; }
+  .grip.r { top: 30px; right: 0; bottom: 14px; width: 5px; cursor: ew-resize; }
+  .grip.b { left: 14px; right: 14px; bottom: 0; height: 5px; cursor: ns-resize; }
+  .grip.rb { right: 0; bottom: 0; width: 14px; height: 14px; cursor: nwse-resize;
+             background: linear-gradient(135deg, transparent 0 55%, var(--gold) 55% 62%, transparent 62% 72%,
+                                         var(--gold) 72% 79%, transparent 79%); opacity: .7; }
+  .grip.rb:hover { opacity: 1; }
+  .compact .grip.b { display: none; }
+  .compact .grip.rb { cursor: ew-resize; }
+  button.b[data-scale].on { color: var(--gold-hi); box-shadow: inset 0 0 0 1px var(--gold); }
   .page { display: none; }
   .page.sel { display: block; }
   .compact .tabs, .compact .body { display: none; }
@@ -330,7 +342,7 @@
   .csum b { color: var(--text-hi); font-weight: normal; }
   .cnote { margin: 4px 0; padding: 3px 5px; font-size: 10px; line-height: 13px; color: #e8c547;
            background: rgba(232,197,71,.07); border: 1px solid rgba(232,197,71,.3); }
-  .cbody { max-height: 260px; overflow-y: auto; margin-top: 4px; }
+  .cbody { max-height: max(220px, calc((100vh - 330px) / var(--scale, 1))); overflow-y: auto; margin-top: 4px; }
   .step { display: grid; grid-template-columns: 18px 1fr; column-gap: 5px; padding: 3px 0;
           border-bottom: 1px solid rgba(106,92,62,.15); font-size: 10px; line-height: 13px; }
   .step .n { color: var(--gold); text-align: right; grid-row: span 2; }
@@ -443,6 +455,8 @@
     <div class="tab" data-p="lnk" data-i18n="tabOptions"></div>
   </div>
 
+  <div class="grip r" data-grip="r"></div><div class="grip b" data-grip="b"></div>
+  <div class="grip rb" data-grip="rb" data-i18n-title="tipResize"></div>
   <div class="body">
     <!-- CLIENTS -->
     <div class="page sel" id="p-cli">
@@ -594,6 +608,10 @@
         <div class="sep"></div>
         <div class="small" data-i18n="optOpacity"></div>
         <input type="range" id="oOpacity" min="0.5" max="1" step="0.02">
+        <div class="sep"></div>
+        <div class="row" style="gap:3px"><span class="grow small" data-i18n="optScale"></span>
+          <button class="b" data-scale="1">100%</button><button class="b" data-scale="1.15">115%</button>
+          <button class="b" data-scale="1.3">130%</button></div>
       </div>
     </div>
   </div>
@@ -736,6 +754,7 @@ const I18N = {
     presetInstanceBtn: "Inst. 24h", presetRaidBtn: "Raid 12h", presetBuffBtn: "Buff 2h",
     optLang: "Idioma", folderGame: "Pasta do jogo", folderSystem: "Pasta system", folderShots: "Screenshots",
     optRename: "Nome da conta no título da janela do jogo", optDelay: "Espera até a tela de login (login automático)",
+    optScale: "Tamanho do texto", tipResize: "Arraste para redimensionar",
     optOpacity: "Transparência do painel", sysMessage: "Mensagem do Sistema",
     aboutGenericName: "L2Axis Control", aboutGenericServer: "Painel da comunidade · L2Axis High Five x15",
     aboutGenericThanks: "Feito por jogadores para a comunidade L2Axis.", aboutSign: "— os jogadores do L2Axis",
@@ -819,6 +838,7 @@ const I18N = {
     presetInstanceBtn: "Inst. 24h", presetRaidBtn: "Raid 12h", presetBuffBtn: "Buff 2h",
     optLang: "Language", folderGame: "Game folder", folderSystem: "System folder", folderShots: "Screenshots",
     optRename: "Account name in the game window title", optDelay: "Wait until the login screen (auto login)",
+    optScale: "Text size", tipResize: "Drag to resize",
     optOpacity: "Panel transparency", sysMessage: "System Message",
     aboutGenericName: "L2Axis Control", aboutGenericServer: "Community panel · L2Axis High Five x15",
     aboutGenericThanks: "Made by players for the L2Axis community.", aboutSign: "— the players of L2Axis",
@@ -902,6 +922,7 @@ const I18N = {
     presetInstanceBtn: "Inst. 24h", presetRaidBtn: "Raid 12h", presetBuffBtn: "Buff 2h",
     optLang: "Sprache", folderGame: "Spielordner", folderSystem: "System-Ordner", folderShots: "Screenshots",
     optRename: "Kontoname im Titel des Spielfensters", optDelay: "Warten bis zum Login-Bildschirm (Auto-Login)",
+    optScale: "Textgröße", tipResize: "Ziehen, um die Größe zu ändern",
     optOpacity: "Transparenz des Panels", sysMessage: "Systemnachricht",
     aboutGenericName: "L2Axis Control", aboutGenericServer: "Community-Panel · L2Axis High Five x15",
     aboutGenericThanks: "Von Spielern für die L2Axis-Community gemacht.", aboutSign: "— die Spieler von L2Axis",
@@ -1132,6 +1153,17 @@ function build() {
   $("#oOpacity").oninput = e => document.documentElement.style.setProperty("--op", e.target.value);
   $("#oOpacity").onchange = e => api.set_option("opacity", e.target.value);
   document.documentElement.style.setProperty("--op", S.opacity);
+  const applyScale = v => {
+    document.documentElement.style.setProperty("--scale", v);
+    document.querySelectorAll("[data-scale]").forEach(b => b.classList.toggle("on", +b.dataset.scale === +v));
+  };
+  applyScale(S.scale || 1);
+  document.querySelectorAll("[data-scale]").forEach(b => b.onclick = () => {
+    applyScale(b.dataset.scale); api.set_option("scale", b.dataset.scale);
+  });
+  document.querySelectorAll("[data-grip]").forEach(g => g.addEventListener("mousedown", e => {
+    if (e.button === 0) { e.preventDefault(); e.stopPropagation(); api.resize_start(g.dataset.grip); }
+  }));
   $("#wnd").classList.toggle("compact", S.compact);
 
   $("#bLaunchAll").onclick = async () => {

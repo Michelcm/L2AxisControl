@@ -65,7 +65,8 @@ PING_INTERVAL = 2.0
 PING_HISTORY = 60
 LAUNCH_SPACING = 5  # seconds between clients on "Open all"
 # +12 px top/left: room for the GM medallion to stick out of the frame
-WIN_W, WIN_H, COMPACT_H = 392, 652, 104
+WIN_W, WIN_H, COMPACT_H = 440, 720, 104   # default size (logical pixels); the user can resize
+MIN_W, MIN_H, MAX_W, MAX_H = 392, 480, 1000, 1400
 ASSETS_DIR = APP_DIR / "assets"
 APP_ICON = ASSETS_DIR / "app.ico"
 APP_ID = "L2Axis.Control"  # own taskbar identity, so Windows does not group the panel with Python
@@ -383,7 +384,7 @@ def run_hidden(args, timeout=20):
 def load_data():
     default = {"slots": [f"Account {i + 1}" for i in range(MAX_SLOTS)], "votes": {},
                "timers": [], "topmost": True, "pos": None, "compact": False,
-               "rename_windows": True, "opacity": 0.92, "accounts": {}, "login_delay": 15,
+               "rename_windows": True, "opacity": 0.92, "size": None, "scale": 1.0, "accounts": {}, "login_delay": 15,
                "bosses": {}, "lang": "pt",
                "boss_view": {"sort": "respawn", "range": "", "min": "", "max": ""}}
     try:
@@ -1578,6 +1579,7 @@ class Api:
                 "server": SERVER_IP, "warp": self._warp.state, "votes": votes, "timers": timers,
                 "alerts": alerts, "topmost": self._data["topmost"], "compact": self._data["compact"],
                 "renameWindows": self._data["rename_windows"], "opacity": self._data["opacity"],
+                "scale": self._data.get("scale", 1.0),
                 "loginDelay": self._data["login_delay"], "admin": is_admin(), "bosses": bosses,
                 "lang": self._data["lang"], "bossView": self._data["boss_view"],
                 "gm": load_gm(),
@@ -1780,7 +1782,8 @@ class Api:
                 self._window.on_top = bool(value)
             elif key == "compact":
                 self._data["compact"] = bool(value)
-                self._window.resize(WIN_W, COMPACT_H if value else WIN_H)
+                w, h = self._size()
+                self._window.resize(w, COMPACT_H if value else h)
                 threading.Timer(0.3, self._apply_shape).start()
             elif key == "renameWindows":
                 self._data["rename_windows"] = bool(value)
@@ -1794,6 +1797,8 @@ class Api:
                 self._data["lang"] = value
             elif key == "opacity":
                 self._data["opacity"] = max(0.5, min(1.0, float(value)))
+            elif key == "scale":
+                self._data["scale"] = max(0.9, min(1.5, float(value)))
             self._save()
 
     def minimize_self(self):
@@ -1830,8 +1835,8 @@ class Api:
         w, h = r.right - r.left, r.bottom - r.top
         inset, medal = round(12 * scale), round(47 * scale)
         gdi32 = ctypes.windll.gdi32
-        # no bottom limit: the height changes in compact mode and anything past the window is ignored
-        frame = gdi32.CreateRectRgn(inset, inset, w, 20000)
+        # no right/bottom limit: the window can be resized and anything past it is ignored
+        frame = gdi32.CreateRectRgn(inset, inset, 20000, 20000)
         corner = round(8 * scale)
         badge = gdi32.CreateRoundRectRgn(0, 0, medal + 1, medal + 1, corner, corner)
         gdi32.CombineRgn(frame, frame, badge, 2)  # RGN_OR
@@ -1847,6 +1852,51 @@ class Api:
                     return
                 time.sleep(0.25)
         threading.Thread(target=work, daemon=True).start()
+
+    def _size(self):
+        """Saved window size (logical pixels), within limits."""
+        size = self._data.get("size") or [WIN_W, WIN_H]
+        return max(MIN_W, min(MAX_W, int(size[0]))), max(MIN_H, min(MAX_H, int(size[1])))
+
+    def resize_start(self, edge):
+        """Resize from the right edge ("r"), bottom edge ("b") or corner ("rb") while the left
+        button is held. Same approach as drag_start (works when the panel is elevated)."""
+        hwnd = self._own_hwnd()
+        if not hwnd or edge not in ("r", "b", "rb"):
+            return False
+        try:
+            scale = user32.GetDpiForWindow(hwnd) / 96.0
+        except (AttributeError, OSError):
+            scale = 1.0
+        compact = self._data["compact"]
+
+        def work():
+            pt = wintypes.POINT()
+            r = wintypes.RECT()
+            user32.GetCursorPos(ctypes.byref(pt))
+            user32.GetWindowRect(hwnd, ctypes.byref(r))
+            x0, y0, w0, h0 = pt.x, pt.y, r.right - r.left, r.bottom - r.top
+            # the real window is a bit smaller than the size it was created with: keep that offset so
+            # the saved size reopens exactly as it was left
+            want_w, want_h = self._size()
+            off_w, off_h = want_w - w0 / scale, want_h - h0 / scale
+            while user32.GetAsyncKeyState(0x01) & 0x8000:
+                user32.GetCursorPos(ctypes.byref(pt))
+                w = w0 + (pt.x - x0 if "r" in edge else 0)
+                h = h0 + (pt.y - y0 if "b" in edge and not compact else 0)
+                w = max(round(MIN_W * scale), min(round(MAX_W * scale), w))
+                if not compact:
+                    h = max(round(MIN_H * scale), min(round(MAX_H * scale), h))
+                user32.SetWindowPos(hwnd, None, 0, 0, w, h, 0x0002 | 0x0004 | 0x0010)  # NOMOVE|NOZORDER|NOACTIVATE
+                time.sleep(0.016)
+            user32.GetWindowRect(hwnd, ctypes.byref(r))
+            with self._lock:
+                old = self._size()
+                self._data["size"] = [round((r.right - r.left) / scale + off_w),
+                                      old[1] if compact else round((r.bottom - r.top) / scale + off_h)]
+                self._save()
+        threading.Thread(target=work, daemon=True).start()
+        return True
 
     def drag_start(self):
         """Drag the window while the left button is held. Done through Windows: it does not
@@ -1938,10 +1988,11 @@ def main():
     token = secrets.token_urlsafe(24)
     server = make_server(api, token)
     pos = api._data.get("pos") or [40, 40]
+    width, height = api._size()
     window = webview.create_window(
         "L2Axis Control", url=f"http://127.0.0.1:{server.server_port}/?t={token}"
                              + (f"&view={os.environ['L2AXIS_VIEW']}" if os.environ.get("L2AXIS_VIEW") else ""),
-        width=WIN_W, height=COMPACT_H if api._data["compact"] else WIN_H,
+        width=width, height=COMPACT_H if api._data["compact"] else height,
         x=pos[0], y=pos[1], frameless=True, easy_drag=False, resizable=False,
         on_top=api._data["topmost"], transparent=True, background_color="#000000",
     )
