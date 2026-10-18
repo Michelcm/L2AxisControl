@@ -577,6 +577,111 @@ def build_recipe_db():
     return db
 
 
+# ---------------------------------------------------------------- item stats (weapongrp / armorgrp)
+STATS_DB_FILE = APP_DIR / "stats_db.json"
+_EQUIP_SOUND = "ItemSound.itemequip".encode("utf-16le")
+# armor/jewelry slot, recognised from the item name (order matters: "Leather Breastplate" before "Breastplate")
+_SLOTS = [("Earring", "earring"), ("Necklace", "necklace"), ("Ring", "ring"), ("Shield", "shield"),
+          ("Sigil", "sigil"), ("Circlet", "helmet"), ("Helmet", "helmet"), ("Gloves", "gloves"),
+          ("Gauntlet", "gloves"), ("Glove", "gloves"), ("Boots", "boots"), ("Shoes", "boots"),
+          ("Gaiter", "legs"), ("Legging", "legs"), ("Stockings", "legs"), ("Tunic", "chest"),
+          ("Breastplate", "chest"), ("Breast Plate", "chest"), ("Armor", "chest"), ("Robe", "chest")]
+
+
+def _scan_grp(data, tag, nints):
+    """Records start with tag u32 + id u32, then 20 bytes and the model path (ustr).
+    Stats follow the equip sound string. The first header for an id is the real one."""
+    pattern = re.compile(re.escape(struct.pack("<I", tag)) + rb"(.{4}).{20}(.{4})((?:[ -~]\x00){4,24})", re.S)
+    heads = []
+    for m in pattern.finditer(data):
+        item_id = struct.unpack_from("<I", m.group(1))[0]
+        ln = struct.unpack_from("<I", m.group(2))[0]
+        if not (0 < item_id < 1_000_000 and 8 <= ln <= 400 and ln % 2 == 0):
+            continue
+        if m.group(3).decode("utf-16le").startswith(("LineageEffect", "ItemSound")):
+            continue  # effect/sound paths inside a record, not a record start
+        heads.append((m.start(), item_id))
+    records = {}
+    for (start, item_id), (nxt, _) in zip(heads, heads[1:] + [(len(data), 0)]):
+        if item_id in records:
+            continue
+        a = data.find(_EQUIP_SOUND, start, nxt)
+        if a < 0:
+            continue
+        ln = struct.unpack_from("<I", data, a - 4)[0]
+        if a + ln + 4 * nints <= len(data):
+            records[item_id] = struct.unpack_from(f"<{nints}i", data, a + ln)
+    return records
+
+
+def _item_names_full(data, wanted):
+    """Like _item_names, but returns (name, additional name) to tell SA/PvP variants apart."""
+    names = {}
+    for item_id in wanted:
+        pattern = struct.pack("<I", item_id)
+        k = data.find(pattern)
+        while k >= 0:
+            ln = struct.unpack_from("<I", data, k + 4)[0]
+            if ln and ln <= 300 and ln % 2 == 0:
+                try:
+                    name = data[k + 8:k + 8 + ln].decode("utf-16le")
+                    al = struct.unpack_from("<I", data, k + 8 + ln)[0]
+                    if al <= 300 and al % 2 == 0 and not any(ord(c) < 32 for c in name):
+                        add = data[k + 12 + ln:k + 12 + ln + al].decode("utf-16le")
+                        names[item_id] = (name.replace("\xa0", " ").strip(), add.replace("\xa0", " ").strip())
+                        break
+                except (UnicodeDecodeError, struct.error):
+                    pass
+            k = data.find(pattern, k + 1)
+    return names
+
+
+def build_stats_db():
+    """Base stats of S-grade-and-above weapons and armor, with names; cached until files change."""
+    paths = [GAME_DIR / f for f in ("weapongrp.dat", "armorgrp.dat", "itemname-e.dat")]
+    if not all(p.exists() for p in paths):
+        log_error("info", "weapon/armor data files not found: item comparison disabled")
+        return None
+    stamp = ":".join(str(p.stat().st_mtime) for p in paths)
+    try:
+        cached = json.loads(STATS_DB_FILE.read_text(encoding="utf-8"))
+        if cached.get("stamp") == stamp:
+            return cached
+    except (OSError, ValueError):
+        pass
+    weapons = _scan_grp(l2_decrypt413(paths[0]), 0, 16)
+    armors = _scan_grp(l2_decrypt413(paths[1]), 1, 9)
+    items = {}
+    for item_id, v in weapons.items():
+        if v[5] >= 5:   # S grade and above
+            items[item_id] = {"kind": "weapon", "grade": v[5], "wtype": v[4], "patk": v[2], "matk": v[3],
+                              "crit": v[6], "speed": v[11]}
+    for item_id, v in armors.items():
+        if v[3] >= 3 and (v[5] or v[6]):   # B grade and above (boss jewelry starts at B)
+            items[item_id] = {"kind": "armor", "grade": v[3], "atype": v[2], "pdef": v[5], "mdef": v[6], "mp": v[7]}
+    names = _item_names_full(l2_decrypt413(paths[2]), items)
+    for item_id in list(items):
+        if item_id not in names:
+            del items[item_id]
+            continue
+        items[item_id]["name"], items[item_id]["add"] = names[item_id]
+    db = {"stamp": stamp, "items": {str(k): v for k, v in items.items()}}
+    STATS_DB_FILE.write_text(json.dumps(db, ensure_ascii=False), encoding="utf-8")
+    return db
+
+
+def item_slot(name):
+    slot = next((slot for word, slot in _SLOTS if word in name), None)
+    # one-piece armors/robes cover chest + legs: never compare them with a breastplate/tunic
+    if slot == "chest" and ("Armor" in name or "Robe" in name) and "Breastplate" not in name:
+        return "fullbody"
+    return slot
+
+
+# pet gear and duplicate "Shadow/Common Item" copies are not useful in a comparison
+_COMPARE_SKIP = re.compile(r"^(Shadow Item|Common Item)|\{PvP\}|Fenrir|Wolf|Hatchling|Strider|Wyvern")
+
+
 class RecipeBook:
     def __init__(self, db):
         self.recipes = {r["id"]: r for r in db["recipes"]}
@@ -591,6 +696,49 @@ class RecipeBook:
     def name(self, item_id):
         return self.names.get(item_id, f"#{item_id}")
 
+    def compare(self, recipe_id, stats_db, limit=14):
+        """Same-slot items to compare with the recipe's product (base stats from the client)."""
+        recipe = self.recipes.get(int(recipe_id))
+        if not recipe or not stats_db:
+            return None
+        items = {int(k): v for k, v in stats_db["items"].items()}
+        me = items.get(recipe["product"])
+        if not me:
+            return None
+        craftable = set(self.by_product)
+        if me["kind"] == "weapon":
+            # same weapon type and attack speed (separates one-handed from two-handed)
+            same = lambda it: it["kind"] == "weapon" and it["wtype"] == me["wtype"] and it["speed"] == me["speed"]
+            key = lambda it: (it["patk"], it["matk"])
+        else:
+            slot = item_slot(me["name"])
+            jewel = slot in ("earring", "necklace", "ring")
+            same = lambda it: (it["kind"] == "armor" and item_slot(it["name"]) == slot
+                               and (jewel or it["atype"] == me["atype"]))
+            key = lambda it: (it["mdef"] if jewel else it["pdef"], it["mp"])
+        rows, seen = [], set()
+        for item_id, it in items.items():
+            # skip Special Ability variants and {PvP} copies: same base stats as the plain item
+            if (it["add"] and item_id != recipe["product"]) or _COMPARE_SKIP.search(it["name"]) or not same(it):
+                continue
+            label = it["name"] + (f" ({it['add']})" if it["add"] else "")
+            if label in seen:
+                continue
+            seen.add(label)
+            rows.append({**it, "id": item_id, "label": label, "craft": item_id in craftable,
+                         "me": item_id == recipe["product"],
+                         # the same item after the Blacksmith of Mammon removes the seal
+                         "unsealed": me["name"].startswith("Sealed ") and it["name"] == me["name"][len("Sealed "):]})
+        # "Name - Special Ability" copies have the base item's stats: keep only the base item
+        bases = {r["name"] for r in rows}
+        rows = [r for r in rows if r["me"] or " - " not in r["name"] or r["name"].split(" - ")[0] not in bases]
+        rows.sort(key=key, reverse=True)
+        if len(rows) > limit:  # keep the product (and its unsealed version) visible
+            keep = [r for r in rows if r["me"] or r["unsealed"]]
+            top = [r for r in rows if not (r["me"] or r["unsealed"])][:limit - len(keep)]
+            rows = sorted(top + keep, key=key, reverse=True)
+        return {"kind": me["kind"], "rows": rows}
+
     def top_tier(self):
         out = []
         for r in self.recipes.values():
@@ -600,7 +748,8 @@ class RecipeBook:
                 continue
             kind = ("jewelry" if any(j in product for j in _JEWELRY)
                     else "armor" if product.startswith("Sealed ") else "weapon")
-            out.append({"id": r["id"], "product": product, "family": family, "grade": CRAFT_FAMILIES[family],
+            out.append({"id": r["id"], "productId": r["product"], "product": product, "family": family,
+                        "grade": CRAFT_FAMILIES[family],
                         "kind": kind, "level": r["level"], "rate": r["rate"], "mp": r["mp"]})
         return sorted(out, key=lambda x: (x["grade"], x["family"], x["kind"], x["product"], -x["rate"]))
 
@@ -850,6 +999,11 @@ class Api:
         except Exception:
             log_error("recipe_db", traceback.format_exc())
             self._recipes = None
+        try:
+            self._stats = build_stats_db()
+        except Exception:
+            log_error("stats_db", traceback.format_exc())
+            self._stats = None
         self._board = BoardWatcher(self._on_board_rows)
         self._board.start()
         self._adopt_running()
@@ -990,6 +1144,9 @@ class Api:
 
     def recipe_tree(self, recipe_id, quantity, expand_all=True):
         return self._recipes.tree(recipe_id, quantity, bool(expand_all)) if self._recipes else None
+
+    def recipe_compare(self, recipe_id):
+        return self._recipes.compare(recipe_id, self._stats) if self._recipes else None
 
     def boss_fav(self, bid, fav):
         with self._lock:

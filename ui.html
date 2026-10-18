@@ -345,6 +345,20 @@
           border-bottom: 1px solid rgba(106,92,62,.12); }
   .shop .q { color: var(--gold-hi); font-family: Consolas, monospace; }
 
+  .cmp { display: grid; grid-template-columns: 44px 1fr 34px 34px; gap: 0 4px; align-items: center;
+         padding: 2px 0; border-bottom: 1px solid rgba(106,92,62,.12); font-size: 10px; }
+  .cmp.me { background: rgba(201,165,90,.14); box-shadow: inset 2px 0 0 var(--gold); }
+  .cmp .src { font-size: 8px; text-align: center; border-radius: 2px; padding: 1px 0; }
+  .src.craft { background: #2f4d26; color: #c9e3a5; }
+  .src.drop { background: #2a2620; color: #a39a86; }
+  .src.unseal { background: #5a4a24; color: var(--gold-hi); }
+  .cmp .lb { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-hi); }
+  .cmp .v { text-align: right; font-family: Consolas, monospace; }
+  .cmp .bar { grid-column: 2 / 5; height: 2px; background: #1a1712; margin-top: 1px; }
+  .cmp .bar i { display: block; height: 100%; background: linear-gradient(90deg, #8c6a2c, #f0cf7e); }
+  .cmp.chead { color: var(--dim); font-size: 9px; border-bottom: 1px solid rgba(106,92,62,.35); }
+  .cbody { padding-right: 4px; }
+
   /* boss details */
   .boss { cursor: pointer; }
   .boss:hover { background: rgba(201,165,90,.07); }
@@ -654,6 +668,8 @@ const I18N = {
     cAvgNote: "Chance de {rate}%: em média são ~{per} tentativas por item. Para {qty} item(ns), leve material para {attempts} tentativas ({mp} MP) — a lista abaixo já está no caso médio.",
     cStep: "Faça {qty}× {name}", cStepMeta: "Create Item {level} · {rate}% · {mp} MP",
     cCopy: "Copiar lista", cCopied: "Copiado!", cShopTitle: "Lista de compras — {qty}× {name}",
+    cTabCompare: "Comparar", cmpCraft: "CRAFT", cmpDrop: "DROP", cmpUnsealed: "SEM SELO", cmpItem: "Item",
+    cmpNote: "Atributos base do cliente do jogo, mesmo slot. CRAFT = dá para fazer aqui; DROP = drop/NPC; SEM SELO = este mesmo item depois que o Blacksmith of Mammon tira o selo. Bônus de Masterwork é do servidor e não aparece.",
     cRecipeNote: "A receita não é consumida. Onde conseguir a receita e os pedaços (Piece) depende do servidor.",
     bfAll: "Todos", bfEpic: "Epics", bfDead: "Mortos", bSearch: "Buscar boss ou área…",
     sortLbl: "Ordenar", sortRespawn: "Respawn", sortLvlAsc: "Nível ↑", sortLvlDesc: "Nível ↓", sortName: "Nome",
@@ -722,6 +738,8 @@ const I18N = {
     cAvgNote: "{rate}% success: on average ~{per} attempts per item. For {qty} item(s), bring materials for {attempts} attempts ({mp} MP) — the list below already covers the average case.",
     cStep: "Craft {qty}× {name}", cStepMeta: "Create Item {level} · {rate}% · {mp} MP",
     cCopy: "Copy list", cCopied: "Copied!", cShopTitle: "Shopping list — {qty}× {name}",
+    cTabCompare: "Compare", cmpCraft: "CRAFT", cmpDrop: "DROP", cmpUnsealed: "UNSEALED", cmpItem: "Item",
+    cmpNote: "Base stats from the game client, same slot. CRAFT = craftable here; DROP = drop/NPC; UNSEALED = this same item after the Blacksmith of Mammon removes the seal. Masterwork bonuses come from the server and are not shown.",
     cRecipeNote: "The recipe is not consumed. Where to get the recipe and the pieces depends on the server.",
     bfAll: "All", bfEpic: "Epics", bfDead: "Dead", bSearch: "Search boss or area…",
     sortLbl: "Sort", sortRespawn: "Respawn", sortLvlAsc: "Level ↑", sortLvlDesc: "Level ↓", sortName: "Name",
@@ -790,6 +808,8 @@ const I18N = {
     cAvgNote: "{rate}% Erfolg: im Schnitt ~{per} Versuche pro Item. Für {qty} Item(s) Material für {attempts} Versuche ({mp} MP) mitnehmen — die Liste unten deckt bereits den Durchschnitt ab.",
     cStep: "{qty}× {name} craften", cStepMeta: "Create Item {level} · {rate}% · {mp} MP",
     cCopy: "Liste kopieren", cCopied: "Kopiert!", cShopTitle: "Einkaufsliste — {qty}× {name}",
+    cTabCompare: "Vergleich", cmpCraft: "CRAFT", cmpDrop: "DROP", cmpUnsealed: "ENTSIEGELT", cmpItem: "Item",
+    cmpNote: "Basiswerte aus dem Spielclient, gleicher Slot. CRAFT = hier craftbar; DROP = Drop/NPC; ENTSIEGELT = dieses Item, nachdem der Blacksmith of Mammon das Siegel entfernt hat. Masterwork-Boni kommen vom Server und werden nicht angezeigt.",
     cRecipeNote: "Das Rezept wird nicht verbraucht. Wo es Rezept und Teile gibt, hängt vom Server ab.",
     bfAll: "Alle", bfEpic: "Epics", bfDead: "Tot", bSearch: "Boss oder Gebiet suchen…",
     sortLbl: "Sortieren", sortRespawn: "Respawn", sortLvlAsc: "Level ↑", sortLvlDesc: "Level ↓", sortName: "Name",
@@ -863,7 +883,7 @@ function applyI18n() {
 const $ = s => document.querySelector(s);
 let api, S = null, built = false, toastUntil = 0, bossFilter = "all", openBoss = null;
 // craft tab state
-let RECIPES = null, craftFamily = "", openRecipe = null, craftQty = 1, craftFull = true, craftView = "plan", craftData = null;
+let RECIPES = null, craftFamily = "", openRecipe = null, craftQty = 1, craftFull = true, craftView = "plan", craftData = null, craftCmp = null;
 // sorting/level range live in data.json (the WebView runs in private mode and wipes localStorage)
 let bossView = { sort: "respawn", range: "", min: "", max: "" };
 const saveBossView = () => api.set_option("bossView", bossView);
@@ -1375,7 +1395,11 @@ function renderCraftList() {
     row.innerHTML = `<span class="g ${r.grade === "S84" ? "s84" : ""}">${r.grade}</span><span class="nm"></span>
       <span class="small">Lv ${r.level}</span><span class="rt ${r.rate === 100 ? "r100" : "r60"}">${r.rate}%</span>`;
     row.querySelector(".nm").textContent = r.product;
-    row.onclick = () => { openRecipe = openRecipe === r.id ? null : r.id; craftData = null; renderCraftList(); if (openRecipe) loadCraft(); };
+    row.onclick = () => {
+      openRecipe = openRecipe === r.id ? null : r.id; craftData = null; craftCmp = null;
+      if (craftView === "cmp") craftView = "plan";
+      renderCraftList(); if (openRecipe) loadCraft();
+    };
     box.appendChild(row);
     if (openRecipe === r.id) {
       const det = document.createElement("div");
@@ -1396,6 +1420,25 @@ function shoppingText(r) {
   const list = craftData.avgShopping || craftData.shopping;
   return [t("cShopTitle", { qty: craftQty, name: r.product })]
     .concat(list.map(s => `${fmtInt(s.qty)} x ${s.name}`)).join("\n");
+}
+
+function compareHtml() {
+  if (!craftCmp || !craftCmp.data) return `<div class="small">…</div>`;
+  const c = craftCmp.data, weapon = c.kind === "weapon";
+  const jewel = !weapon && c.rows.every(x => !x.pdef);
+  const main = x => weapon ? x.patk : (jewel ? x.mdef : x.pdef);
+  const max = Math.max(...c.rows.map(main), 1);
+  const cols = weapon ? ["P.Atk", "M.Atk"] : (jewel ? ["M.Def", "MP"] : ["P.Def", "M.Def"]);
+  const vals = x => weapon ? [x.patk, x.matk] : (jewel ? [x.mdef, x.mp] : [x.pdef, x.mdef]);
+  let html = `<div class="cmp chead"><span></span><span>${esc(t("cmpItem"))}</span><span class="v">${cols[0]}</span><span class="v">${cols[1]}</span></div>`;
+  c.rows.forEach(x => {
+    const src = x.unsealed ? ["unseal", t("cmpUnsealed")] : x.craft ? ["craft", t("cmpCraft")] : ["drop", t("cmpDrop")];
+    const [a, b] = vals(x);
+    html += `<div class="cmp ${x.me ? "me" : ""}"><span class="src ${src[0]}">${esc(src[1])}</span>
+      <span class="lb" title="${esc(x.label)}">${esc(x.label)}</span><span class="v">${a}</span><span class="v">${b || "—"}</span>
+      <span></span><span class="bar"><i style="width:${Math.round(main(x) / max * 100)}%"></i></span></div>`;
+  });
+  return html + `<div class="small" style="margin-top:5px;line-height:13px">${esc(t("cmpNote"))}</div>`;
 }
 
 function treeHtml(node, depth = 0) {
@@ -1419,13 +1462,15 @@ function renderCraftDetail(r) {
   const d = craftData;
   let body = `<div class="csum">${t("cSummary", { recipe: esc(d.recipeItem), level: d.maxLevel, crafts: fmtInt(d.crafts), mp: fmtInt(d.mp) })}</div>`;
   if (d.avgAttempts) body += `<div class="cnote">${esc(t("cAvgNote", { rate: d.rate, per: (100 / d.rate).toLocaleString(LOCALES[LANG], { maximumFractionDigits: 2 }), qty: d.quantity, attempts: d.avgAttempts, mp: fmtInt(d.avgMp) }))}</div>`;
-  body += `<div class="ctabs">${["plan", "tree", "shop"].map(v => `<button class="b ${craftView === v ? "on" : ""}" data-cv="${v}">${esc(t({ plan: "cTabPlan", tree: "cTabTree", shop: "cTabShop" }[v]))}</button>`).join("")}</div>`;
+  body += `<div class="ctabs">${["plan", "tree", "shop", "cmp"].map(v => `<button class="b ${craftView === v ? "on" : ""}" data-cv="${v}">${esc(t({ plan: "cTabPlan", tree: "cTabTree", shop: "cTabShop", cmp: "cTabCompare" }[v]))}</button>`).join("")}</div>`;
   let content = "";
   if (craftView === "plan") {
     content = d.plan.map((s, i) => `<div class="step"><span class="n">${i + 1}.</span><span class="what">${esc(t("cStep", { qty: fmtInt(s.makes), name: s.name }))}</span>
       <span class="meta">${esc(t("cStepMeta", { level: s.level, rate: s.rate, mp: fmtInt(s.mp) }))}</span></div>`).join("");
   } else if (craftView === "tree") {
     content = treeHtml(d.root);
+  } else if (craftView === "cmp") {
+    content = compareHtml();
   } else {
     const list = d.avgShopping || d.shopping;
     content = list.map(s => `<div class="shop"><span>${esc(s.name)}</span><span class="q">${fmtInt(s.qty)}</span></div>`).join("") +
@@ -1433,7 +1478,13 @@ function renderCraftDetail(r) {
   }
   det.innerHTML = head + body + `<div class="cbody">${content}</div><div class="small" style="margin-top:4px">${esc(t("cRecipeNote"))}</div>`;
   bindCraftHead(det, r);
-  det.querySelectorAll("[data-cv]").forEach(b => b.onclick = e => { e.stopPropagation(); craftView = b.dataset.cv; renderCraftDetail(r); });
+  det.querySelectorAll("[data-cv]").forEach(b => b.onclick = async e => {
+    e.stopPropagation(); craftView = b.dataset.cv; renderCraftDetail(r);
+    if (craftView === "cmp" && (!craftCmp || craftCmp.id !== r.id)) {
+      craftCmp = { id: r.id, data: await api.recipe_compare(r.id) };
+      if (openRecipe === r.id) renderCraftDetail(r);
+    }
+  });
   const copy = det.querySelector("#cCopy");
   if (copy) copy.onclick = async e => {
     e.stopPropagation();
