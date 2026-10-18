@@ -384,7 +384,7 @@ def run_hidden(args, timeout=20):
 def load_data():
     default = {"slots": [f"Account {i + 1}" for i in range(MAX_SLOTS)], "votes": {},
                "timers": [], "topmost": True, "pos": None, "compact": False,
-               "rename_windows": True, "opacity": 0.92, "size": None, "scale": 1.0, "accounts": {}, "login_delay": 15,
+               "rename_windows": True, "opacity": 1.0, "size": None, "scale": 1.0, "accounts": {}, "login_delay": 15,
                "bosses": {}, "lang": "pt",
                "boss_view": {"sort": "respawn", "range": "", "min": "", "max": ""}}
     try:
@@ -2095,6 +2095,7 @@ class Api:
                 self._data["lang"] = value
             elif key == "opacity":
                 self._data["opacity"] = max(0.5, min(1.0, float(value)))
+                self._apply_opacity()
             elif key == "char" and isinstance(value, dict):
                 cls = value.get("cls") if value.get("cls") in CHAR_CLASSES else ""
                 race = value.get("race") if value.get("race") in {c[0] for c in CHAR_CLASSES.values()} else ""
@@ -2144,7 +2145,26 @@ class Api:
         gdi32.CombineRgn(frame, frame, badge, 2)  # RGN_OR
         gdi32.DeleteObject(badge)
         user32.SetWindowRgn(hwnd, frame, True)  # Windows takes ownership of the region
+        # WebView2 draws through DirectComposition, which the region does not clip: on Windows 11 the
+        # system backdrop (#202020) kept filling the cut-out strips. Without a backdrop they are clear.
+        try:
+            none = ctypes.c_int(1)  # DWMSBT_NONE
+            ctypes.windll.dwmapi.DwmSetWindowAttribute(hwnd, 38, ctypes.byref(none), 4)  # DWMWA_SYSTEMBACKDROP_TYPE
+        except (AttributeError, OSError):
+            pass  # Windows 10: no system backdrop
+        self._apply_opacity(hwnd)
         return True
+
+    def _apply_opacity(self, hwnd=None):
+        """Whole-window transparency (layered window alpha): the only kind WebView2 honours."""
+        hwnd = hwnd or self._own_hwnd()
+        if not hwnd:
+            return
+        ex = user32.GetWindowLongW(hwnd, -20)  # GWL_EXSTYLE
+        if not ex & 0x80000:  # WS_EX_LAYERED
+            user32.SetWindowLongW(hwnd, -20, ex | 0x80000)
+        alpha = int(round(255 * max(0.5, min(1.0, float(self._data.get("opacity", 1.0))))))
+        user32.SetLayeredWindowAttributes(hwnd, 0, alpha, 2)  # LWA_ALPHA
 
     def ui_ready(self):
         """Called by the interface once it is built: applies the window shape."""

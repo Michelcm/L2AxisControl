@@ -135,6 +135,18 @@
   .body::-webkit-scrollbar-thumb { background: linear-gradient(90deg, #5a4c33, #2b2418); border: 1px solid #000; }
 
   /* ------------------------------------------------ components */
+  .osec { margin: 7px 2px 3px; display: flex; align-items: center; gap: 6px; font-size: 9px; letter-spacing: 1px;
+          text-transform: uppercase; color: var(--gold); }
+  .osec::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, rgba(201,165,90,.55), transparent); }
+  .osec:first-child { margin-top: 1px; }
+  .ogrid { display: grid; gap: 3px; }
+  .ogrid.two { grid-template-columns: 1fr 1fr; }
+  .ogrid.three { grid-template-columns: 1fr 1fr 1fr; }
+  .ogrid button.b { width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .orow { display: flex; align-items: center; gap: 6px; min-height: 22px; }
+  .orow .lbl { flex: 1; min-width: 0; }
+  .orow input[type=range] { flex: 1; }
+  .orow .pct { width: 34px; text-align: right; color: var(--gold-hi); font-family: Consolas, monospace; }
   .panel {
     position: relative; margin-bottom: 5px; padding: 5px 6px;
     background: linear-gradient(rgba(40,35,26,.55), rgba(16,14,11,.55));
@@ -623,32 +635,36 @@
     <!-- OPTIONS / LINKS -->
     <div class="page" id="p-lnk">
       <div class="panel">
-        <div class="row">
-          <span class="grow hi" data-i18n="optLang"></span>
+        <div class="osec" data-i18n="optLang"></div>
+        <div class="ogrid three">
           <button class="b" data-lang="pt">PT-BR</button>
           <button class="b" data-lang="en">EN</button>
           <button class="b" data-lang="de">DE</button>
         </div>
-      </div>
-      <div class="panel" id="links"></div>
-      <div class="panel">
-        <button class="b wide" data-folder="game" data-i18n="folderGame"></button>
-        <button class="b wide" data-folder="system" data-i18n="folderSystem"></button>
-        <button class="b wide" data-folder="shots" data-i18n="folderShots"></button>
-      </div>
-      <div class="panel">
-        <label class="chk"><input type="checkbox" id="oRename"><i></i><span data-i18n="optRename"></span></label>
-        <div class="row" style="margin:4px 0 2px">
-          <span class="grow small" data-i18n="optDelay"></span>
-          <input class="e" id="oDelay" style="width:40px;text-align:center"><span class="small">&nbsp;s</span>
-        </div>
-        <div class="sep"></div>
-        <div class="small" data-i18n="optOpacity"></div>
-        <input type="range" id="oOpacity" min="0.5" max="1" step="0.02">
-        <div class="sep"></div>
-        <div class="row" style="gap:3px"><span class="grow small" data-i18n="optScale"></span>
+
+        <div class="osec" data-i18n="secWindow"></div>
+        <label class="chk"><input type="checkbox" id="oTop"><i></i><span data-i18n="optTop"></span></label>
+        <div class="orow"><span class="lbl small" data-i18n="optOpacity"></span>
+          <input type="range" id="oOpacity" min="0.5" max="1" step="0.01"><span class="pct" id="oOpacityPct"></span></div>
+        <div class="orow"><span class="lbl small" data-i18n="optScale"></span>
           <button class="b" data-scale="1">100%</button><button class="b" data-scale="1.15">115%</button>
           <button class="b" data-scale="1.3">130%</button></div>
+
+        <div class="osec" data-i18n="secLogin"></div>
+        <label class="chk"><input type="checkbox" id="oRename"><i></i><span data-i18n="optRename"></span></label>
+        <div class="orow"><span class="lbl small" data-i18n="optDelay"></span>
+          <input class="e" id="oDelay" style="width:40px;text-align:center"><span class="small">s</span></div>
+
+        <div class="osec" data-i18n="secLinks"></div>
+        <div class="ogrid two" id="links"></div>
+
+        <div class="osec" data-i18n="secFolders"></div>
+        <div class="ogrid three">
+          <button class="b" data-folder="game" data-i18n="folderGame"></button>
+          <button class="b" data-folder="system" data-i18n="folderSystem"></button>
+          <button class="b" data-folder="shots" data-i18n="folderShots"></button>
+        </div>
+        <div style="margin-top:8px"><button class="b wide" id="oAbout" data-i18n="optAbout"></button></div>
       </div>
     </div>
   </div>
@@ -805,6 +821,8 @@ const I18N = {
     optLang: "Idioma", folderGame: "Pasta do jogo", folderSystem: "Pasta system", folderShots: "Screenshots",
     optRename: "Nome da conta no título da janela do jogo", optDelay: "Espera até a tela de login (login automático)",
     optScale: "Tamanho do texto", tipResize: "Arraste para redimensionar",
+    secWindow: "Janela", secLogin: "Login automático", secLinks: "Links do L2Axis", secFolders: "Pastas",
+    optTop: "Sempre por cima dos outros programas", optAbout: "Sobre o painel e créditos",
     optOpacity: "Transparência do painel", sysMessage: "Mensagem do Sistema",
     aboutGenericName: "L2Axis Control", aboutGenericServer: "Painel da comunidade · L2Axis High Five x15",
     aboutGenericThanks: "Feito por jogadores para a comunidade L2Axis.", aboutSign: "— os jogadores do L2Axis",
@@ -902,6 +920,8 @@ const I18N = {
     optLang: "Language", folderGame: "Game folder", folderSystem: "System folder", folderShots: "Screenshots",
     optRename: "Account name in the game window title", optDelay: "Wait until the login screen (auto login)",
     optScale: "Text size", tipResize: "Drag to resize",
+    secWindow: "Window", secLogin: "Auto login", secLinks: "L2Axis links", secFolders: "Folders",
+    optTop: "Always on top of other programs", optAbout: "About the panel & credits",
     optOpacity: "Panel transparency", sysMessage: "System Message",
     aboutGenericName: "L2Axis Control", aboutGenericServer: "Community panel · L2Axis High Five x15",
     aboutGenericThanks: "Made by players for the L2Axis community.", aboutSign: "— the players of L2Axis",
@@ -999,6 +1019,8 @@ const I18N = {
     optLang: "Sprache", folderGame: "Spielordner", folderSystem: "System-Ordner", folderShots: "Screenshots",
     optRename: "Kontoname im Titel des Spielfensters", optDelay: "Warten bis zum Login-Bildschirm (Auto-Login)",
     optScale: "Textgröße", tipResize: "Ziehen, um die Größe zu ändern",
+    secWindow: "Fenster", secLogin: "Auto-Login", secLinks: "L2Axis-Links", secFolders: "Ordner",
+    optTop: "Immer über anderen Programmen", optAbout: "Über das Panel & Credits",
     optOpacity: "Transparenz des Panels", sysMessage: "Systemnachricht",
     aboutGenericName: "L2Axis Control", aboutGenericServer: "Community-Panel · L2Axis High Five x15",
     aboutGenericThanks: "Von Spielern für die L2Axis-Community gemacht.", aboutSign: "— die Spieler von L2Axis",
@@ -1209,7 +1231,7 @@ function build() {
   const links = $("#links");
   S.links.filter(([key]) => key !== "linkMail").forEach(([key, url]) => {
     const b = document.createElement("button");
-    b.className = "b wide"; b.dataset.key = key;
+    b.className = "b"; b.dataset.key = key;
     b.onclick = () => api.open_link(url);
     links.appendChild(b);
   });
@@ -1228,10 +1250,18 @@ function build() {
   $("#oRename").onchange = e => api.set_option("renameWindows", e.target.checked);
   $("#oDelay").value = S.loginDelay;
   $("#oDelay").onchange = async e => { e.target.value = await api.set_login_delay(e.target.value || 15); };
-  $("#oOpacity").value = S.opacity;
-  $("#oOpacity").oninput = e => document.documentElement.style.setProperty("--op", e.target.value);
-  $("#oOpacity").onchange = e => api.set_option("opacity", e.target.value);
-  document.documentElement.style.setProperty("--op", S.opacity);
+  // the whole window fades (layered window); the page itself stays opaque
+  const showPct = v => { $("#oOpacityPct").textContent = Math.round(v * 100) + "%"; };
+  $("#oOpacity").value = S.opacity; showPct(S.opacity);
+  let opTimer = null;
+  $("#oOpacity").oninput = e => {
+    showPct(e.target.value);
+    clearTimeout(opTimer); opTimer = setTimeout(() => api.set_option("opacity", e.target.value), 40);
+  };
+  $("#oTop").checked = S.topmost;
+  $("#oTop").onchange = e => api.set_option("topmost", e.target.checked);
+  $("#oAbout").onclick = () => $("#gmBadge").click();
+  document.documentElement.style.setProperty("--op", 1);
   const applyScale = v => {
     document.documentElement.style.setProperty("--scale", v);
     document.querySelectorAll("[data-scale]").forEach(b => b.classList.toggle("on", +b.dataset.scale === +v));
@@ -1389,6 +1419,7 @@ function render() {
   }
   $("#toast").style.display = Date.now() < toastUntil ? "block" : "none";
   $("#bPin").classList.toggle("on", S.topmost);
+  $("#oTop").checked = S.topmost;
   $("#bCompact").classList.toggle("on", S.compact);
 
   // clients
