@@ -7,6 +7,7 @@ erros.log
 
 # generated from the game client's data files
 bosses_db.json
+recipes_db.json
 
 # personal screenshots and drafts
 prints_gm/

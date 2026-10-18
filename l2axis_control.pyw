@@ -9,6 +9,7 @@ arranges and monitors the windows, measures the network and tracks timers/votes.
 import base64
 import ctypes
 import json
+import math
 import re
 import math
 import os
@@ -488,6 +489,177 @@ def build_boss_db():
     BOSS_DB_FILE.write_text(json.dumps({"stamp": stamp, "bosses": bosses}, ensure_ascii=False), encoding="utf-8")
     return bosses
 
+# ---------------------------------------------------------------- recipe database (client files)
+RECIPE_DB_FILE = APP_DIR / "recipes_db.json"
+# top-tier families only (the player asked for Dynasty and above)
+CRAFT_FAMILIES = {"Dynasty": "S80", "Icarus": "S80", "Moirai": "S80", "Vesper": "S84"}
+_JEWELRY = ("Earring", "Necklace", "Ring")
+
+
+def _parse_recipes(data):
+    """Recipe-c.dat: name ascf, id, recipe item, Create Item level, product, count, MP,
+    success rate, material count, flag, then (item id, count) per material."""
+    r = _DatReader(data)
+    recipes = []
+    for _ in range(r.u32()):
+        r.ascf()
+        rid, recipe_item, level, product, count, mp, rate, nmat, _flag = (r.u32() for _ in range(9))
+        mats = [(r.u32(), r.u32()) for _ in range(nmat)]
+        recipes.append({"id": rid, "recipeItem": recipe_item, "level": level, "product": product,
+                        "count": count, "mp": mp, "rate": rate, "mats": mats})
+    return recipes
+
+
+def _item_names(data, wanted):
+    """itemname-e.dat: id u32 + name/additional name (u32 byte length + UTF-16) + description ascf.
+    The record tail has variable lists, so each wanted id is located directly and validated."""
+    def ustr(p):
+        ln = struct.unpack_from("<I", data, p)[0]
+        if ln > 2000 or ln % 2:
+            return None, p
+        try:
+            return data[p + 4:p + 4 + ln].decode("utf-16le"), p + 4 + ln
+        except UnicodeDecodeError:
+            return None, p
+
+    def record_at(p, strict):
+        name, q = ustr(p + 4)
+        if not name or any(ord(c) < 32 for c in name):
+            return None
+        add, q = ustr(q)
+        if add is None or any(ord(c) < 32 for c in add):
+            return None
+        if strict:
+            r = _DatReader(data)
+            r.p = q
+            r.ascf()
+            if r.p + 4 > len(data):
+                return None
+            popup = struct.unpack_from("<i", data, r.p)[0]
+            if popup != -1 and not 0 <= popup < 1000:
+                return None
+        return name.replace("\xa0", " ").strip()
+
+    names = {}
+    for item_id in wanted:
+        pattern = struct.pack("<I", item_id)
+        for strict in (True, False):  # strict first; a few records only pass the relaxed check
+            k = data.find(pattern)
+            while k >= 0 and item_id not in names:
+                found = record_at(k, strict)
+                if found:
+                    names[item_id] = found
+                k = data.find(pattern, k + 1)
+            if item_id in names:
+                break
+    return names
+
+
+def build_recipe_db():
+    """All recipes with item names; cached until the client files change."""
+    recipe_path, names_path = GAME_DIR / "Recipe-c.dat", GAME_DIR / "itemname-e.dat"
+    if not (recipe_path.exists() and names_path.exists()):
+        log_error("info", "recipe/item data files not found next to the panel: Craft tab disabled")
+        return None
+    stamp = f"{recipe_path.stat().st_mtime}:{names_path.stat().st_mtime}"
+    try:
+        cached = json.loads(RECIPE_DB_FILE.read_text(encoding="utf-8"))
+        if cached.get("stamp") == stamp:
+            return cached
+    except (OSError, ValueError):
+        pass
+    recipes = _parse_recipes(l2_decrypt413(recipe_path))
+    wanted = {r["product"] for r in recipes} | {r["recipeItem"] for r in recipes} | \
+             {m for r in recipes for m, _ in r["mats"]}
+    names = _item_names(l2_decrypt413(names_path), wanted)
+    db = {"stamp": stamp, "recipes": recipes, "names": {str(k): v for k, v in names.items()}}
+    RECIPE_DB_FILE.write_text(json.dumps(db, ensure_ascii=False), encoding="utf-8")
+    return db
+
+
+class RecipeBook:
+    def __init__(self, db):
+        self.recipes = {r["id"]: r for r in db["recipes"]}
+        self.names = {int(k): v for k, v in db["names"].items()}
+        # best recipe for each product: highest success rate, then fewest materials
+        self.by_product = {}
+        for r in db["recipes"]:
+            cur = self.by_product.get(r["product"])
+            if cur is None or (r["rate"], -len(r["mats"])) > (cur["rate"], -len(cur["mats"])):
+                self.by_product[r["product"]] = r
+
+    def name(self, item_id):
+        return self.names.get(item_id, f"#{item_id}")
+
+    def top_tier(self):
+        out = []
+        for r in self.recipes.values():
+            product = self.name(r["product"])
+            family = next((f for f in CRAFT_FAMILIES if re.search(rf"\b{f}\b", product)), None)
+            if not family:
+                continue
+            kind = ("jewelry" if any(j in product for j in _JEWELRY)
+                    else "armor" if product.startswith("Sealed ") else "weapon")
+            out.append({"id": r["id"], "product": product, "family": family, "grade": CRAFT_FAMILIES[family],
+                        "kind": kind, "level": r["level"], "rate": r["rate"], "mp": r["mp"]})
+        return sorted(out, key=lambda x: (x["grade"], x["family"], x["kind"], x["product"], -x["rate"]))
+
+    def _expand(self, recipe, needed, expand_all):
+        """Expand one recipe; returns (tree, base totals, craft steps, stats)."""
+        totals, steps, stats = {}, {}, {"mp": 0, "crafts": 0, "maxLevel": 0}
+
+        def walk(rec, need, depth):
+            crafts = math.ceil(need / rec["count"])
+            stats["mp"] += crafts * rec["mp"]
+            stats["crafts"] += crafts
+            stats["maxLevel"] = max(stats["maxLevel"], rec["level"])
+            step = steps.setdefault(rec["product"], {"id": rec["product"], "name": self.name(rec["product"]),
+                                                     "crafts": 0, "makes": 0, "level": rec["level"],
+                                                     "rate": rec["rate"], "mp": 0, "depth": 0})
+            step["crafts"] += crafts
+            step["makes"] += crafts * rec["count"]
+            step["mp"] += crafts * rec["mp"]
+            step["depth"] = max(step["depth"], depth)
+            node = {"id": rec["product"], "name": self.name(rec["product"]), "qty": need, "crafts": crafts,
+                    "rate": rec["rate"], "level": rec["level"], "mp": rec["mp"], "count": rec["count"],
+                    "children": []}
+            for mat_id, mat_qty in rec["mats"]:
+                if mat_id == rec["recipeItem"]:
+                    continue  # the recipe itself is listed but never consumed
+                mat_need = mat_qty * crafts
+                sub = self.by_product.get(mat_id)
+                if sub and depth < 8 and sub["id"] != rec["id"] and expand_all:
+                    node["children"].append(walk(sub, mat_need, depth + 1))
+                else:
+                    totals[mat_id] = totals.get(mat_id, 0) + mat_need
+                    node["children"].append({"id": mat_id, "name": self.name(mat_id), "qty": mat_need})
+            return node
+
+        root = walk(recipe, needed, 0)
+        shopping = sorted(({"id": k, "name": self.name(k), "qty": v} for k, v in totals.items()),
+                          key=lambda x: (-x["qty"], x["name"]))
+        # crafting order: deepest intermediates first, the final item last
+        plan = sorted(steps.values(), key=lambda s: (-s["depth"], s["level"], s["name"]))
+        return root, shopping, plan, stats
+
+    def tree(self, recipe_id, quantity, expand_all=True):
+        """Material tree, shopping list and a step-by-step crafting plan.
+        expand_all=False stops at the recipe's direct materials (buy the intermediates).
+        For recipes below 100% it also returns the shopping list for the *average* number
+        of attempts, so a player does not run out of materials halfway."""
+        recipe = self.recipes.get(int(recipe_id))
+        if not recipe:
+            return None
+        quantity = max(1, min(999, int(quantity)))
+        root, shopping, plan, stats = self._expand(recipe, quantity * recipe["count"], expand_all)
+        out = {"root": root, "shopping": shopping, "plan": plan, "recipeItem": self.name(recipe["recipeItem"]),
+               "quantity": quantity, "rate": recipe["rate"], **stats}
+        if recipe["rate"] < 100:
+            attempts = math.ceil(quantity / (recipe["rate"] / 100))
+            _, avg_shopping, _, avg_stats = self._expand(recipe, attempts * recipe["count"], expand_all)
+            out.update(avgAttempts=attempts, avgShopping=avg_shopping, avgMp=avg_stats["mp"])
+        return out
+
 
 # ---------------------------------------------------------------- bosses (Alt+B)
 _ROW_START = '<td width=300 valign=top>'
@@ -672,6 +844,12 @@ class Api:
         except Exception:
             log_error("boss_db", traceback.format_exc())
             self._boss_db = {}
+        try:
+            db = build_recipe_db()
+            self._recipes = RecipeBook(db) if db else None
+        except Exception:
+            log_error("recipe_db", traceback.format_exc())
+            self._recipes = None
         self._board = BoardWatcher(self._on_board_rows)
         self._board.start()
         self._adopt_running()
@@ -805,6 +983,13 @@ class Api:
                         "age": now - b["updated"], "maxHp": b.get("maxHp"), "hp": b.get("hp"),
                         "hpAge": now - b["hpAt"] if b.get("hpAt") else None, **db})
         return out
+
+    # -------------------------------------------------- craft
+    def recipes_list(self):
+        return self._recipes.top_tier() if self._recipes else []
+
+    def recipe_tree(self, recipe_id, quantity, expand_all=True):
+        return self._recipes.tree(recipe_id, quantity, bool(expand_all)) if self._recipes else None
 
     def boss_fav(self, bid, fav):
         with self._lock:
