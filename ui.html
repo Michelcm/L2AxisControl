@@ -21,7 +21,7 @@
     --mp: #2552b8;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  /* fundo escuro: so aparece nas sobras do recorte da janela, em volta do medalhao */
+  /* dark background: only visible in the leftovers of the window shape, around the medallion */
   html, body { background: #0b0a08; height: 100%; overflow: hidden; }
   body {
     font: 11px Tahoma, Verdana, "Segoe UI", sans-serif;
@@ -30,7 +30,7 @@
     -webkit-font-smoothing: none;
   }
 
-  /* ------------------------------------------------ moldura da janela */
+  /* ------------------------------------------------ window frame */
   .wnd {
     position: absolute; inset: 12px 0 0 12px;
     display: flex; flex-direction: column;
@@ -46,7 +46,7 @@
       0 0 10px rgba(0,0,0,.8);
     border-radius: 3px;
   }
-  /* cantoneiras ornamentais */
+  /* ornamental corners */
   .wnd::before, .wnd::after {
     content: ""; position: absolute; width: 14px; height: 14px; pointer-events: none;
     border: 2px solid var(--gold);
@@ -78,7 +78,7 @@
   .tbtn.on { color: var(--gold-hi); box-shadow: inset 0 0 0 1px var(--gold); }
   .tbtn.x:hover { background: linear-gradient(#8a2e22, #3d140f); }
 
-  /* ------------------------------------------------ resumo (estilo janela de status) */
+  /* ------------------------------------------------ summary (status window style) */
   .status { flex: none; padding: 6px 8px 5px; border-bottom: 1px solid rgba(106,92,62,.5); }
   .grow-g { display: flex; align-items: center; margin-top: 3px; }
   .grow-g .k { width: 56px; font-size: 10px; font-weight: bold; color: var(--gold); text-shadow: 1px 1px 0 #000; }
@@ -100,7 +100,7 @@
   .dot.r { background: var(--bad); }
   .toast { margin-top: 4px; color: var(--gold-hi); font-size: 10px; display: none; }
 
-  /* ------------------------------------------------ abas */
+  /* ------------------------------------------------ tabs */
   .tabs { flex: none; display: flex; gap: 1px; padding: 5px 6px 0; border-bottom: 1px solid var(--frame); }
   .tab {
     flex: 1; font-size: 10px; text-align: center; height: 20px; line-height: 18px; cursor: pointer;
@@ -122,7 +122,7 @@
   .body::-webkit-scrollbar-track { background: #0b0a08; border-left: 1px solid #2a241a; }
   .body::-webkit-scrollbar-thumb { background: linear-gradient(90deg, #5a4c33, #2b2418); border: 1px solid #000; }
 
-  /* ------------------------------------------------ componentes */
+  /* ------------------------------------------------ components */
   .panel {
     position: relative; margin-bottom: 5px; padding: 5px 6px;
     background: linear-gradient(rgba(40,35,26,.55), rgba(16,14,11,.55));
@@ -174,12 +174,12 @@
   input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 10px; height: 14px;
       background: linear-gradient(#8c784e, #3a301f); border: 1px solid #000; cursor: pointer; }
 
-  /* clientes */
+  /* clients */
   .slot .info { margin-top: 2px; font-size: 10px; color: var(--dim); white-space: nowrap; }
   .slot.on { box-shadow: inset 0 0 0 1px rgba(127,211,107,.35); }
   .warn { color: #b8955a; font-size: 10px; margin-top: 3px; white-space: pre-line; }
 
-  /* votos */
+  /* votes */
   .vote { display: flex; align-items: center; gap: 3px; padding: 2px 4px; border-bottom: 1px solid rgba(106,92,62,.18); }
   .vote .star { width: 12px; color: var(--gold); }
   .vote .nm { flex: 1; }
@@ -187,7 +187,7 @@
   .vote .st { width: 62px; font-size: 10px; text-align: right; padding-right: 4px; }
   .st.ready { color: var(--good); }
 
-  /* rede */
+  /* network */
   .stats { display: grid; grid-template-columns: repeat(4, 1fr); text-align: center; }
   .stats .k { font-size: 10px; color: var(--dim); }
   .stats .v { font-size: 17px; color: var(--text-hi); text-shadow: 1px 1px 0 #000; margin-top: 1px; }
@@ -212,7 +212,7 @@
   .timer { display: flex; align-items: center; gap: 4px; padding: 3px 4px; border-bottom: 1px solid rgba(106,92,62,.18); }
   .timer .t { width: 70px; text-align: right; font-size: 11px; }
 
-  /* dialogo modal estilo "System Message" */
+  /* modal dialog in the "System Message" style */
   .modal { position: absolute; inset: 0; background: rgba(0,0,0,.55); display: none;
            align-items: center; justify-content: center; z-index: 10; }
   .modal.show { display: flex; }
@@ -229,7 +229,7 @@
   .form .note { font-size: 10px; color: #b8955a; line-height: 13px; margin: 4px 0 6px; }
   .acc { color: var(--gold); }
 
-  /* medalhao do GM, saindo da quina da moldura */
+  /* GM medallion, sticking out of the frame corner */
   .gm {
     position: absolute; left: 1px; top: 1px; width: 40px; height: 40px; z-index: 5; cursor: pointer;
     background: #000 url(/assets/gm_96.png) center / cover no-repeat;
@@ -248,18 +248,48 @@
     font: bold 8px Tahoma; color: #1a1408; background: linear-gradient(#f6dc94, #a77f35);
     border: 1px solid #000; border-radius: 2px;
   }
-  .dlg.about { width: 300px; }
+  /* "About": large GM portrait on top, with a golden name plate */
+  .dlg.about { width: 336px; }
   .about .row button.b { width: auto; padding: 0 10px; white-space: nowrap; }
-  .about .abody { padding: 12px 14px 6px; text-align: center; }
-  .about .portrait { width: 128px; height: 128px; margin: 0 auto 8px; border: 1px solid #000;
-    box-shadow: 0 0 0 1px var(--gold), 0 0 0 4px #1c160c, 0 0 0 5px #8c6a2c, 0 4px 14px #000; }
-  .about .portrait img { width: 100%; height: 100%; display: block; }
-  .about .gmname { font-size: 13px; color: var(--text-hi); text-shadow: 1px 1px 0 #000; }
-  .about .gmname b { color: var(--gold-hi); }
-  .about .mail { font-family: Consolas, monospace; font-size: 10px; color: var(--dim); margin: 2px 0 2px; }
-  .about .thanks { font-size: 10px; line-height: 14px; color: #c9bc98; font-style: italic; padding: 0 4px; }
+  .about .hero { position: relative; height: 300px; margin: 10px 10px 0; overflow: hidden; border: 1px solid #000;
+    box-shadow: 0 0 0 1px var(--gold), 0 0 0 4px #1c160c, 0 0 0 5px #8c6a2c, 0 6px 18px #000;
+    animation: heroGlow 3.6s ease-in-out infinite; }
+  @keyframes heroGlow {
+    0%, 100% { box-shadow: 0 0 0 1px var(--gold), 0 0 0 4px #1c160c, 0 0 0 5px #8c6a2c, 0 6px 18px #000, 0 0 0 rgba(240,207,126,0); }
+    50% { box-shadow: 0 0 0 1px var(--gold-hi), 0 0 0 4px #1c160c, 0 0 0 5px #b8913f, 0 6px 18px #000, 0 0 18px rgba(240,207,126,.35); }
+  }
+  .about .hero img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .about .hero::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 48%;
+    background: linear-gradient(rgba(8,6,4,0), rgba(8,6,4,.78) 55%, rgba(8,6,4,.95)); }
+  .about .hero .c { position: absolute; width: 16px; height: 16px; border: 2px solid var(--gold-hi); z-index: 3;
+    filter: drop-shadow(0 0 2px #000); }
+  .about .hero .tl { top: 5px; left: 5px; border-right: 0; border-bottom: 0; }
+  .about .hero .tr { top: 5px; right: 5px; border-left: 0; border-bottom: 0; }
+  .about .hero .bl { bottom: 5px; left: 5px; border-right: 0; border-top: 0; }
+  .about .hero .br { bottom: 5px; right: 5px; border-left: 0; border-top: 0; }
+  .about .plate { position: absolute; left: 0; right: 0; bottom: 14px; z-index: 2; text-align: center; }
+  .about .gmname { font: 23px "Palatino Linotype", "Book Antiqua", Georgia, serif; color: #e8dcc0;
+    letter-spacing: .5px; text-shadow: 0 2px 4px #000; }
+  .about .gmname b { font-weight: bold; color: transparent;
+    background: linear-gradient(#fff6cf, #f0cf7e 45%, #a77f35); -webkit-background-clip: text; background-clip: text;
+    filter: drop-shadow(0 2px 2px rgba(0,0,0,.9)); }
+  .about .plate .sub { margin-top: 2px; font-size: 9px; letter-spacing: 1.6px; text-transform: uppercase; color: #c9a55a;
+    text-shadow: 0 1px 2px #000; }
+  .about .abody { padding: 6px 16px 4px; text-align: center; }
+  .about .orn { display: flex; align-items: center; gap: 8px; margin: 6px 0 8px; color: var(--gold); font-size: 11px; }
+  .about .orn::before, .about .orn::after { content: ""; flex: 1; height: 1px; }
+  .about .orn::before { background: linear-gradient(90deg, transparent, var(--gold)); }
+  .about .orn::after { background: linear-gradient(90deg, var(--gold), transparent); }
+  .about .thanks { font: italic 12px/18px "Palatino Linotype", "Book Antiqua", Georgia, serif; color: #e6d9b6; }
+  .about .thanks .q { font: bold 28px/0 Georgia, serif; color: var(--gold); vertical-align: -10px; margin: 0 2px; }
+  .about .sign { margin: 6px 4px 0; text-align: right; font: italic 11px Georgia, serif; color: var(--gold); }
+  .about .mail { margin: 6px 0 2px; font-family: Consolas, monospace; font-size: 10px; color: var(--dim); }
+  /* no avatar (build without gm.json): text only */
+  .about.noavatar .hero { height: auto; margin: 12px 10px 0; border: 0; box-shadow: none; animation: none; overflow: visible; }
+  .about.noavatar .hero img, .about.noavatar .hero .c, .about.noavatar .hero::after { display: none; }
+  .about.noavatar .plate { position: static; }
 
-  /* ordenacao / faixa de nivel */
+  /* sorting / level range */
   .bsort { display: flex; align-items: center; gap: 3px; margin-bottom: 4px; font-size: 10px; color: var(--dim); }
   select.e { height: 18px; padding: 0 2px; font: 11px Tahoma; color: var(--text-hi); background: #050505;
              border: 1px solid #000; box-shadow: inset 0 0 0 1px #4a4232; outline: none; cursor: pointer; }
@@ -268,7 +298,7 @@
   input.lv { width: 30px; text-align: center; }
   .bsort .sp { flex: 1; }
 
-  /* detalhes do boss */
+  /* boss details */
   .boss { cursor: pointer; }
   .boss:hover { background: rgba(201,165,90,.07); }
   .boss.open { background: rgba(201,165,90,.12); box-shadow: inset 2px 0 0 var(--gold); }
@@ -322,7 +352,7 @@
   </div>
 
   <div class="body">
-    <!-- CLIENTES -->
+    <!-- CLIENTS -->
     <div class="page sel" id="p-cli">
       <div id="slots"></div>
       <div class="small" id="external"></div>
@@ -335,7 +365,7 @@
       <div class="warn" id="hwidWarn"></div>
     </div>
 
-    <!-- REDE -->
+    <!-- NETWORK -->
     <div class="page" id="p-net">
       <div class="panel">
         <div class="stats">
@@ -393,7 +423,7 @@
       <div class="panel" style="padding:2px" id="bosses"></div>
     </div>
 
-    <!-- VOTOS -->
+    <!-- VOTES -->
     <div class="page" id="p-vote">
       <div class="btnbar two">
         <button class="b gold" id="bVoteMain" data-i18n="voteOpenMain"></button>
@@ -421,7 +451,7 @@
       <div class="panel" style="padding:2px" id="timers"></div>
     </div>
 
-    <!-- OPCOES / LINKS -->
+    <!-- OPTIONS / LINKS -->
     <div class="page" id="p-lnk">
       <div class="panel">
         <div class="row">
@@ -470,13 +500,19 @@
   <div class="modal" id="aboutModal">
     <div class="dlg about">
       <div class="title"><div class="name" style="text-align:center" data-i18n="aboutTitle"></div></div>
+      <div class="portrait hero">
+        <img src="/assets/gm_512.png" alt="">
+        <i class="c tl"></i><i class="c tr"></i><i class="c bl"></i><i class="c br"></i>
+        <div class="plate">
+          <div class="gmname">GM <b id="gmName"></b></div>
+          <div class="sub" data-i18n="aboutServer"></div>
+        </div>
+      </div>
       <div class="abody">
-        <div class="portrait"><img src="/assets/gm_256.png" alt=""></div>
-        <div class="gmname">GM <b id="gmName"></b></div>
+        <div class="orn">✦</div>
+        <div class="thanks"><span class="q">“</span><span data-i18n="aboutThanks"></span><span class="q">”</span></div>
+        <div class="sign" data-i18n="aboutSign"></div>
         <div class="mail" id="gmMail"></div>
-        <div class="small" data-i18n="aboutServer"></div>
-        <div class="sep"></div>
-        <div class="thanks" data-i18n="aboutThanks"></div>
       </div>
       <div class="row">
         <button class="b gold" id="abMail" data-i18n="linkMail"></button>
@@ -496,7 +532,7 @@
 </div>
 
 <script>
-// ================================================= traducoes
+// ================================================= translations
 const I18N = {
   pt: {
     tipPin: "Sempre por cima", tipCompact: "Modo compacto", tipMinimize: "Minimizar", tipClose: "Fechar",
@@ -544,7 +580,7 @@ const I18N = {
     optRename: "Nome da conta no título da janela do jogo", optDelay: "Espera até a tela de login (login automático)",
     optOpacity: "Transparência do painel", sysMessage: "Mensagem do Sistema",
     aboutGenericName: "L2Axis Control", aboutGenericServer: "Painel da comunidade · L2Axis High Five x15",
-    aboutGenericThanks: "Feito por jogadores para a comunidade L2Axis.",
+    aboutGenericThanks: "Feito por jogadores para a comunidade L2Axis.", aboutSign: "— os jogadores do L2Axis",
     tipGm: "GM {name} — L2Axis", aboutTitle: "Sobre", linkMail: "E-mail do GM",
     aboutServer: "Game Master do L2Axis · High Five x15",
     aboutThanks: "Painel feito por jogadores para a comunidade L2Axis. Obrigado, {name}, por manter o servidor vivo!",
@@ -598,7 +634,7 @@ const I18N = {
     optRename: "Account name in the game window title", optDelay: "Wait until the login screen (auto login)",
     optOpacity: "Panel transparency", sysMessage: "System Message",
     aboutGenericName: "L2Axis Control", aboutGenericServer: "Community panel · L2Axis High Five x15",
-    aboutGenericThanks: "Made by players for the L2Axis community.",
+    aboutGenericThanks: "Made by players for the L2Axis community.", aboutSign: "— the players of L2Axis",
     tipGm: "GM {name} — L2Axis", aboutTitle: "About", linkMail: "Email the GM",
     aboutServer: "L2Axis Game Master · High Five x15",
     aboutThanks: "A panel made by players for the L2Axis community. Thank you, {name}, for keeping the server alive!",
@@ -652,7 +688,7 @@ const I18N = {
     optRename: "Kontoname im Titel des Spielfensters", optDelay: "Warten bis zum Login-Bildschirm (Auto-Login)",
     optOpacity: "Transparenz des Panels", sysMessage: "Systemnachricht",
     aboutGenericName: "L2Axis Control", aboutGenericServer: "Community-Panel · L2Axis High Five x15",
-    aboutGenericThanks: "Von Spielern für die L2Axis-Community gemacht.",
+    aboutGenericThanks: "Von Spielern für die L2Axis-Community gemacht.", aboutSign: "— die Spieler von L2Axis",
     tipGm: "GM {name} — L2Axis", aboutTitle: "Über", linkMail: "GM per E-Mail",
     aboutServer: "Game Master von L2Axis · High Five x15",
     aboutThanks: "Ein Panel von Spielern für die L2Axis-Community. Danke, {name}, dass du den Server am Leben hältst!",
@@ -671,7 +707,7 @@ function applyI18n() {
   const gmVars = { name: gm ? gm.name : "" };
   document.querySelectorAll("[data-i18n]").forEach(el => el.textContent = t(el.dataset.i18n, gmVars));
   $("#gmBadge").title = gm ? t("tipGm", gmVars) : t("aboutGenericName");
-  if (!gm) {  // sem gm_local.json: "Sobre" generico
+  if (!gm) {  // no gm.json: generic "About"
     document.querySelector("#aboutModal .gmname").textContent = t("aboutGenericName");
     document.querySelector('#aboutModal [data-i18n="aboutServer"]').textContent = t("aboutGenericServer");
     document.querySelector('#aboutModal [data-i18n="aboutThanks"]').textContent = t("aboutGenericThanks");
@@ -680,7 +716,7 @@ function applyI18n() {
   document.querySelectorAll("[data-i18n-title]").forEach(el => el.title = t(el.dataset.i18nTitle));
   document.querySelectorAll("[data-i18n-ph]").forEach(el => el.placeholder = t(el.dataset.i18nPh));
   document.querySelectorAll("[data-lang]").forEach(b => b.classList.toggle("gold", b.dataset.lang === LANG));
-  // conteudo montado dinamicamente
+  // dynamically built content
   document.querySelectorAll(".slot").forEach(d => {
     d.querySelector('[data-a="launch"]').textContent = t("btnOpen");
     d.querySelector('[data-a="focus"]').textContent = t("btnFocus");
@@ -696,10 +732,10 @@ function applyI18n() {
   ["#bosses", "#timers"].forEach(s => { const el = $(s); if (el) { el.dataset.sig = ""; el.dataset.ids = ""; } });
 }
 
-// ================================================= utilitarios
+// ================================================= helpers
 const $ = s => document.querySelector(s);
 let api, S = null, built = false, toastUntil = 0, bossFilter = "all", openBoss = null;
-// ordenacao/faixa de nivel ficam no data.json (o WebView roda em modo privado e apaga o localStorage)
+// sorting/level range live in data.json (the WebView runs in private mode and wipes localStorage)
 let bossView = { sort: "respawn", range: "", min: "", max: "" };
 const saveBossView = () => api.set_option("bossView", bossView);
 
@@ -752,7 +788,7 @@ async function accountDlg(i) {
   };
 }
 
-// ================================================= abas e janela
+// ================================================= tabs and window
 document.querySelectorAll(".tab").forEach(tb => tb.onclick = () => {
   document.querySelectorAll(".tab").forEach(x => x.classList.toggle("sel", x === tb));
   document.querySelectorAll(".page").forEach(p => p.classList.toggle("sel", p.id === "p-" + tb.dataset.p));
@@ -767,7 +803,7 @@ $("#bCompact").onclick = () => {
   api.set_option("compact", c);
 };
 
-// ================================================= construcao inicial
+// ================================================= initial build
 function build() {
   LANG = S.lang || "pt";
   Object.assign(bossView, S.bossView || {});
@@ -914,7 +950,7 @@ function build() {
   if (!gm || !gm.avatar) {
     $("#gmBadge").classList.add("generic");
     $("#gmBadge").textContent = "L2";
-    document.querySelector("#aboutModal .portrait").style.display = "none";
+    document.querySelector("#aboutModal .dlg").classList.add("noavatar");
   }
   $("#gmBadge").onclick = () => $("#aboutModal").classList.add("show");
   $("#abClose").onclick = () => $("#aboutModal").classList.remove("show");
@@ -922,14 +958,14 @@ function build() {
   applyI18n();
   built = true;
   api.ui_ready();
-  // ?view=... abre direto numa tela (usado para gerar prints)
+  // ?view=... opens a given screen directly (used to generate screenshots)
   const view = new URLSearchParams(location.search).get("view");
   if (view === "about") $("#gmBadge").click();
   else if (view) document.querySelector(`.tab[data-p="${view.split(":")[0]}"]`)?.click();
   if (view && view.includes(":")) openBoss = view.split(":")[1];
 }
 
-// ================================================= atualizacao
+// ================================================= refresh
 function render() {
   const p = S.ping;
   if (p) {
@@ -957,7 +993,7 @@ function render() {
   $("#bPin").classList.toggle("on", S.topmost);
   $("#bCompact").classList.toggle("on", S.compact);
 
-  // clientes
+  // clients
   document.querySelectorAll(".slot").forEach((d, i) => {
     const s = S.slots[i];
     d.querySelector(".dot").className = "dot " + (s.pid ? (s.window ? "g" : "y") : s.pending ? "y" : "");
@@ -980,7 +1016,7 @@ function render() {
   $("#external").textContent = S.external.length ? t("external", { n: S.external.length, pids: S.external.join(", ") }) : "";
   $("#hwidWarn").textContent = t("hwidWarn", { n: S.hwidLimit }) + (S.admin ? "" : "\n" + t("notAdmin"));
 
-  // rede
+  // network
   if (p) {
     $("#nLast").textContent = p.last == null ? "—" : Math.round(p.last);
     $("#nLast").style.color = pingColor(p.last);
@@ -996,7 +1032,7 @@ function render() {
   $("#bWarp").textContent = ["connected", "connecting"].includes(S.warp) ? t("btnOff") : t("btnOn");
   $("#bWarp").disabled = S.warp === "missing" || S.warp === "waiting";
 
-  // votos
+  // votes
   S.votes.forEach(v => {
     const st = document.querySelector(`.vote[data-k="${v.key}"] .st`);
     const ready = v.remaining <= 0;
@@ -1067,7 +1103,7 @@ function bossDetail(b) {
 function renderBosses() {
   const all = S.bosses || [];
   const q = $("#bSearch").value.trim().toLowerCase();
-  // faixa de nivel: predefinida ("40-59") ou personalizada (min/max)
+  // level range: preset ("40-59") or custom (min/max)
   let lo = null, hi = null;
   if (bossView.range === "custom") {
     lo = bossView.min !== "" ? +bossView.min : null;
@@ -1085,7 +1121,7 @@ function renderBosses() {
 
   const respawnKey = b => b.remaining != null && b.remaining > 0 ? b.remaining : 1e12 + (b.type === "epic" ? 0 : 1);
   const byName = (a, b) => a.name.localeCompare(b.name);
-  const NOLV = 1e6;  // bosses sem nivel (customizados) sempre no fim
+  const NOLV = 1e6;  // bosses without a level (custom ones) always go last
   const sorters = {
     respawn: (a, b) => respawnKey(a) - respawnKey(b) || byName(a, b),
     lvlAsc: (a, b) => (a.level ?? NOLV) - (b.level ?? NOLV) || respawnKey(a) - respawnKey(b) || byName(a, b),
@@ -1181,7 +1217,7 @@ async function loop() {
   setTimeout(loop, 1000);
 }
 
-// a interface fala com o Python por HTTP local (funciona com e sem administrador)
+// the interface talks to Python over local HTTP (works with or without administrator rights)
 const TOKEN = new URLSearchParams(location.search).get("t");
 api = new Proxy({}, {
   get: (_, name) => (...args) => fetch("/api/" + name, {

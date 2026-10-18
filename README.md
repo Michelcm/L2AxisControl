@@ -19,6 +19,9 @@ and want ping, votes, timers and boss respawns in one place.
 
 The window stays on top, can be dragged by its title bar and has a compact mode that shows only ping, loss and clients.
 
+Click the medallion in the top-left corner to open the **About** window — a small tribute to **GM RockStar**, who keeps
+L2Axis alive. His avatar is included with his permission (`gm.json` + `assets/gm_*.png`).
+
 ## What it does **not** do
 
 - It does **not** read or write the game's memory and does **not** touch network traffic.

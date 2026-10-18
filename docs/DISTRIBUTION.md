@@ -9,8 +9,7 @@ tweaks must be applied.
 | File | Why |
 |---|---|
 | `L2AxisControl/data.json` | Account logins in plain text, DPAPI-encrypted passwords, slots, timers, captured boss data. |
-| `L2AxisControl/gm_local.json`, `assets/gm_*.png` | Personal tribute config; avatar only with the GM's permission. |
-| `L2AxisControl/erros.log` | Local log (anonymized, but still local). |
+| `L2AxisControl/errors.log` | Local log (anonymized, but still local). |
 | `L2AxisControl/bosses_db.json` | Generated from the client's data files at runtime. |
 | `system/bd.ini` | Last Alt+B page: **character name, class, level and IP address**. The panel clears it on start/exit and after each read. |
 | `system/l2.log`, `system/l2Second.log` | Windows user path (`C:\Users\<name>\...`), CPU/GPU info. |
@@ -49,4 +48,4 @@ The patcher must, for each target file:
 ## 4. Screenshots / support
 
 - Screenshots for the forum: generic slot names ("Account 1…"), no login shown, no Alt+B home page (shows name/IP).
-- Logs (`erros.log`) are anonymized: the user profile path, Windows user name and computer name are masked.
+- Logs (`errors.log`) are anonymized: the user profile path, Windows user name and computer name are masked.

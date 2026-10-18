@@ -1,17 +1,14 @@
-# --- dados pessoais / locais: NUNCA publicar ---
+# --- personal / local data: NEVER publish ---
 data.json
 data.tmp
-gm_local.json
+errors.log
 erros.log
 *.log
 
-# gerado a partir dos arquivos do cliente do jogo
+# generated from the game client's data files
 bosses_db.json
 
-# homenagem ao GM: so publicar com a autorizacao dele
-assets/gm_*.png
-
-# prints e rascunhos pessoais
+# personal screenshots and drafts
 prints_gm/
 
 # python

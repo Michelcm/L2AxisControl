@@ -1,10 +1,10 @@
-"""L2Axis Control - painel flutuante para gerenciar clientes do L2Axis.
+"""L2Axis Control - floating panel to manage L2Axis (Lineage II) game clients.
 
-Backend em Python (API do Windows via ctypes) + interface HTML/CSS no estilo
-das janelas do Lineage II, exibida numa janela sem borda via pywebview.
+Python backend (Windows API through ctypes) + an HTML/CSS interface styled after
+the Lineage II windows, shown in a frameless window through pywebview.
 
-Nao interage com o jogo em si (nada de input automatico): apenas abre,
-organiza e monitora as janelas, mede a rede e controla timers/votos.
+It never interacts with the game itself (no automated input): it only opens,
+arranges and monitors the windows, measures the network and tracks timers/votes.
 """
 import base64
 import ctypes
@@ -32,14 +32,14 @@ import webview
 APP_DIR = Path(__file__).resolve().parent
 DATA_FILE = APP_DIR / "data.json"
 UI_FILE = APP_DIR / "ui.html"
-LOG_FILE = APP_DIR / "erros.log"
+LOG_FILE = APP_DIR / "errors.log"
 
 
 def _anonymize(text):
-    """Remove do log o nome de usuario e da maquina (o log pode ser compartilhado no forum)."""
+    """Mask the Windows user and computer name (logs may be shared on the forum)."""
     text = re.sub(re.escape(str(Path.home())), "%USERPROFILE%", text, flags=re.IGNORECASE)
     for real, mask in ((os.environ.get("USERNAME", ""), "<user>"), (os.environ.get("COMPUTERNAME", ""), "<pc>")):
-        if len(real) > 1:  # so a palavra inteira (um PC chamado "ANA" nao pode virar "B<pc>NA" em "BANANA")
+        if len(real) > 1:  # whole words only (a PC named "ANA" must not turn "BANANA" into "B<pc>NA")
             text = re.sub(r"\b" + re.escape(real) + r"\b", mask, text, flags=re.IGNORECASE)
     return text
 
@@ -53,7 +53,7 @@ def log_error(where, text):
         pass
 GAME_DIR = APP_DIR.parent / "system"
 L2_EXE = GAME_DIR / "l2.exe"
-# gravado pelo BoardWnd modificado (interface.u): HTML de cada pagina do Alt+B
+# written by the modified BoardWnd (interface.u): HTML of every Alt+B page
 BOARD_FILE = GAME_DIR / "bd.ini"
 WARP_CLI = Path(r"C:\Program Files\Cloudflare\Cloudflare WARP\warp-cli.exe")
 
@@ -63,13 +63,13 @@ HWID_LIMIT = 4
 VOTE_COOLDOWN = 12 * 3600
 PING_INTERVAL = 2.0
 PING_HISTORY = 60
-LAUNCH_SPACING = 5  # segundos entre clientes no "Abrir todos"
-# +12 px em cima/esquerda: espaco transparente para o medalhao do GM sair da moldura
+LAUNCH_SPACING = 5  # seconds between clients on "Open all"
+# +12 px top/left: room for the GM medallion to stick out of the frame
 WIN_W, WIN_H, COMPACT_H = 392, 652, 104
 ASSETS_DIR = APP_DIR / "assets"
-ASSETS = {"gm_96.png", "gm_256.png"}
+ASSETS = {"gm_96.png", "gm_256.png", "gm_512.png"}
 
-# (chave, nome, url, principal?) - principais sao os 4 do site que contam para o .vote
+# (key, name, url, main?) - the 4 main sites are the ones that count for .vote
 VOTE_SITES = [
     ("topzone", "L2TopZone", "https://l2topzone.com/vote/id/18052", True),
     ("hopzone", "HopZone.net", "https://vgw.hopzone.net/site/vote/104740/1", True),
@@ -90,7 +90,7 @@ VOTE_SITES = [
     ("playl2", "PlayL2", "https://playl2.net/user/vote/79", False),
 ]
 
-# (chave de traducao na interface, url)
+# (UI translation key, url)
 LINKS = [
     ("linkSite", "https://l2axis.com/"),
     ("linkForum", "https://forum.l2axis.com/"),
@@ -98,9 +98,9 @@ LINKS = [
     ("linkDonate", "https://forum.l2axis.com/threads/donate-panel-update.695/"),
     ("linkRules", "https://forum.l2axis.com/threads/server-rules-enforced.18/"),
 ]
-# Homenagem ao GM: opcional e local (gm_local.json + assets/gm_*.png ficam fora do Git).
-# Sem o arquivo, o painel mostra um medalhao generico.
-GM_FILE = APP_DIR / "gm_local.json"
+# GM tribute (published with the GM's permission): gm.json + assets/gm_*.png.
+# Without gm.json the panel falls back to a generic medallion.
+GM_FILE = APP_DIR / "gm.json"
 
 
 def load_gm():
@@ -208,7 +208,7 @@ def process_memory_mb(pid):
 
 
 def main_windows_by_pid():
-    """pid -> maior janela visivel de topo daquele processo."""
+    """pid -> largest visible top-level window of that process."""
     result = {}
 
     def cb(hwnd, _):
@@ -236,7 +236,7 @@ def window_title(hwnd):
 def focus_window(hwnd):
     if user32.IsIconic(hwnd):
         user32.ShowWindow(hwnd, SW_RESTORE)
-    # um ALT "solto" libera a trava de foreground do Windows
+    # a released ALT key lifts the Windows foreground lock
     user32.keybd_event(0x12, 0, 0, 0)
     user32.keybd_event(0x12, 0, 2, 0)
     user32.SetForegroundWindow(hwnd)
@@ -256,7 +256,7 @@ def work_area():
 
 
 def icmp_ping(ip, timeout_ms=2000):
-    """RTT em ms ou None se perdido. ICMP nativo: nao abre conexao no servidor do jogo."""
+    """RTT in ms, or None if lost. Native ICMP: never opens a connection to the game server."""
     handle = iphlpapi.IcmpCreateFile()
     if not handle or handle == wintypes.HANDLE(-1).value:
         return None
@@ -274,7 +274,7 @@ def icmp_ping(ip, timeout_ms=2000):
         iphlpapi.IcmpCloseHandle(handle)
 
 
-# ---------------------------------------------------------------- senhas (DPAPI)
+# ---------------------------------------------------------------- passwords (DPAPI)
 class DATA_BLOB(ctypes.Structure):
     _fields_ = [("cbData", wintypes.DWORD), ("pbData", ctypes.POINTER(ctypes.c_char))]
 
@@ -290,7 +290,7 @@ def _blob(data):
 
 
 def dpapi_encrypt(text):
-    """Criptografa com a chave do usuario do Windows: so este usuario, neste PC, consegue abrir."""
+    """Encrypt with the Windows user key: only this user, on this PC, can decrypt it."""
     src, _b1 = _blob(text.encode("utf-8"))
     ent, _b2 = _blob(DPAPI_ENTROPY)
     out = DATA_BLOB()
@@ -316,7 +316,7 @@ def dpapi_decrypt(b64):
         kernel32.LocalFree(out.pbData)
 
 
-# ---------------------------------------------------------------- envio de texto para a janela
+# ---------------------------------------------------------------- sending text to a window
 WM_KEYDOWN, WM_KEYUP, WM_CHAR = 0x0100, 0x0101, 0x0102
 VK_TAB, VK_RETURN = 0x09, 0x0D
 user32.MapVirtualKeyW.restype = wintypes.UINT
@@ -331,8 +331,8 @@ def post_key(hwnd, vk):
 
 
 def post_text(hwnd, text):
-    """Envia caracteres direto para a janela (WM_CHAR). Nao depende de foco,
-    entao o texto nunca cai em outro programa se o usuario trocar de janela."""
+    """Send characters straight to the window (WM_CHAR). It does not depend on focus,
+    so the text never lands in another program if the user switches windows."""
     for ch in text:
         user32.PostMessageW(hwnd, WM_CHAR, ord(ch), 1)
         time.sleep(0.03)
@@ -354,8 +354,8 @@ def is_admin():
 
 
 def launch_l2():
-    """Abre o l2.exe e devolve o PID. O l2.exe exige administrador: se o painel
-    nao estiver elevado, o Windows mostra o UAC para cada cliente."""
+    """Start l2.exe and return its PID. l2.exe requires administrator rights: if the
+    panel is not elevated, Windows shows a UAC prompt for every client."""
     if is_admin():
         return subprocess.Popen([str(L2_EXE)], cwd=str(GAME_DIR)).pid
     info = SHELLEXECUTEINFOW()
@@ -377,9 +377,9 @@ def run_hidden(args, timeout=20):
                           creationflags=subprocess.CREATE_NO_WINDOW)
 
 
-# ---------------------------------------------------------------- dados
+# ---------------------------------------------------------------- data
 def load_data():
-    default = {"slots": [f"Conta {i + 1}" for i in range(MAX_SLOTS)], "votes": {},
+    default = {"slots": [f"Account {i + 1}" for i in range(MAX_SLOTS)], "votes": {},
                "timers": [], "topmost": True, "pos": None, "compact": False,
                "rename_windows": True, "opacity": 0.92, "accounts": {}, "login_delay": 15,
                "bosses": {}, "lang": "pt",
@@ -388,17 +388,17 @@ def load_data():
         default.update(json.loads(DATA_FILE.read_text(encoding="utf-8")))
     except (OSError, ValueError):
         pass
-    default["slots"] = (default["slots"] + [f"Conta {i + 1}" for i in range(MAX_SLOTS)])[:MAX_SLOTS]
+    default["slots"] = (default["slots"] + [f"Account {i + 1}" for i in range(MAX_SLOTS)])[:MAX_SLOTS]
     return default
 
 
-# ---------------------------------------------------------------- base de bosses (arquivos do cliente)
+# ---------------------------------------------------------------- boss database (client files)
 BOSS_DB_FILE = APP_DIR / "bosses_db.json"
 _L2_MOD = int("75b4d6de5c016544068a1acf125869f43d2e09fc55b8b1e289556daf9b8757635593446288b3653da1ce91c87bb1a5c18f16323495c55d7d72c0890a83f69bfd1fd9434eb1c02f3e4679edfa43309319070129c267c85604d87bb65bae205de3707af1d2108881abb567c3b3d069ae67c3a4c6a3aa93d26413d4c66094ae2039", 16)
 
 
 def l2_decrypt413(path):
-    """Decifra um .dat/.ini Lineage2Ver413 (chave publica 'modified', a usada por este cliente)."""
+    """Decrypt a Lineage2Ver413 .dat/.ini file (the 'modified' public key used by this client)."""
     import zlib
     body = Path(path).read_bytes()[28:]
     out = bytearray()
@@ -447,7 +447,7 @@ class _DatReader:
 
 
 def build_boss_db():
-    """Nivel, coordenadas e lore (raiddata-e.dat) + area de caca mais proxima (HuntingZone-e.dat)."""
+    """Level, coordinates and lore (raiddata-e.dat) + nearest hunting zone (HuntingZone-e.dat)."""
     raid_path, zone_path = GAME_DIR / "raiddata-e.dat", GAME_DIR / "HuntingZone-e.dat"
     stamp = f"{raid_path.stat().st_mtime}:{zone_path.stat().st_mtime}"
     try:
@@ -494,7 +494,7 @@ _RE_HP = re.compile(r'(Max|Current) HP:\s*([\d,.]+)')
 
 
 def parse_board_details(text):
-    """Pagina 'Info' de um boss: {id: {'maxHp': n, 'hp': n}}."""
+    """A boss 'Info' page: {id: {'maxHp': n, 'hp': n}}."""
     m_id = _RE_DETAIL_ID.search(text)
     if not m_id:
         return {}
@@ -505,15 +505,15 @@ def parse_board_details(text):
 
 
 def parse_board(text):
-    """Extrai as linhas da lista de bosses do HTML do Alt+B.
-    Devolve [(id, nome, tipo 'epic'|'raid', 'alive'|'dead'|texto, segundos_ate_respawn|None)]."""
+    """Extract the boss list rows from the Alt+B HTML.
+    Returns [(id, name, type 'epic'|'raid', 'alive'|'dead'|text, seconds_to_respawn|None)]."""
     rows = []
     for chunk in text.split(_ROW_START)[1:]:
         m_id = _RE_ID.search(chunk)
         m_name = _RE_NAME.search(chunk)
         m_st = _RE_STATUS.search(chunk)
         if not (m_id and m_name and m_st):
-            continue  # cabecalho da tabela ou outra coisa
+            continue  # table header or something else
         status = m_st.group(2).strip()
         t = _RE_TIME.match(status)
         if t:
@@ -535,7 +535,7 @@ def clear_board_file():
 
 
 class BoardWatcher(threading.Thread):
-    """Le o bd.ini sempre que o jogo grava uma pagina nova do Alt+B e entrega os bosses."""
+    """Read bd.ini whenever the game writes a new Alt+B page and hand over the bosses."""
 
     def __init__(self, on_rows):
         super().__init__(daemon=True)
@@ -556,7 +556,7 @@ class BoardWatcher(threading.Thread):
         mtime = BOARD_FILE.stat().st_mtime
         if mtime == self.last_read:
             return
-        time.sleep(0.3)  # o jogo grava as partes 101/102/103 em sequencia
+        time.sleep(0.3)  # the game writes parts 101/102/103 in sequence
         mtime = BOARD_FILE.stat().st_mtime
         raw = BOARD_FILE.read_bytes()
         text = raw.decode("utf-16le" if raw[:2] == b"\xff\xfe" else "utf-8", errors="replace")
@@ -564,13 +564,13 @@ class BoardWatcher(threading.Thread):
         details = parse_board_details(text)
         if rows or details:
             self.on_rows(rows, details, mtime)
-        # limpa para nao acumular restos de paginas antigas (so se o jogo nao gravou de novo)
+        # clear it so old pages do not pile up (only if the game has not written again)
         if BOARD_FILE.stat().st_mtime == mtime and len(raw) > 64:
             BOARD_FILE.write_bytes(b"[B]\r\n")
         self.last_read = BOARD_FILE.stat().st_mtime
 
 
-# ---------------------------------------------------------------- monitores
+# ---------------------------------------------------------------- monitors
 class PingMonitor(threading.Thread):
     def __init__(self, ip):
         super().__init__(daemon=True)
@@ -640,7 +640,7 @@ class WarpMonitor(threading.Thread):
         threading.Thread(target=work, daemon=True).start()
 
 
-# ---------------------------------------------------------------- API exposta ao HTML
+# ---------------------------------------------------------------- API exposed to the HTML
 class Api:
     def __init__(self):
         self._data = load_data()
@@ -655,7 +655,7 @@ class Api:
         self._alerts = []
         self._window = None
         self._had_window = [False] * MAX_SLOTS
-        self._autologin_slots = set()  # slots abertos pelo painel que devem logar sozinhos
+        self._autologin_slots = set()  # slots opened by the panel that should log in by themselves
         self._ping = PingMonitor(SERVER_IP)
         self._ping.start()
         self._warp = WarpMonitor()
@@ -677,7 +677,7 @@ class Api:
         os.replace(tmp, DATA_FILE)
 
     def _alert(self, key, **args):
-        """Alertas vao como codigo + parametros; a interface traduz."""
+        """Alerts are sent as a code + parameters; the interface translates them."""
         winsound.MessageBeep(winsound.MB_ICONASTERISK)
         self._alerts.append({"k": key, **args})
 
@@ -701,7 +701,7 @@ class Api:
         for i in range(MAX_SLOTS):
             if self._slot_pid[i] and self._slot_pid[i] not in alive:
                 self._slot_pid[i] = self._slot_start[i] = None
-        # o l2.exe pode relancar a si mesmo: novo processo vai para o slot pendente mais antigo
+        # l2.exe may relaunch itself: a new process goes to the oldest pending slot
         self._pending = [p for p in self._pending if now - p[1] < 90]
         bound = set(self._slot_pid)
         for pid in pids:
@@ -755,7 +755,7 @@ class Api:
             self._autologin_slots.add(i)
         return True
 
-    # -------------------------------------------------- contas
+    # -------------------------------------------------- accounts
     def _account_info(self, i):
         acc = self._data["accounts"].get(str(i)) or {}
         return {"login": acc.get("login", ""), "hasPassword": bool(acc.get("pwd")),
@@ -811,13 +811,13 @@ class Api:
             self._data["bosses"] = {}
             self._save()
 
-    # -------------------------------------------------- estado (chamado 1x/s pela interface)
+    # -------------------------------------------------- state (polled once per second by the interface)
     def get_state(self):
         try:
             state = self._get_state()
             if not getattr(self, "_ui_ok", False):
                 self._ui_ok = True
-                log_error("info", f"interface conectada (admin={is_admin()})")
+                log_error("info", f"interface connected (admin={is_admin()})")
             return state
         except Exception:
             log_error("get_state", traceback.format_exc())
@@ -863,7 +863,7 @@ class Api:
                 "links": LINKS,
             }
 
-    # -------------------------------------------------- clientes
+    # -------------------------------------------------- clients
     def launch(self, i):
         with self._lock:
             return self._launch(int(i))
@@ -895,7 +895,7 @@ class Api:
         if h:
             user32.PostMessageW(h, WM_CLOSE, 0, 0)
 
-        def ensure():  # se nao fechar sozinho em 8s, encerra o processo
+        def ensure():  # if it does not close by itself within 8 s, kill the process
             time.sleep(8)
             if pid in list_l2_pids():
                 terminate_pid(pid)
@@ -931,7 +931,7 @@ class Api:
 
     def rename(self, i, name):
         i = int(i)
-        name = (name or "").strip()[:20] or f"Conta {i + 1}"
+        name = (name or "").strip()[:20] or f"Account {i + 1}"
         with self._lock:
             self._data["slots"][i] = name
             self._save()
@@ -941,7 +941,7 @@ class Api:
         return self._account_info(int(i))
 
     def set_account(self, i, login, password, auto):
-        """Senha vazia mantem a atual. A senha nunca e devolvida para a interface."""
+        """An empty password keeps the current one. The password is never sent back to the interface."""
         key = str(int(i))
         login = (login or "").strip()
         with self._lock:
@@ -960,7 +960,7 @@ class Api:
             self._save()
 
     def fill_login(self, i):
-        """Preenche login e senha na tela de login do cliente desse slot."""
+        """Fill in login and password on the login screen of this slot's client."""
         i = int(i)
         acc = self._data["accounts"].get(str(i))
         hwnd = self._hwnd(i)
@@ -985,11 +985,11 @@ class Api:
             self._save()
         return self._data["login_delay"]
 
-    # -------------------------------------------------- rede
+    # -------------------------------------------------- network
     def warp_toggle(self):
         self._warp.toggle()
 
-    # -------------------------------------------------- votos
+    # -------------------------------------------------- votes
     def vote(self, key):
         site = next((s for s in VOTE_SITES if s[0] == key), None)
         if not site:
@@ -1031,7 +1031,7 @@ class Api:
             self._data["timers"] = [t for t in self._data["timers"] if t["id"] != tid]
             self._save()
 
-    # -------------------------------------------------- links / janela
+    # -------------------------------------------------- links / window
     def open_link(self, url):
         gm = load_gm()
         allowed = {u for _, u in LINKS} | ({f"mailto:{gm['email']}"} if gm and gm["email"] else set())
@@ -1085,8 +1085,8 @@ class Api:
         return found[0] if found else None
 
     def _apply_shape(self):
-        """Recorta a janela: moldura (recuada 12px) + quadrado do medalhao na quina.
-        O WebView2 nao fica transparente de verdade, entao a faixa livre e removida da janela."""
+        """Shape the window: frame (inset 12 px) + the medallion square in the corner.
+        WebView2 is not truly transparent, so the free strip is cut out of the window."""
         hwnd = self._own_hwnd()
         if not hwnd:
             return False
@@ -1099,17 +1099,17 @@ class Api:
         w, h = r.right - r.left, r.bottom - r.top
         inset, medal = round(12 * scale), round(47 * scale)
         gdi32 = ctypes.windll.gdi32
-        # sem limite inferior: a altura muda no modo compacto e o que passa da janela e ignorado
+        # no bottom limit: the height changes in compact mode and anything past the window is ignored
         frame = gdi32.CreateRectRgn(inset, inset, w, 20000)
         corner = round(8 * scale)
         badge = gdi32.CreateRoundRectRgn(0, 0, medal + 1, medal + 1, corner, corner)
         gdi32.CombineRgn(frame, frame, badge, 2)  # RGN_OR
         gdi32.DeleteObject(badge)
-        user32.SetWindowRgn(hwnd, frame, True)  # o Windows passa a ser dono da regiao
+        user32.SetWindowRgn(hwnd, frame, True)  # Windows takes ownership of the region
         return True
 
     def ui_ready(self):
-        """Chamado pela interface quando terminou de montar: aplica o recorte da janela."""
+        """Called by the interface once it is built: applies the window shape."""
         def work():
             for _ in range(20):
                 if self._apply_shape():
@@ -1118,8 +1118,8 @@ class Api:
         threading.Thread(target=work, daemon=True).start()
 
     def drag_start(self):
-        """Arrasta a janela enquanto o botao esquerdo estiver pressionado. Feito via Windows:
-        nao depende da ponte JS do pywebview, que nao funciona com o painel elevado."""
+        """Drag the window while the left button is held. Done through Windows: it does not
+        depend on the pywebview JS bridge, which does not work when the panel is elevated."""
         hwnd = self._own_hwnd()
         if not hwnd:
             return False
@@ -1142,10 +1142,10 @@ class Api:
         return True
 
 
-# ---------------------------------------------------------------- servidor local da interface
+# ---------------------------------------------------------------- local server for the interface
 def make_server(api, token):
-    """A interface fala com o Python por HTTP local (127.0.0.1 + token) em vez da ponte JS
-    do pywebview, que nao conecta quando o painel roda como administrador."""
+    """The interface talks to Python over local HTTP (127.0.0.1 + token) instead of the
+    pywebview JS bridge, which never connects when the panel runs as administrator."""
     methods = {n for n in dir(api) if not n.startswith("_") and callable(getattr(api, n))}
 
     class Handler(BaseHTTPRequestHandler):
@@ -1201,7 +1201,7 @@ def main():
         on_top=api._data["topmost"], transparent=True, background_color="#000000",
     )
     api._window = window
-    clear_board_file()  # nao deixar pagina antiga do Alt+B (nome/IP do personagem) no disco
+    clear_board_file()  # never leave an old Alt+B page (character name/IP) on disk
     webview.start(private_mode=True)
     clear_board_file()
 
