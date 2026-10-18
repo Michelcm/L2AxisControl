@@ -25,6 +25,10 @@ STAT_OPS = ("add", "sub", "mul", "basemul")
 POOL_EFFECTS = {"MaxHp": "maxHp", "MaxMp": "maxMp", "MaxCp": "maxCp"}
 
 
+def plural_free(name):
+    return re.sub(r"s\b", "", name.lower())
+
+
 def load_items(data):
     items = {}
     for xml_file in (data / "stats/items").glob("*.xml"):
@@ -108,15 +112,18 @@ def main(datapack):
         for item_id, _ in ingredients:
             if item_id in rare:
                 varnish[item_id] = {"result": product, "cost": [list(i) for i in ingredients if i[0] != item_id]}
-    unseal = {}  # sealed item -> unsealed item (Blacksmith of Mammon)
+    unseal, unseal_cost = {}, {}  # sealed item -> unsealed item (Blacksmith of Mammon), and its price
     for xml_file in (data / "multisell").glob("31126*.xml"):
         for entry in ET.parse(xml_file).getroot().findall("item"):
             ingredients = entry.findall("ingredient")
             product = int(entry.find("production").get("id"))
             first = int(ingredients[0].get("id"))
+            # the client is inconsistent with plurals: "Sealed Dynasty Earring" -> "Dynasty Earrings"
             if items.get(first, {}).get("name", "").startswith("Sealed ") and \
-                    items[first]["name"][7:] == items.get(product, {}).get("name"):
-                unseal.setdefault(first, product)
+                    plural_free(items[first]["name"][7:]) == plural_free(items.get(product, {}).get("name", "")):
+                if first not in unseal:
+                    unseal[first] = product
+                    unseal_cost[first] = [[int(i.get("id")), int(i.get("count"))] for i in ingredients[1:]]
 
     masterwork = {}
     for foundation, info in rare.items():
@@ -125,7 +132,8 @@ def main(datapack):
         result = varnish[foundation]["result"]
         final = unseal.get(result, result)
         chain = {"product": info["product"], "rarity": info["rarity"], "foundation": foundation,
-                 "varnish": varnish[foundation]["cost"], "result": result, "final": final}
+                 "varnish": varnish[foundation]["cost"], "result": result, "final": final,
+                 "unseal": unseal_cost.get(result, [])}
         masterwork[str(result)] = chain
         if final != result:
             masterwork[str(final)] = chain
@@ -162,7 +170,10 @@ def main(datapack):
         "combos": {k: v for k, v in combos.items() if " - " not in items[v["product"]]["name"]},
         "names": {str(k): items[k]["name"] for k in sorted({c["foundation"] for c in masterwork.values()}
                                                           | {i for c in masterwork.values() for i, _ in c["varnish"]}
-                                                          | combo_ids | {int(k) for k in combos})},
+                                                          | combo_ids | {int(k) for k in combos}
+                                                          | {i for c in masterwork.values() for i, _ in c.get("unseal", [])}
+                                                          | {c["result"] for c in masterwork.values()}
+                                                          | {c["final"] for c in masterwork.values()})},
     }
     target = HERE / "data" / "items_db.json"
     target.write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")

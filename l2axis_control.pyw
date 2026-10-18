@@ -1101,6 +1101,8 @@ def class_fits(cls, kind, cat):
 
 
 NPC_RECIPE_BASE = 1_000_000  # ids of the NPC "recipes" (dual weapons)
+MW_RECIPE_BASE = 2_000_000  # masterwork: Blacksmith of Mammon varnish (and unseal)
+FOUNDATION_RECIPE_BASE = 3_000_000  # the base recipe, counted until it gives the rare Foundation
 
 
 class RecipeBook:
@@ -1116,6 +1118,42 @@ class RecipeBook:
 
     def name(self, item_id):
         return self.names.get(item_id, f"#{item_id}")
+
+    def add_masterwork_recipes(self, extra):
+        """Every masterwork gets its own entry: craft the base recipe until the rare Foundation
+        comes out (chance = success rate x rarity), have the Blacksmith of Mammon varnish it and,
+        for armor and jewelry, remove the seal. Expanding it shows the real average cost."""
+        self.mw_recipes = {}
+        for key, chain in (extra or {}).get("masterwork", {}).items():
+            if chain.get("dual") or int(key) != chain["final"]:
+                continue
+            base = self.by_product.get(chain["product"])
+            if not base or base.get("npc") or base.get("mw"):
+                continue
+            foundation, result, final = chain["foundation"], chain["result"], chain["final"]
+            if foundation not in self.by_product:
+                rare = {**base, "id": FOUNDATION_RECIPE_BASE + foundation, "product": foundation, "count": 1,
+                        "rate": round(base["rate"] * chain["rarity"] / 100, 4),
+                        "rare": {"rarity": chain["rarity"], "baseRate": base["rate"], "of": base["product"]}}
+                self.recipes[rare["id"]] = rare
+                self.by_product[foundation] = rare
+            varnish = [tuple(v) for v in chain["varnish"]]
+            mammon = [{"npc": "Blacksmith of Mammon", "cost": chain["varnish"][0]}] if varnish else []
+            if result != final:  # armor/jewelry: varnish gives the sealed masterwork, then unseal it
+                sealed = {"id": MW_RECIPE_BASE + result, "recipeItem": 0, "level": 0, "product": result, "count": 1,
+                          "mp": 0, "rate": 100, "mats": [(foundation, 1)] + varnish, "npc": mammon, "mwStep": True}
+                self.recipes[sealed["id"]] = sealed
+                self.by_product.setdefault(result, sealed)
+                mats = [(result, 1)] + [tuple(v) for v in chain.get("unseal", [])]
+                npc = [{"npc": "Blacksmith of Mammon", "cost": chain["unseal"][0]}] if chain.get("unseal") else []
+            else:
+                mats, npc = [(foundation, 1)] + varnish, mammon
+            recipe = {"id": MW_RECIPE_BASE + final, "recipeItem": 0, "level": 0, "product": final, "count": 1,
+                      "mp": 0, "rate": 100, "mats": mats, "npc": npc,
+                      "mw": {"rarity": chain["rarity"], "base": base["id"], "baseRate": base["rate"]}}
+            self.recipes[recipe["id"]] = recipe
+            self.by_product.setdefault(final, recipe)
+            self.mw_recipes[final] = recipe["id"]
 
     def add_npc_recipes(self, extra):
         """Dual swords and dual daggers have no recipe: an NPC combines two weapons and a Dualsword
@@ -1276,7 +1314,9 @@ class RecipeBook:
             # how to get it
             recipe = how = None
             base = mw["product"] if mw else None
-            if item_id in crafted:
+            if item_id in getattr(self, "mw_recipes", {}):
+                how, recipe = "mw", self.mw_recipes[item_id]
+            elif item_id in crafted and not self.by_product[item_id].get("mw"):
                 how, recipe = "craft", self.by_product[item_id]["id"]
             elif mw and base in crafted:
                 how, recipe = "mw", self.by_product[base]["id"]
@@ -1327,20 +1367,28 @@ class RecipeBook:
     def top_tier(self, stats_db=None):
         out = []
         for r in self.recipes.values():
+            if r.get("rare") or r.get("mwStep"):
+                continue  # internal steps of a masterwork
             product = self.name(r["product"])
-            family = next((f for f in CRAFT_FAMILIES if re.search(rf"\b{f}\b", product)), None)
+            classify = self.name(self.recipes[r["mw"]["base"]]["product"]) if r.get("mw") else product
+            if r.get("mw") and " - " not in product:
+                product += " (Masterwork)"  # armor masterworks keep the plain item's name
+            family = next((f for f in CRAFT_FAMILIES if re.search(rf"\b{f}\b", classify)), None)
             if not family:
                 continue
-            kind = ("jewelry" if any(j in product for j in _JEWELRY)
-                    else "armor" if product.startswith("Sealed ") else "weapon")
+            kind = ("jewelry" if any(j in classify for j in _JEWELRY)
+                    else "armor" if classify.startswith("Sealed ") else "weapon")
             stats = (stats_db or {}).get("items", {}).get(str(r["product"]))
-            cat = weapon_cat(stats) if kind == "weapon" and stats else armor_kind(product)
+            cat = weapon_cat(stats) if kind == "weapon" and stats else armor_kind(classify)
             if cat == "shield":
                 kind = "armor"
             out.append({"id": r["id"], "productId": r["product"], "product": product, "family": family,
                         "grade": CRAFT_FAMILIES[family], "cat": cat,
-                        "kind": kind, "level": r["level"], "rate": r["rate"], "mp": r["mp"],
-                        "npc": bool(r.get("npc"))})
+                        "kind": kind, "rate": r["rate"], "mp": r["mp"],
+                        "level": self.recipes[r["mw"]["base"]]["level"] if r.get("mw") else r["level"],
+                        "npc": bool(r.get("npc")) and not r.get("mw"),
+                        "mw": {"rarity": r["mw"]["rarity"], "rate": round(r["mw"]["baseRate"] * r["mw"]["rarity"] / 100, 2)}
+                        if r.get("mw") else None})
         return sorted(out, key=lambda x: (x["grade"], x["family"], x["kind"], x["product"], -x["rate"]))
 
     def _expand(self, recipe, needed, expand_all):
@@ -1349,13 +1397,18 @@ class RecipeBook:
 
         def walk(rec, need, depth):
             crafts = math.ceil(need / rec["count"])
+            if rec.get("rare"):  # the base recipe, repeated until the Foundation comes out
+                crafts = math.ceil(need / (rec["rate"] / 100))
             stats["mp"] += crafts * rec["mp"]
             stats["crafts"] += crafts
             stats["maxLevel"] = max(stats["maxLevel"], rec["level"])
             step = steps.setdefault(rec["product"], {"id": rec["product"], "name": self.name(rec["product"]),
                                                      "crafts": 0, "makes": 0, "level": rec["level"],
                                                      "rate": rec["rate"], "mp": 0, "depth": 0,
-                                                     "npc": [n["npc"] for n in rec.get("npc", [])]})
+                                                     "npc": [n["npc"] for n in rec.get("npc", [])],
+                                                     "rare": ({"rarity": rec["rare"]["rarity"],
+                                                               "of": self.name(rec["rare"]["of"])}
+                                                              if rec.get("rare") else None)})
             step["crafts"] += crafts
             step["makes"] += crafts * rec["count"]
             step["mp"] += crafts * rec["mp"]
@@ -1396,6 +1449,8 @@ class RecipeBook:
                "recipeItem": self.name(recipe["recipeItem"]) if recipe["recipeItem"] else None,
                "npc": [{"npc": n["npc"], "cost": self.name(n["cost"][0]), "count": n["cost"][1]}
                        for n in recipe.get("npc", [])],
+               "mw": ({"rarity": recipe["mw"]["rarity"], "baseRate": recipe["mw"]["baseRate"],
+                       "base": self.name(self.recipes[recipe["mw"]["base"]]["product"])} if recipe.get("mw") else None),
                "recipeItemId": recipe["recipeItem"],
                "quantity": quantity, "rate": recipe["rate"], **stats}
         if recipe["rate"] < 100:
@@ -1604,6 +1659,7 @@ class Api:
         self._items = _load_items_db()
         if self._recipes:
             self._recipes.add_npc_recipes(self._items)
+            self._recipes.add_masterwork_recipes(self._items)
         self._board = BoardWatcher(self._on_board_rows)
         self._board.start()
         self._adopt_running()
