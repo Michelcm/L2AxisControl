@@ -685,7 +685,7 @@ def item_slot(name):
 
 
 # pet gear and duplicate "Shadow/Common Item" copies are not useful in a comparison
-_COMPARE_SKIP = re.compile(r"^(Shadow Item|Common Item)|\{PvP\}|Fenrir|Wolf|Hatchling|Strider|Wyvern")
+_COMPARE_SKIP = re.compile(r"^(Shadow Item|Common Item)|\{PvP\}|Fenrir|Wolf|Hatchling|Strider|Wyvern|for NPC|^Transparent|Not In Use")
 
 
 # ---------------------------------------------------------------- item icons (the user's own client)
@@ -972,6 +972,47 @@ class DropBook:
                 "into": deals("into")}
 
 
+# ---------------------------------------------------------------- passive bonuses + masterwork (shipped)
+# Generated once by tools/build_items_db.py from the L2J High Five datapack (GPL-3.0, see data/NOTICE.md).
+ITEMS_DB_FILE = APP_DIR / "data" / "items_db.json"
+# assumptions for the damage estimate: soulshots on, DEX bonus of a typical fighter, no buffs
+_SS = 2.0
+_DEX_BONUS = 1.2
+_MAX_CRIT = 500
+
+
+def _load_items_db():
+    try:
+        return json.loads(ITEMS_DB_FILE.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        log_error("info", "data/items_db.json not found: masterwork bonuses disabled")
+        return {"bonus": {}, "masterwork": {}, "names": {}}
+
+
+def weapon_final(it, effects):
+    """Final weapon numbers with the item's passive skill, and an expected damage per second index.
+    Normal hit ~ P.Atk x soulshot; a critical hit is 2 x crit damage x that, plus the flat critical
+    damage bonus (the way the High Five damage formula adds critDmgAdd)."""
+    patk, speed, crit = float(it["patk"]), float(it["speed"]), it["crit"] * 10 * _DEX_BONUS
+    crit_mul, crit_add = 1.0, 0.0
+    for op, stat, val in effects:
+        if stat == "pAtk":
+            patk = patk * val if op == "mul" else patk + val
+        elif stat == "pAtkSpd":
+            speed = speed * val if op == "mul" else speed + val
+        elif stat == "critRate":
+            crit = crit * val if op == "mul" else crit + val
+        elif stat == "critDmg":
+            crit_mul *= val if op == "mul" else 1 + val / 100
+        elif stat == "critDmgAdd":
+            crit_add += val
+    chance = min(crit, _MAX_CRIT) / 1000
+    hit = patk * _SS
+    per_hit = (1 - chance) * hit + chance * (2 * crit_mul * hit + crit_add)
+    return {"patk": round(patk), "speed": round(speed), "critStatus": round(min(crit, _MAX_CRIT)),
+            "critAdd": round(crit_add), "dps": per_hit * speed}
+
+
 class RecipeBook:
     def __init__(self, db):
         self.recipes = {r["id"]: r for r in db["recipes"]}
@@ -986,7 +1027,7 @@ class RecipeBook:
     def name(self, item_id):
         return self.names.get(item_id, f"#{item_id}")
 
-    def compare(self, recipe_id, stats_db, limit=14):
+    def compare(self, recipe_id, stats_db, extra=None, limit=16):
         """Same-slot items to compare with the recipe's product (base stats from the client)."""
         recipe = self.recipes.get(int(recipe_id))
         if not recipe or not stats_db:
@@ -996,6 +1037,8 @@ class RecipeBook:
         if not me:
             return None
         craftable = set(self.by_product)
+        extra = extra or {}
+        jewel = False
         if me["kind"] == "weapon":
             # same weapon type and attack speed (separates one-handed from two-handed)
             same = lambda it: it["kind"] == "weapon" and it["wtype"] == me["wtype"] and it["speed"] == me["speed"]
@@ -1006,26 +1049,54 @@ class RecipeBook:
             same = lambda it: (it["kind"] == "armor" and item_slot(it["name"]) == slot
                                and (jewel or it["atype"] == me["atype"]))
             key = lambda it: (it["mdef"] if jewel else it["pdef"], it["mp"])
+        bonus, masterwork = extra.get("bonus", {}), extra.get("masterwork", {})
+        # masterwork versions of this recipe's product (sealed and unsealed for armor)
+        my_mw = {int(k) for k, c in masterwork.items() if c["product"] == recipe["product"]}
+        # the client is inconsistent with plurals ("Sealed Dynasty Gaiter" unseals into "Dynasty Gaiters")
+        plain = lambda name: re.sub(r"s\b", "", name.lower())
+        unsealed_name = plain(me["name"][len("Sealed "):]) if me["name"].startswith("Sealed ") else None
         rows, seen = [], set()
         for item_id, it in items.items():
             # skip Special Ability variants and {PvP} copies: same base stats as the plain item
             if (it["add"] and item_id != recipe["product"]) or _COMPARE_SKIP.search(it["name"]) or not same(it):
                 continue
+            mw = masterwork.get(str(item_id))
             label = it["name"] + (f" ({it['add']})" if it["add"] else "")
+            if mw and " - " not in it["name"]:
+                label += " (Masterwork)"  # armor masterworks keep the plain item's name
             if label in seen:
                 continue
             seen.add(label)
-            rows.append({**it, "id": item_id, "label": label, "craft": item_id in craftable,
-                         "me": item_id == recipe["product"],
-                         # the same item after the Blacksmith of Mammon removes the seal
-                         "unsealed": me["name"].startswith("Sealed ") and it["name"] == me["name"][len("Sealed "):]})
+            effects = [e for e in bonus.get(str(item_id), {}).get("effects", []) if not e[1].startswith("pvp")]
+            row = {**it, "id": item_id, "label": label, "craft": item_id in craftable,
+                   "me": item_id == recipe["product"], "mine": item_id in my_mw,
+                   "mw": {"rarity": mw["rarity"], "foundation": self.name(mw["foundation"]) if
+                          mw["foundation"] in self.names else extra["names"].get(str(mw["foundation"]), ""),
+                          "varnish": mw["varnish"][0][1] if mw["varnish"] else 0} if mw else None,
+                   "bonus": effects,
+                   # the same item after the Blacksmith of Mammon removes the seal
+                   "unsealed": bool(unsealed_name) and plain(it["name"]) == unsealed_name}
+            if me["kind"] == "weapon":
+                row["final"] = weapon_final(it, effects)
+            rows.append(row)
         # "Name - Special Ability" copies have the base item's stats: keep only the base item
+        # (masterworks are named the same way but are real upgrades)
         bases = {r["name"] for r in rows}
-        rows = [r for r in rows if r["me"] or " - " not in r["name"] or r["name"].split(" - ")[0] not in bases]
+        rows = [r for r in rows if r["me"] or r["mw"] or " - " not in r["name"] or r["name"].split(" - ")[0] not in bases]
+        if me["kind"] == "weapon":
+            base = next((r["final"]["dps"] for r in rows if r["me"]), 0) or 1
+            for r in rows:
+                r["final"]["index"] = round(r["final"]["dps"] / base * 100)
+                del r["final"]["dps"]
+            key = lambda r: (r["final"]["index"], r["matk"])
+        else:
+            hp = lambda r: sum(v for op, s, v in r["bonus"] if s == "maxHp")
+            key = lambda r: (r["mdef"] if jewel else r["pdef"], hp(r), r["mp"])
         rows.sort(key=key, reverse=True)
-        if len(rows) > limit:  # keep the product (and its unsealed version) visible
-            keep = [r for r in rows if r["me"] or r["unsealed"]]
-            top = [r for r in rows if not (r["me"] or r["unsealed"])][:limit - len(keep)]
+        if len(rows) > limit:  # keep the product, its unsealed and masterwork versions visible
+            pinned = lambda r: r["me"] or r["unsealed"] or r["mine"]
+            keep = [r for r in rows if pinned(r)]
+            top = [r for r in rows if not pinned(r)][:limit - len(keep)]
             rows = sorted(top + keep, key=key, reverse=True)
         return {"kind": me["kind"], "rows": rows}
 
@@ -1297,6 +1368,7 @@ class Api:
             self._stats = None
         self._icons = IconStore()
         self._drops = DropBook()
+        self._items = _load_items_db()
         self._board = BoardWatcher(self._on_board_rows)
         self._board.start()
         self._adopt_running()
@@ -1447,7 +1519,7 @@ class Api:
         return self._drops.sources(item_id, names)
 
     def recipe_compare(self, recipe_id):
-        return self._recipes.compare(recipe_id, self._stats) if self._recipes else None
+        return self._recipes.compare(recipe_id, self._stats, self._items) if self._recipes else None
 
     def boss_fav(self, bid, fav):
         with self._lock:

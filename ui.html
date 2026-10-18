@@ -373,6 +373,10 @@
 
   .cmp { display: grid; grid-template-columns: 44px 1fr 34px 34px; gap: 0 4px; align-items: center;
          padding: 2px 0; border-bottom: 1px solid rgba(106,92,62,.12); font-size: 10px; }
+  .cmp.w { grid-template-columns: 44px 1fr 30px 30px 34px; }
+  .cmp .bon { grid-column: 2 / -1; font-size: 8.5px; color: #c9e3a5; line-height: 11px; white-space: normal; }
+  .cmp .idx { text-align: right; font-family: Consolas, monospace; color: var(--gold-hi); }
+  .src.mw { background: #4a2d5c; color: #e7c8ff; }
   .cmp.me { background: rgba(201,165,90,.14); box-shadow: inset 2px 0 0 var(--gold); }
   .cmp .src { font-size: 8px; text-align: center; border-radius: 2px; padding: 1px 0; }
   .src.craft { background: #2f4d26; color: #c9e3a5; }
@@ -380,7 +384,7 @@
   .src.unseal { background: #5a4a24; color: var(--gold-hi); }
   .cmp .lb { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-hi); }
   .cmp .v { text-align: right; font-family: Consolas, monospace; }
-  .cmp .bar { grid-column: 2 / 5; height: 2px; background: #1a1712; margin-top: 1px; }
+  .cmp .bar { grid-column: 2 / -1; height: 2px; background: #1a1712; margin-top: 1px; }
   .cmp .bar i { display: block; height: 100%; background: linear-gradient(90deg, #8c6a2c, #f0cf7e); }
   .cmp.chead { color: var(--dim); font-size: 9px; border-bottom: 1px solid rgba(106,92,62,.35); }
   .cbody { padding-right: 4px; }
@@ -697,6 +701,16 @@ const I18N = {
     cTabSrc: "Fontes", srcPick: "Toque num item para ver de onde ele vem.", srcDrop: "Drop", srcSpoil: "Spoil",
     srcBuy: "Troca em NPC", srcInto: "Vira (tirar selo / upgrade)", srcNone: "Nenhum mob ou troca conhecida: vem de craft, quest ou loja.",
     srcNoArea: "instância / evento", srcRecipe: "receita", srcNote: "Dados oficiais da High Five (datapack L2J). O L2Axis pode ter rates e drops próprios: use como mapa, não como garantia.",
+    cmpMw: "MW", cmpMwTip: "Masterwork: {rarity}% de chance no craft de sair {foundation}; o Blacksmith of Mammon transforma com {varnish} Mammon's Varnish Enhancer.",
+    cmpDmg: "Dano", cmpSpd: "Vel.", cmpCrit: "Crít. {v}", cmpCritAdd: "+{v} dano crít.",
+    cmpNoteW: "Dano = dano médio por segundo estimado, com o bônus passivo do item (masterwork, SA de boss), soulshot, DEX média e sem buffs; 100 = item desta receita. Base do cliente do jogo; bônus da High Five oficial (datapack L2J).",
+    st_pAtk: "P.Atk", st_mAtk: "M.Atk", st_pAtkSpd: "Vel. ataque", st_mAtkSpd: "Vel. conjuração", st_critRate: "Crítico", st_critDmg: "Dano crít.",
+    st_critDmgAdd: "Dano crít.", st_maxHp: "HP", st_maxMp: "MP", st_maxCp: "CP", st_pDef: "P.Def", st_mDef: "M.Def", st_accCombat: "Precisão",
+    st_rEvas: "Esquiva", st_regHp: "Regen HP", st_regMp: "Regen MP", st_runSpd: "Velocidade", st_atkCountMax: "Alvos", st_pAtkRange: "Alcance",
+    st_absorbDam: "Absorve HP", st_healEffect: "Cura", st_magicalMpConsumeRate: "Custo MP magia", st_physicalMpConsumeRate: "Custo MP skill",
+    st_danceMpConsumeRate: "Custo MP dança", st_sDef: "Bloqueio escudo", st_reflectDam: "Reflete dano", st_magicSuccRes: "Res. magia",
+    st_weightLimit: "Peso", st_breath: "Fôlego", st_darkRes: "Res. Trevas", st_holyRes: "Res. Sagrado", st_fireRes: "Res. Fogo",
+    st_waterRes: "Res. Água", st_earthRes: "Res. Terra", st_windRes: "Res. Vento", st_reflectSkillPhysic: "Reflete skill física", st_reflectSkillMagic: "Reflete magia", st_cancel: "Res. cancel", st_inventoryLimit: "Inventário", st_weightPenalty: "Peso", st_mAtkCrit: "Crít. mágico", st_blowRate: "Chance de blow", st_critRatePos: "Crít. por posição",
     cTabCompare: "Comparar", cmpCraft: "CRAFT", cmpDrop: "DROP", cmpUnsealed: "SEM SELO", cmpItem: "Item",
     cmpNote: "Atributos base do cliente do jogo, mesmo slot. CRAFT = dá para fazer aqui; DROP = drop/NPC; SEM SELO = este mesmo item depois que o Blacksmith of Mammon tira o selo. Bônus de Masterwork é do servidor e não aparece.",
     cRecipeNote: "A receita não é consumida. Veja em Fontes onde dropam a receita, os pedaços (Piece) e os materiais.",
@@ -770,6 +784,16 @@ const I18N = {
     cTabSrc: "Sources", srcPick: "Tap an item to see where it comes from.", srcDrop: "Drop", srcSpoil: "Spoil",
     srcBuy: "NPC exchange", srcInto: "Turns into (unseal / upgrade)", srcNone: "No known mob or exchange: it comes from crafting, quests or shops.",
     srcNoArea: "instance / event", srcRecipe: "recipe", srcNote: "Official High Five data (L2J datapack). L2Axis may use its own rates and drops: treat it as a map, not a promise.",
+    cmpMw: "MW", cmpMwTip: "Masterwork: {rarity}% chance when crafting to get {foundation}; the Blacksmith of Mammon turns it into this with {varnish} Mammon's Varnish Enhancer.",
+    cmpDmg: "Dmg", cmpSpd: "Spd", cmpCrit: "Crit {v}", cmpCritAdd: "+{v} crit dmg",
+    cmpNoteW: "Dmg = estimated average damage per second, with the item's passive bonus (masterwork, boss SA), soulshots, average DEX and no buffs; 100 = this recipe's item. Base stats from the game client; bonuses from official High Five (L2J datapack).",
+    st_pAtk: "P.Atk", st_mAtk: "M.Atk", st_pAtkSpd: "Atk. Spd", st_mAtkSpd: "Casting Spd", st_critRate: "Critical", st_critDmg: "Crit dmg",
+    st_critDmgAdd: "Crit dmg", st_maxHp: "HP", st_maxMp: "MP", st_maxCp: "CP", st_pDef: "P.Def", st_mDef: "M.Def", st_accCombat: "Accuracy",
+    st_rEvas: "Evasion", st_regHp: "HP regen", st_regMp: "MP regen", st_runSpd: "Speed", st_atkCountMax: "Targets", st_pAtkRange: "Range",
+    st_absorbDam: "HP drain", st_healEffect: "Healing", st_magicalMpConsumeRate: "Spell MP cost", st_physicalMpConsumeRate: "Skill MP cost",
+    st_danceMpConsumeRate: "Dance MP cost", st_sDef: "Shield block", st_reflectDam: "Damage reflect", st_magicSuccRes: "Magic res.",
+    st_weightLimit: "Weight", st_breath: "Breath", st_darkRes: "Dark res.", st_holyRes: "Holy res.", st_fireRes: "Fire res.",
+    st_waterRes: "Water res.", st_earthRes: "Earth res.", st_windRes: "Wind res.", st_reflectSkillPhysic: "Physical skill reflect", st_reflectSkillMagic: "Magic reflect", st_cancel: "Cancel res.", st_inventoryLimit: "Inventory", st_weightPenalty: "Weight", st_mAtkCrit: "Magic crit", st_blowRate: "Blow rate", st_critRatePos: "Positional crit",
     cTabCompare: "Compare", cmpCraft: "CRAFT", cmpDrop: "DROP", cmpUnsealed: "UNSEALED", cmpItem: "Item",
     cmpNote: "Base stats from the game client, same slot. CRAFT = craftable here; DROP = drop/NPC; UNSEALED = this same item after the Blacksmith of Mammon removes the seal. Masterwork bonuses come from the server and are not shown.",
     cRecipeNote: "The recipe is not consumed. See Sources for where the recipe, the pieces and the materials drop.",
@@ -843,6 +867,16 @@ const I18N = {
     cTabSrc: "Quellen", srcPick: "Tippe auf ein Item, um zu sehen, woher es kommt.", srcDrop: "Drop", srcSpoil: "Spoil",
     srcBuy: "NPC-Tausch", srcInto: "Wird zu (Entsiegeln / Upgrade)", srcNone: "Kein bekannter Mob oder Tausch: kommt aus Crafting, Quests oder Shops.",
     srcNoArea: "Instanz / Event", srcRecipe: "Rezept", srcNote: "Offizielle High-Five-Daten (L2J-Datapack). L2Axis kann eigene Raten und Drops haben: als Karte nutzen, nicht als Garantie.",
+    cmpMw: "MW", cmpMwTip: "Masterwork: {rarity}% Chance beim Craften auf {foundation}; der Blacksmith of Mammon macht daraus mit {varnish} Mammon's Varnish Enhancer dieses Item.",
+    cmpDmg: "Schaden", cmpSpd: "Tempo", cmpCrit: "Krit. {v}", cmpCritAdd: "+{v} Krit.-Schaden",
+    cmpNoteW: "Schaden = geschätzter Durchschnittsschaden pro Sekunde, mit dem passiven Bonus des Items (Masterwork, Boss-SA), Soulshots, mittlerer DEX und ohne Buffs; 100 = Item dieses Rezepts. Basiswerte aus dem Client, Boni aus offiziellem High Five (L2J-Datapack).",
+    st_pAtk: "P.Atk", st_mAtk: "M.Atk", st_pAtkSpd: "Angriffstempo", st_mAtkSpd: "Zaubertempo", st_critRate: "Kritisch", st_critDmg: "Krit.-Schaden",
+    st_critDmgAdd: "Krit.-Schaden", st_maxHp: "HP", st_maxMp: "MP", st_maxCp: "CP", st_pDef: "P.Def", st_mDef: "M.Def", st_accCombat: "Genauigkeit",
+    st_rEvas: "Ausweichen", st_regHp: "HP-Regen.", st_regMp: "MP-Regen.", st_runSpd: "Tempo", st_atkCountMax: "Ziele", st_pAtkRange: "Reichweite",
+    st_absorbDam: "HP-Absorption", st_healEffect: "Heilung", st_magicalMpConsumeRate: "MP-Kosten Magie", st_physicalMpConsumeRate: "MP-Kosten Skills",
+    st_danceMpConsumeRate: "MP-Kosten Tanz", st_sDef: "Schildblock", st_reflectDam: "Schadensreflexion", st_magicSuccRes: "Magieresistenz",
+    st_weightLimit: "Gewicht", st_breath: "Atem", st_darkRes: "Res. Dunkel", st_holyRes: "Res. Heilig", st_fireRes: "Res. Feuer",
+    st_waterRes: "Res. Wasser", st_earthRes: "Res. Erde", st_windRes: "Res. Wind", st_reflectSkillPhysic: "Reflexion phys. Skills", st_reflectSkillMagic: "Magiereflexion", st_cancel: "Cancel-Res.", st_inventoryLimit: "Inventar", st_weightPenalty: "Gewicht", st_mAtkCrit: "Magiekrit.", st_blowRate: "Blow-Chance", st_critRatePos: "Positionskrit.",
     cTabCompare: "Vergleich", cmpCraft: "CRAFT", cmpDrop: "DROP", cmpUnsealed: "ENTSIEGELT", cmpItem: "Item",
     cmpNote: "Basiswerte aus dem Spielclient, gleicher Slot. CRAFT = hier craftbar; DROP = Drop/NPC; ENTSIEGELT = dieses Item, nachdem der Blacksmith of Mammon das Siegel entfernt hat. Masterwork-Boni kommen vom Server und werden nicht angezeigt.",
     cRecipeNote: "Das Rezept wird nicht verbraucht. Unter Quellen steht, wo Rezept, Teile und Materialien droppen.",
@@ -1519,8 +1553,20 @@ function sourcesHtml(r) {
     `<div class="small" style="margin-top:5px;line-height:13px">${esc(t("srcNote"))}</div>`;
 }
 
+// one passive bonus as text: "+5% Atk. Spd", "+205 HP"
+function bonusText(op, stat, val) {
+  const key = "st_" + stat, name = I18N[LANG][key] ? t(key) : stat;
+  if (op === "mul") {
+    const pct = Math.round((val - 1) * 1000) / 10;
+    return `${pct > 0 ? "+" : ""}${pct.toLocaleString(LOCALES[LANG])}% ${name}`;
+  }
+  const v = op === "sub" ? -val : val;
+  return `${v > 0 ? "+" : ""}${(Math.round(v * 10) / 10).toLocaleString(LOCALES[LANG])} ${name}`;
+}
+
 function compareHtml() {
   if (!craftCmp || !craftCmp.data) return `<div class="small">…</div>`;
+  if (craftCmp.data.kind === "weapon") return compareWeaponsHtml();
   const c = craftCmp.data, weapon = c.kind === "weapon";
   const jewel = !weapon && c.rows.every(x => !x.pdef);
   const main = x => weapon ? x.patk : (jewel ? x.mdef : x.pdef);
@@ -1529,13 +1575,45 @@ function compareHtml() {
   const vals = x => weapon ? [x.patk, x.matk] : (jewel ? [x.mdef, x.mp] : [x.pdef, x.mdef]);
   let html = `<div class="cmp chead"><span></span><span>${esc(t("cmpItem"))}</span><span class="v">${cols[0]}</span><span class="v">${cols[1]}</span></div>`;
   c.rows.forEach(x => {
-    const src = x.unsealed ? ["unseal", t("cmpUnsealed")] : x.craft ? ["craft", t("cmpCraft")] : ["drop", t("cmpDrop")];
     const [a, b] = vals(x);
-    html += `<div class="cmp ${x.me ? "me" : ""}"><span class="src ${src[0]}">${esc(src[1])}</span>
+    html += `<div class="cmp ${x.me || x.mine ? "me" : ""}">${srcBadge(x)}
       <span class="lb" title="${esc(x.label)}" data-src="${x.id}">${ico(x.id)}${esc(x.label)}</span><span class="v">${a}</span><span class="v">${b || "—"}</span>
-      <span></span><span class="bar"><i style="width:${Math.round(main(x) / max * 100)}%"></i></span></div>`;
+      ${bonusLine(x.bonus)}<span></span><span class="bar"><i style="width:${Math.round(main(x) / max * 100)}%"></i></span></div>`;
   });
   return html + `<div class="small" style="margin-top:5px;line-height:13px">${esc(t("cmpNote"))}</div>`;
+}
+
+function srcBadge(x) {
+  if (x.mw) {
+    const tip = t("cmpMwTip", { rarity: x.mw.rarity, foundation: x.mw.foundation, varnish: x.mw.varnish });
+    return `<span class="src mw" title="${esc(tip)}">${esc(t("cmpMw"))}</span>`;
+  }
+  const src = x.unsealed ? ["unseal", t("cmpUnsealed")] : x.craft ? ["craft", t("cmpCraft")] : ["drop", t("cmpDrop")];
+  return `<span class="src ${src[0]}">${esc(src[1])}</span>`;
+}
+
+function bonusLine(list, extra = []) {
+  const parts = extra.concat((list || []).filter(([, s]) => !["pAtkSpd", "critRate", "critDmgAdd", "pAtk"].includes(s) || !extra.length)
+    .map(([op, s, v]) => bonusText(op, s, v)));
+  return parts.length ? `<span></span><span class="bon">${esc(parts.join(" · "))}</span>` : "";
+}
+
+// weapons: final P.Atk and speed with the passive bonus, critical and the estimated damage index
+function compareWeaponsHtml() {
+  const rows = craftCmp.data.rows, max = Math.max(...rows.map(x => x.final.index), 1);
+  let html = `<div class="cmp w chead"><span></span><span>${esc(t("cmpItem"))}</span><span class="v">P.Atk</span>
+    <span class="v">${esc(t("cmpSpd"))}</span><span class="v">${esc(t("cmpDmg"))}</span></div>`;
+  rows.forEach(x => {
+    const f = x.final, extra = [];
+    if ((x.bonus || []).some(([, s]) => s === "critRate")) extra.push(t("cmpCrit", { v: f.critStatus }));
+    if (f.critAdd) extra.push(t("cmpCritAdd", { v: f.critAdd }));
+    (x.bonus || []).forEach(([op, s, v]) => { if (s === "pAtkSpd" || s === "pAtk") extra.push(bonusText(op, s, v)); });
+    html += `<div class="cmp w ${x.me || x.mine ? "me" : ""}">${srcBadge(x)}
+      <span class="lb" title="${esc(x.label)}" data-src="${x.id}">${ico(x.id)}${esc(x.label)}</span>
+      <span class="v">${f.patk}</span><span class="v">${f.speed}</span><span class="idx">${f.index}</span>
+      ${bonusLine(x.bonus, extra)}<span></span><span class="bar"><i style="width:${Math.round(f.index / max * 100)}%"></i></span></div>`;
+  });
+  return html + `<div class="small" style="margin-top:5px;line-height:13px">${esc(t("cmpNoteW"))}</div>`;
 }
 
 function treeHtml(node, depth = 0) {
