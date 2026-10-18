@@ -1192,6 +1192,13 @@ class RecipeBook:
         if not stats_db:
             return
         masterwork = (extra or {}).get("masterwork", {})
+        plain = lambda name: re.sub(r"s\b", "", name.lower())
+        # items reached by crafting (directly or by unsealing a crafted item) are not "no recipe" items
+        crafted_names = set()
+        for pid, rec in self.by_product.items():
+            name = self.name(pid)
+            crafted_names.add(plain(name[7:] if name.startswith("Sealed ") else name))
+        seen = set()
         sealed_of = {}
         for k, it in stats_db["items"].items():
             if it["name"].startswith("Sealed ") and not it["add"]:
@@ -1212,7 +1219,11 @@ class RecipeBook:
             elif not item_slot(it["name"], item_id) or (jewel and it["mdef"] < 40) or (not jewel and not it["pdef"]
                                                                                 and armor_kind(it["name"]) != "sigil"):
                 continue
-            sealed = sealed_of.get(re.sub(r"s\b", "", it["name"].lower()))
+            key = plain(it["name"])
+            if key in crafted_names or key in seen:
+                continue  # craftable, or a second client copy of the same item
+            seen.add(key)
+            sealed = sealed_of.get(key)
             self.recipes[OBTAIN_BASE + item_id] = {
                 "id": OBTAIN_BASE + item_id, "recipeItem": 0, "level": 0, "product": item_id, "count": 1,
                 "mp": 0, "rate": 100, "mats": [], "obtain": {"sealed": sealed}}
@@ -1224,9 +1235,13 @@ class RecipeBook:
         """Shirts, belts, bracelets, talismans, cloaks and hair accessories: no recipe, but they help.
         in_client: item ids the player's client knows (items missing there do not exist on L2Axis)."""
         junk = re.compile(r"limited period|not in use|common item|event|kratei", re.I)
-        self.accessories = {k: v for k, v in (extra or {}).get("accessories", {}).items()
-                            if (in_client is None or int(k) in in_client)
-                            and not junk.search(self.names.get(int(k), v["name"]))}
+        self.accessories, seen = {}, set()
+        for k, v in (extra or {}).get("accessories", {}).items():
+            name = self.names.get(int(k), v["name"])
+            if (in_client is not None and int(k) not in in_client) or junk.search(name) or name in seen:
+                continue  # missing from the client, junk, or a second copy of the same item
+            seen.add(name)
+            self.accessories[k] = v
         for k, acc in self.accessories.items():
             item_id = int(k)
             self.recipes[OBTAIN_BASE + item_id] = {
@@ -1453,7 +1468,49 @@ class RecipeBook:
             out.append({"slot": slot, "rows": shown, "bestCraft": best_craft["id"] if best_craft else None})
         return {"cls": cls, "mage": mage, "role": role, "slots": out}
 
-    def top_tier(self, stats_db=None):
+    def _power(self, item_id, stats_db, bonus):
+        """How strong an item is for what it is meant to do, passive bonuses included:
+        physical weapons = estimated damage per second, magic weapons = M.Atk, armor = P.Def (+HP),
+        jewelry = M.Def. A sealed item counts as its unsealed version (that is what gets used)."""
+        items = stats_db["items"]
+        it = items.get(str(item_id))
+        if not it:
+            return None, None
+        if it["name"].startswith("Sealed "):
+            if not getattr(self, "_unsealed", None):
+                self._unsealed = {}
+                for k, v in items.items():  # plain item without a passive bonus (not the masterwork)
+                    if not v["name"].startswith("Sealed ") and not v["add"] and "{PvP}" not in v["name"]:
+                        key = re.sub(r"s\b", "", v["name"].lower())
+                        if key not in self._unsealed or k not in bonus:
+                            self._unsealed[key] = int(k)
+            alt = self._unsealed.get(re.sub(r"s\b", "", it["name"][7:].lower()))
+            if alt:
+                item_id, it = alt, items[str(alt)]
+        effects = [e for e in bonus.get(str(item_id), {}).get("effects", []) if not e[1].startswith("pvp")]
+        if it["kind"] == "weapon":
+            cat = weapon_cat(it)
+            if cat == "shield":
+                return it["grade"] * 100 + it["patk"], "offhand"
+            if cat in MAGIC:
+                m = float(it["matk"])
+                for op, stat, val in effects:
+                    if stat == "mAtk":
+                        m = m * val if op == "mul" else m + val
+                return m, "magic"
+            return weapon_final(it, effects)["dps"] / 1000, "weapon"
+        slot = item_slot(it["name"], item_id)
+        if slot in ("earring", "necklace", "ring"):
+            return it["mdef"] + sum(v for op, s, v in effects if s == "maxMp") * .05, slot
+        if slot in ("shield", "sigil"):
+            return it["pdef"] + it["mdef"], "offhand"
+        pdef = float(it["pdef"])
+        for op, stat, val in effects:
+            if stat == "pDef" and op == "mul":
+                pdef *= val
+        return pdef + sum(v for op, s, v in effects if s == "maxHp") * .02, slot
+
+    def top_tier(self, stats_db=None, extra=None):
         out = []
         for r in self.recipes.values():
             if r.get("rare") or r.get("mwStep"):
@@ -1500,6 +1557,13 @@ class RecipeBook:
                         "npc": bool(r.get("npc")) and not r.get("mw"),
                         "mw": {"rarity": r["mw"]["rarity"], "rate": round(r["mw"]["baseRate"] * r["mw"]["rarity"] / 100, 2)}
                         if r.get("mw") else None})
+        if stats_db:
+            bonus = (extra or {}).get("bonus", {})
+            for x in out:
+                if x["kind"] != "accessory":
+                    power, group = self._power(x["productId"], stats_db, bonus)
+                    if power:
+                        x["power"], x["pgroup"] = round(power, 2), group
         return sorted(out, key=lambda x: (x["grade"], x["family"], x["kind"], x["product"], -x["rate"]))
 
     def _expand(self, recipe, needed, expand_all):
@@ -1924,7 +1988,7 @@ class Api:
 
     # -------------------------------------------------- craft
     def recipes_list(self):
-        return self._recipes.top_tier(self._stats) if self._recipes else []
+        return self._recipes.top_tier(self._stats, self._items) if self._recipes else []
 
     def class_list(self):
         """Classes with what they can use, for the character filter."""

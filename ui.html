@@ -407,6 +407,10 @@
   .rt.mw { color: #e7c8ff; font-size: 9px; width: 52px; }
   .rt.drop { color: #a39a86; font-size: 9px; }
   .rt.acc { color: #9fd1c6; font-size: 9px; width: 58px; }
+  .recipe .pw { width: 34px; text-align: right; font-family: Consolas, monospace; font-size: 10px; color: var(--gold-hi); }
+  .recipe .pw.lo { color: var(--dim); }
+  .rgroup { padding: 4px 4px 1px; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--gold);
+            border-bottom: 1px solid rgba(201,165,90,.35); }
   .recipe.accrow .nm { color: #cfe8e1; }
   .accbon { margin: 3px 0 0; font-size: 10px; line-height: 14px; color: #c9e3a5; }
   .accbon .act { color: #b8dcff; }
@@ -606,6 +610,11 @@
           <option value="armor" data-i18n="cArmor"></option>
           <option value="jewelry" data-i18n="cJewelry"></option>
           <option value="accessory" data-i18n="cAcc"></option>
+        </select>
+        <select class="e" id="cSort">
+          <option value="power" data-i18n="sortPower"></option>
+          <option value="grade" data-i18n="sortGrade"></option>
+          <option value="name" data-i18n="sortName"></option>
         </select>
         <select class="e" id="cAccSlot">
           <option value="" data-i18n="accAll"></option>
@@ -823,6 +832,8 @@ const I18N = {
     st_pvpPhysDmg: "dano físico em PvP", st_pvpPhysSkillsDmg: "dano de skill em PvP", st_pvpMagicalDmg: "dano mágico em PvP",
     st_pvpPhysDef: "defesa física em PvP", st_pvpMagicalDef: "defesa mágica em PvP", st_pvpPhysSkillsDef: "defesa a skill em PvP",
     st_mCritRate: "Crít. mágico", st_rShld: "Chance de bloqueio", st_defCritRate: "crítico recebido",
+    sortPower: "Mais forte primeiro", sortGrade: "Grau e família", sortName: "Nome", slot_magic: "Arma mágica",
+    slot_fullbody: "Corpo inteiro", slot_shield: "Escudo", slot_sigil: "Sigil", pwTip: "Força em relação ao melhor do grupo (bônus incluídos)",
     cTabSrc: "Fontes", srcPick: "Toque num item para ver de onde ele vem.", srcDrop: "Drop", srcSpoil: "Spoil",
     srcBuy: "Troca em NPC", srcInto: "Vira (tirar selo / upgrade)", srcNone: "Nenhum drop ou troca nos dados oficiais: pode vir de quest, evento, Olimpíada ou loja do servidor.",
     srcNoArea: "instância / evento", srcRecipe: "receita", srcNote: "Dados oficiais da High Five (datapack L2J). O L2Axis pode ter rates e drops próprios: use como mapa, não como garantia.",
@@ -936,6 +947,8 @@ const I18N = {
     st_pvpPhysDmg: "PvP physical damage", st_pvpPhysSkillsDmg: "PvP skill damage", st_pvpMagicalDmg: "PvP magic damage",
     st_pvpPhysDef: "PvP physical defence", st_pvpMagicalDef: "PvP magic defence", st_pvpPhysSkillsDef: "PvP skill defence",
     st_mCritRate: "Magic crit", st_rShld: "Block chance", st_defCritRate: "crits taken",
+    sortPower: "Strongest first", sortGrade: "Grade & family", sortName: "Name", slot_magic: "Magic weapon",
+    slot_fullbody: "Full body", slot_shield: "Shield", slot_sigil: "Sigil", pwTip: "Power compared with the best of the group (bonuses included)",
     cTabSrc: "Sources", srcPick: "Tap an item to see where it comes from.", srcDrop: "Drop", srcSpoil: "Spoil",
     srcBuy: "NPC exchange", srcInto: "Turns into (unseal / upgrade)", srcNone: "No drop or exchange in the official data: it may come from a quest, event, the Olympiad or a server shop.",
     srcNoArea: "instance / event", srcRecipe: "recipe", srcNote: "Official High Five data (L2J datapack). L2Axis may use its own rates and drops: treat it as a map, not a promise.",
@@ -1049,6 +1062,8 @@ const I18N = {
     st_pvpPhysDmg: "PvP-Phys.-Schaden", st_pvpPhysSkillsDmg: "PvP-Skillschaden", st_pvpMagicalDmg: "PvP-Magieschaden",
     st_pvpPhysDef: "PvP-Phys.-Verteidigung", st_pvpMagicalDef: "PvP-Magieverteidigung", st_pvpPhysSkillsDef: "PvP-Skillverteidigung",
     st_mCritRate: "Magiekrit.", st_rShld: "Blockchance", st_defCritRate: "erlittene Krits",
+    sortPower: "Stärkste zuerst", sortGrade: "Grad & Familie", sortName: "Name", slot_magic: "Magiewaffe",
+    slot_fullbody: "Ganzkörper", slot_shield: "Schild", slot_sigil: "Sigil", pwTip: "Stärke im Vergleich zum Besten der Gruppe (mit Boni)",
     cTabSrc: "Quellen", srcPick: "Tippe auf ein Item, um zu sehen, woher es kommt.", srcDrop: "Drop", srcSpoil: "Spoil",
     srcBuy: "NPC-Tausch", srcInto: "Wird zu (Entsiegeln / Upgrade)", srcNone: "Kein Drop oder Tausch in den offiziellen Daten: evtl. Quest, Event, Olympiade oder Server-Shop.",
     srcNoArea: "Instanz / Event", srcRecipe: "Rezept", srcNote: "Offizielle High-Five-Daten (L2J-Datapack). L2Axis kann eigene Raten und Drops haben: als Karte nutzen, nicht als Garantie.",
@@ -1417,7 +1432,8 @@ function build() {
     document.querySelectorAll("[data-cf]").forEach(x => x.classList.toggle("on", x === b));
     renderCraftList();
   });
-  ["#cKind", "#cRate", "#cSrc", "#cAccSlot"].forEach(id => $(id).onchange = renderCraftList);
+  ["#cKind", "#cRate", "#cSrc", "#cAccSlot", "#cSort"].forEach(id => $(id).onchange = renderCraftList);
+  $("#cSort").value = "power";
   $("#cSearch").oninput = renderCraftList;
   $("#bVoteMain").onclick = () => api.vote_ready(true);
   $("#bVoteAll").onclick = () => api.vote_ready(false);
@@ -1694,12 +1710,32 @@ function renderCraftList() {
     // accessories only when asked for (Accessories button, type or slot): they would flood the list
     (r.kind !== "accessory" || craftFamily === "Acc" || kind === "accessory" || !!$("#cAccSlot").value));
   $("#cInfo").textContent = t("cInfo", { n: list.length });
+  // ordering: strongest first (by group: weapon type, then each armor slot) when a class is picked
+  const sortMode = $("#cSort").value || "power";
+  const GROUPS = ["weapon", "magic", "offhand", "helmet", "chest", "fullbody", "legs", "gloves", "boots", "necklace", "earring", "ring"];
+  const best = {};
+  list.forEach(r => { if (r.power) best[r.pgroup] = Math.max(best[r.pgroup] || 0, r.power); });
+  if (sortMode === "power") {
+    const gi = r => r.pgroup ? GROUPS.indexOf(r.pgroup) : 99;
+    list.sort((a, b) => gi(a) - gi(b) || (b.power || 0) - (a.power || 0) || a.product.localeCompare(b.product));
+  } else if (sortMode === "name") {
+    list.sort((a, b) => a.product.localeCompare(b.product));
+  }
+  let lastGroup = null;
   box.innerHTML = list.length ? "" : `<div class="small" style="padding:6px">${esc(t("cNone"))}</div>`;
   list.forEach(r => {
+    if (sortMode === "power" && (r.pgroup || "other") !== lastGroup) {
+      lastGroup = r.pgroup || "other";
+      const h = document.createElement("div");
+      h.className = "rgroup";
+      h.textContent = r.pgroup ? t("slot_" + r.pgroup) : t("cAcc");
+      box.appendChild(h);
+    }
     const row = document.createElement("div");
     row.className = "recipe" + (openRecipe === r.id ? " open" : "") + (r.mw ? " mwrow" : "") +
       (r.kind === "accessory" ? " accrow" : r.obtain ? " droprow" : "");
     row.innerHTML = `<span class="g ${r.grade === "S84" ? "s84" : ["S", "A", "B", "C", "D", "—"].includes(r.grade) ? "sx" : ""}">${r.grade}</span>${ico(r.productId)}<span class="nm"></span>
+      ${r.power ? `<span class="pw ${r.power / best[r.pgroup] < .9 ? "lo" : ""}" title="${esc(t("pwTip"))}">${Math.round(r.power / best[r.pgroup] * 100)}%</span>` : ""}
       <span class="small">${r.npc || r.obtain ? "" : "Lv " + r.level}</span>${r.kind === "accessory" ? `<span class="rt acc">${esc(t("acc_" + r.cat))}</span>` : r.obtain ? `<span class="rt drop">DROP</span>` : r.mw ? `<span class="rt mw" title="${esc(t("cMwOnly"))}">MW ${r.mw.rate.toLocaleString(LOCALES[LANG])}%</span>` : r.npc ? `<span class="rt npc">NPC</span>` : `<span class="rt ${r.rate === 100 ? "r100" : "r60"}">${r.rate}%</span>`}`;
     row.querySelector(".nm").textContent = r.product;
     row.onclick = () => {
