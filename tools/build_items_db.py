@@ -17,6 +17,9 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent.parent
 MAMMON_FOUNDATION_LIST = "311262513.xml"
+# Blacksmith of Mammon (Ancient Adena) and Ishuma (Adena): two weapons + Dualsword Craft Stamp -> dual
+DUAL_LISTS = {"311262503.xml": "Blacksmith of Mammon", "326150001.xml": "Ishuma"}
+TOP_FAMILIES = re.compile(r"^(Dynasty|Icarus|Vesper)\b")
 # stats that change what a player sees in the status window or deals as damage
 STAT_OPS = ("add", "sub", "mul", "basemul")
 POOL_EFFECTS = {"MaxHp": "maxHp", "MaxMp": "maxMp", "MaxCp": "maxCp"}
@@ -126,13 +129,40 @@ def main(datapack):
         masterwork[str(result)] = chain
         if final != result:
             masterwork[str(final)] = chain
+    # dual swords / dual daggers have no recipe: the NPC combines two weapons
+    combos = {}
+    for list_file, npc in DUAL_LISTS.items():
+        for entry in ET.parse(data / "multisell" / list_file).getroot().findall("item"):
+            product = int(entry.find("production").get("id"))
+            if not TOP_FAMILIES.match(items.get(product, {}).get("name", "")):
+                continue
+            mats = [[int(i.get("id")), int(i.get("count"))] for i in entry.findall("ingredient")]
+            combo = combos.setdefault(str(product), {"product": product, "mats": mats, "npc": []})
+            combo["npc"].append({"npc": npc, "cost": mats[-1]})
+            # a dual made from a masterwork weapon is the dual's masterwork
+            for item_id, _ in mats:
+                chain = masterwork.get(str(item_id))
+                if chain and str(product) not in masterwork:
+                    base = next((c["product"] for c in combos.values() if c["product"] != product and
+                                 items[c["product"]]["name"] == items[product]["name"].split(" - ")[0]), None)
+                    masterwork[str(product)] = {**chain, "result": product, "final": product, "dual": True,
+                                                "product": base or chain["product"]}
+    # second pass: masterwork duals whose plain dual was read after them
+    for key, chain in masterwork.items():
+        if chain.get("dual"):
+            plain = items[int(key)]["name"].split(" - ")[0]
+            chain["product"] = next((c["product"] for c in combos.values()
+                                     if items[c["product"]]["name"] == plain), chain["product"])
+    combo_ids = {i for c in combos.values() for i, _ in c["mats"]}
     out = {
         "source": "L2J Server datapack (High Five) - https://bitbucket.org/l2jserver/l2j-server-datapack - GPL-3.0",
         "note": "Passive item bonuses and masterwork chains, official High Five values. L2Axis may differ.",
         "bonus": bonus,
         "masterwork": masterwork,
+        "combos": {k: v for k, v in combos.items() if " - " not in items[v["product"]]["name"]},
         "names": {str(k): items[k]["name"] for k in sorted({c["foundation"] for c in masterwork.values()}
-                                                          | {i for c in masterwork.values() for i, _ in c["varnish"]})},
+                                                          | {i for c in masterwork.values() for i, _ in c["varnish"]}
+                                                          | combo_ids | {int(k) for k in combos})},
     }
     target = HERE / "data" / "items_db.json"
     target.write_text(json.dumps(out, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")

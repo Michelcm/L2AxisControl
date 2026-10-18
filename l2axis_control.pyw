@@ -1014,6 +1014,95 @@ def weapon_final(it, effects):
             "critAdd": round(crit_add), "dps": per_hit * speed}
 
 
+# ---------------------------------------------------------------- character classes (High Five 3rd classes)
+# client weapon type codes (weapongrp): 1 sword, 2 blunt, 3 dagger, 4 pole, 5 fist, 6 bow, 8 dual swords,
+# 11 rapier, 12 crossbow, 13 ancient sword, 15 dual daggers, 0 shield. Speed 325 = two-handed.
+_WTYPES = {3: "dagger", 4: "pole", 5: "fist", 6: "bow", 8: "dual", 11: "rapier", 12: "crossbow",
+           13: "ancient", 15: "dualdagger", 0: "shield"}
+MAGIC = ("magic1h", "magic2h")
+_MAGE = (MAGIC, ("robe",), "sigil")
+# class: (race, role, weapon categories, armor kinds, off-hand)
+CHAR_CLASSES = {
+    "Duelist": ("human", "fighter", ("dual",), ("heavy",), None),
+    "Dreadnought": ("human", "fighter", ("pole",), ("heavy",), None),
+    "Phoenix Knight": ("human", "tank", ("sword1h", "blunt1h"), ("heavy",), "shield"),
+    "Hell Knight": ("human", "tank", ("sword1h", "blunt1h"), ("heavy",), "shield"),
+    "Sagittarius": ("human", "archer", ("bow",), ("light",), None),
+    "Adventurer": ("human", "dagger", ("dagger", "dualdagger"), ("light",), None),
+    "Archmage": ("human", "mage") + _MAGE,
+    "Soultaker": ("human", "mage") + _MAGE,
+    "Arcana Lord": ("human", "summoner") + _MAGE,
+    "Cardinal": ("human", "healer") + _MAGE,
+    "Hierophant": ("human", "buffer") + _MAGE,
+    "Eva's Templar": ("elf", "tank", ("sword1h", "blunt1h"), ("heavy",), "shield"),
+    "Sword Muse": ("elf", "buffer", ("sword1h",), ("heavy",), "shield"),
+    "Wind Rider": ("elf", "dagger", ("dagger", "dualdagger"), ("light",), None),
+    "Moonlight Sentinel": ("elf", "archer", ("bow",), ("light",), None),
+    "Mystic Muse": ("elf", "mage") + _MAGE,
+    "Elemental Master": ("elf", "summoner") + _MAGE,
+    "Eva's Saint": ("elf", "healer") + _MAGE,
+    "Shillien Templar": ("darkelf", "tank", ("sword1h", "blunt1h"), ("heavy",), "shield"),
+    "Spectral Dancer": ("darkelf", "buffer", ("dual",), ("heavy",), None),
+    "Ghost Hunter": ("darkelf", "dagger", ("dagger", "dualdagger"), ("light",), None),
+    "Ghost Sentinel": ("darkelf", "archer", ("bow",), ("light",), None),
+    "Storm Screamer": ("darkelf", "mage") + _MAGE,
+    "Spectral Master": ("darkelf", "summoner") + _MAGE,
+    "Shillien Saint": ("darkelf", "healer") + _MAGE,
+    "Titan": ("orc", "fighter", ("sword2h", "blunt2h"), ("heavy",), None),
+    "Grand Khavatari": ("orc", "fighter", ("fist",), ("light", "heavy"), None),
+    "Dominator": ("orc", "buffer") + _MAGE,
+    "Doomcryer": ("orc", "buffer") + _MAGE,
+    "Fortune Seeker": ("dwarf", "fighter", ("blunt1h", "blunt2h", "pole"), ("heavy",), None),
+    "Maestro": ("dwarf", "fighter", ("blunt1h", "blunt2h"), ("heavy",), None),
+    "Doombringer": ("kamael", "fighter", ("ancient",), ("light",), None),
+    "Soul Hound": ("kamael", "mage", ("rapier",), ("light",), None),
+    "Trickster": ("kamael", "archer", ("crossbow",), ("light",), None),
+    "Judicator": ("kamael", "buffer", ("rapier", "crossbow", "ancient"), ("light",), None),
+}
+PLAN_SLOTS = ("weapon", "offhand", "helmet", "chest", "legs", "gloves", "boots", "necklace", "earring", "ring")
+
+
+def weapon_cat(it):
+    """sword1h, blunt2h, magic1h, bow... from the client's weapon type, speed and P.Atk/M.Atk ratio."""
+    if it["wtype"] in _WTYPES:
+        return _WTYPES[it["wtype"]]
+    if it["wtype"] in (1, 2):
+        hands = "2h" if it["speed"] <= 325 else "1h"
+        if it["matk"] >= 0.6 * max(1, it["patk"]):
+            return "magic" + hands
+        return ("sword" if it["wtype"] == 1 else "blunt") + hands
+    return None
+
+
+def armor_kind(name):
+    """heavy / light / robe / shield / sigil / jewelry, from the item name (helmets, gloves and boots
+    carry no armor type in the client: the name tells which set they belong to)."""
+    if any(j in name for j in _JEWELRY):
+        return "jewelry"
+    if "Sigil" in name:
+        return "sigil"
+    if "Shield" in name:
+        return "shield"
+    if "Leather" in name:
+        return "light"
+    if any(w in name for w in ("Tunic", "Stockings", "Circlet", "Gloves", "Shoes", "Robe")):
+        return "robe"
+    return "heavy"
+
+
+def class_fits(cls, kind, cat):
+    """Can this class use an item of this kind (weapon/armor/jewelry) and category?"""
+    _race, _role, weapons, armors, offhand = CHAR_CLASSES[cls]
+    if kind == "weapon":
+        return cat in weapons or cat == offhand
+    if kind == "jewelry" or cat == "jewelry":
+        return True
+    return cat in armors or cat == offhand
+
+
+NPC_RECIPE_BASE = 1_000_000  # ids of the NPC "recipes" (dual weapons)
+
+
 class RecipeBook:
     def __init__(self, db):
         self.recipes = {r["id"]: r for r in db["recipes"]}
@@ -1027,6 +1116,20 @@ class RecipeBook:
 
     def name(self, item_id):
         return self.names.get(item_id, f"#{item_id}")
+
+    def add_npc_recipes(self, extra):
+        """Dual swords and dual daggers have no recipe: an NPC combines two weapons and a Dualsword
+        Craft Stamp. They become recipes too, so the guide expands the two weapons' own recipes."""
+        for k, v in (extra or {}).get("names", {}).items():
+            self.names.setdefault(int(k), v)
+        self.names.setdefault(57, "Adena")
+        for combo in (extra or {}).get("combos", {}).values():
+            rid = NPC_RECIPE_BASE + combo["product"]
+            recipe = {"id": rid, "recipeItem": 0, "level": 0, "product": combo["product"], "count": 1, "mp": 0,
+                      "rate": 100, "mats": [tuple(m) for m in combo["mats"]],
+                      "npc": [{"npc": n["npc"], "cost": n["cost"]} for n in combo["npc"]]}
+            self.recipes[rid] = recipe
+            self.by_product.setdefault(combo["product"], recipe)
 
     def compare(self, recipe_id, stats_db, extra=None, limit=16):
         """Same-slot items to compare with the recipe's product (base stats from the client)."""
@@ -1101,7 +1204,127 @@ class RecipeBook:
             rows = sorted(top + keep, key=key, reverse=True)
         return {"kind": me["kind"], "rows": rows}
 
-    def top_tier(self):
+    def char_plan(self, cls, stats_db, extra=None, per_slot=5):
+        """Best items for a class, slot by slot, and how to get each one (craft, craft + unseal,
+        masterwork, or drop/exchange)."""
+        if cls not in CHAR_CLASSES or not stats_db:
+            return None
+        extra = extra or {}
+        bonus, masterwork = extra.get("bonus", {}), extra.get("masterwork", {})
+        role, weapons = CHAR_CLASSES[cls][1], CHAR_CLASSES[cls][2]
+        mage = set(weapons) <= set(MAGIC)
+        items = {int(k): v for k, v in stats_db["items"].items()}
+        names = {}
+        for k, v in items.items():
+            names.setdefault(v["name"], []).append(k)
+        crafted = set(self.by_product)
+        by_unsealed = {}  # plain item -> the sealed item a recipe makes
+        for pid in crafted:
+            n = self.name(pid)
+            if n.startswith("Sealed "):
+                plain = re.sub(r"s\b", "", n[7:].lower())
+                for name, ids in names.items():
+                    if re.sub(r"s\b", "", name.lower()) == plain:
+                        for item_id in ids:
+                            by_unsealed.setdefault(item_id, pid)
+        slots = {s: [] for s in PLAN_SLOTS}
+        for item_id, it in items.items():
+            if it["add"] or _COMPARE_SKIP.search(it["name"]) or it["name"].startswith("Sealed "):
+                continue  # sealed items show up as their unsealed version, with the recipe
+            mw = masterwork.get(str(item_id))
+            if " - " in it["name"] and not mw:
+                continue  # Special Ability copies
+            if it["kind"] == "weapon":
+                cat = weapon_cat(it)
+                if cat == "shield":
+                    slot = "offhand" if CHAR_CLASSES[cls][4] == "shield" else None
+                elif cat in weapons:
+                    slot = "weapon"
+                else:
+                    slot = None
+                if it["grade"] < 6 and slot == "weapon":
+                    slot = None  # S80 and above only
+            else:
+                cat = armor_kind(it["name"])
+                if cat == "jewelry":
+                    slot = item_slot(it["name"])
+                elif cat == "sigil":
+                    slot = "offhand" if CHAR_CLASSES[cls][4] == "sigil" else None
+                else:
+                    slot = item_slot(it["name"]) if cat in CHAR_CLASSES[cls][3] and it["grade"] >= 6 else None
+                if slot == "shield":
+                    slot = None
+            if slot not in slots:
+                continue
+            effects = [e for e in bonus.get(str(item_id), {}).get("effects", [])
+                       if not e[1].startswith("pvp") and e[2] != (1 if e[0] == "mul" else 0)]
+            if it["kind"] == "weapon" and cat != "shield":
+                if mage:
+                    m = it["matk"]
+                    for op, stat, val in effects:
+                        if stat == "mAtk":
+                            m = m * val if op == "mul" else m + val
+                    score = m
+                else:
+                    score = weapon_final(it, effects)["dps"]
+            elif slot in ("necklace", "earring", "ring"):
+                score = it["mdef"] + sum(v for op, s, v in effects if s == "maxMp") * .05
+            elif slot == "offhand" and it["kind"] == "weapon":
+                score = it["grade"] * 100 + it["patk"]  # shields: no defence value in the client data
+            else:
+                score = it["pdef"] + sum(v for op, s, v in effects if s == "maxHp") * .02
+            # how to get it
+            recipe = how = None
+            base = mw["product"] if mw else None
+            if item_id in crafted:
+                how, recipe = "craft", self.by_product[item_id]["id"]
+            elif mw and base in crafted:
+                how, recipe = "mw", self.by_product[base]["id"]
+            elif item_id in by_unsealed:
+                how, recipe = "unseal", self.by_product[by_unsealed[item_id]]["id"]
+            else:
+                how = "drop"
+            slots[slot].append({"id": item_id, "name": it["name"] + (" (Masterwork)" if mw and " - " not in it["name"] else ""),
+                                "grade": it["grade"], "how": how, "recipe": recipe, "score": score,
+                                "patk": it.get("patk"), "matk": it.get("matk"), "pdef": it.get("pdef"),
+                                "mdef": it.get("mdef"), "bonus": effects,
+                                "mw": {"rarity": mw["rarity"]} if mw else None})
+        for rows in slots.values():
+            by_name = {}
+            for r in rows:
+                by_name.setdefault(r["name"], []).append(r)
+            for same in by_name.values():
+                plain = [r for r in same if not r["bonus"]]
+                for r in same:
+                    if r["bonus"] and plain and not r["mw"]:
+                        r["name"] += " (Masterwork)"
+                        r["mw"] = {"rarity": 4.0}
+                        if plain[0]["recipe"]:
+                            r["how"], r["recipe"] = "mw", plain[0]["recipe"]
+                # identical copies (same name, same bonus): keep one
+                seen = set()
+                for r in same:
+                    key = (r["name"], str(r["bonus"]))
+                    if key in seen:
+                        rows.remove(r)
+                    seen.add(key)
+        out = []
+        for slot in PLAN_SLOTS:
+            rows = sorted(slots[slot], key=lambda r: -r["score"])
+            if not rows:
+                continue
+            top = rows[0]["score"] or 1
+            best_craft = next((r for r in rows if r["how"] != "drop"), None)
+            shown = rows[:per_slot]
+            if best_craft and best_craft not in shown:
+                shown.append(best_craft)  # always show the best item the player can make
+            for r in shown:
+                r["rel"] = round(r["score"] / top * 100)
+                del r["score"]
+            out.append({"slot": slot, "rows": shown, "bestCraft": best_craft["id"] if best_craft else None})
+        return {"cls": cls, "mage": mage, "role": role, "slots": out}
+
+    def top_tier(self, stats_db=None):
         out = []
         for r in self.recipes.values():
             product = self.name(r["product"])
@@ -1110,9 +1333,14 @@ class RecipeBook:
                 continue
             kind = ("jewelry" if any(j in product for j in _JEWELRY)
                     else "armor" if product.startswith("Sealed ") else "weapon")
+            stats = (stats_db or {}).get("items", {}).get(str(r["product"]))
+            cat = weapon_cat(stats) if kind == "weapon" and stats else armor_kind(product)
+            if cat == "shield":
+                kind = "armor"
             out.append({"id": r["id"], "productId": r["product"], "product": product, "family": family,
-                        "grade": CRAFT_FAMILIES[family],
-                        "kind": kind, "level": r["level"], "rate": r["rate"], "mp": r["mp"]})
+                        "grade": CRAFT_FAMILIES[family], "cat": cat,
+                        "kind": kind, "level": r["level"], "rate": r["rate"], "mp": r["mp"],
+                        "npc": bool(r.get("npc"))})
         return sorted(out, key=lambda x: (x["grade"], x["family"], x["kind"], x["product"], -x["rate"]))
 
     def _expand(self, recipe, needed, expand_all):
@@ -1126,14 +1354,15 @@ class RecipeBook:
             stats["maxLevel"] = max(stats["maxLevel"], rec["level"])
             step = steps.setdefault(rec["product"], {"id": rec["product"], "name": self.name(rec["product"]),
                                                      "crafts": 0, "makes": 0, "level": rec["level"],
-                                                     "rate": rec["rate"], "mp": 0, "depth": 0})
+                                                     "rate": rec["rate"], "mp": 0, "depth": 0,
+                                                     "npc": [n["npc"] for n in rec.get("npc", [])]})
             step["crafts"] += crafts
             step["makes"] += crafts * rec["count"]
             step["mp"] += crafts * rec["mp"]
             step["depth"] = max(step["depth"], depth)
             node = {"id": rec["product"], "name": self.name(rec["product"]), "qty": need, "crafts": crafts,
                     "rate": rec["rate"], "level": rec["level"], "mp": rec["mp"], "count": rec["count"],
-                    "children": []}
+                    "npc": [n["npc"] for n in rec.get("npc", [])], "children": []}
             for mat_id, mat_qty in rec["mats"]:
                 if mat_id == rec["recipeItem"]:
                     continue  # the recipe itself is listed but never consumed
@@ -1163,7 +1392,10 @@ class RecipeBook:
             return None
         quantity = max(1, min(999, int(quantity)))
         root, shopping, plan, stats = self._expand(recipe, quantity * recipe["count"], expand_all)
-        out = {"root": root, "shopping": shopping, "plan": plan, "recipeItem": self.name(recipe["recipeItem"]),
+        out = {"root": root, "shopping": shopping, "plan": plan,
+               "recipeItem": self.name(recipe["recipeItem"]) if recipe["recipeItem"] else None,
+               "npc": [{"npc": n["npc"], "cost": self.name(n["cost"][0]), "count": n["cost"][1]}
+                       for n in recipe.get("npc", [])],
                "recipeItemId": recipe["recipeItem"],
                "quantity": quantity, "rate": recipe["rate"], **stats}
         if recipe["rate"] < 100:
@@ -1370,6 +1602,8 @@ class Api:
         self._icons = IconStore()
         self._drops = DropBook()
         self._items = _load_items_db()
+        if self._recipes:
+            self._recipes.add_npc_recipes(self._items)
         self._board = BoardWatcher(self._on_board_rows)
         self._board.start()
         self._adopt_running()
@@ -1506,7 +1740,15 @@ class Api:
 
     # -------------------------------------------------- craft
     def recipes_list(self):
-        return self._recipes.top_tier() if self._recipes else []
+        return self._recipes.top_tier(self._stats) if self._recipes else []
+
+    def class_list(self):
+        """Classes with what they can use, for the character filter."""
+        return [{"name": n, "race": c[0], "role": c[1], "weapons": c[2], "armor": c[3], "offhand": c[4]}
+                for n, c in CHAR_CLASSES.items()]
+
+    def char_plan(self, cls):
+        return self._recipes.char_plan(cls, self._stats, self._items) if self._recipes else None
 
     def recipe_tree(self, recipe_id, quantity, expand_all=True):
         return self._recipes.tree(recipe_id, quantity, bool(expand_all)) if self._recipes else None
@@ -1579,7 +1821,7 @@ class Api:
                 "server": SERVER_IP, "warp": self._warp.state, "votes": votes, "timers": timers,
                 "alerts": alerts, "topmost": self._data["topmost"], "compact": self._data["compact"],
                 "renameWindows": self._data["rename_windows"], "opacity": self._data["opacity"],
-                "scale": self._data.get("scale", 1.0),
+                "scale": self._data.get("scale", 1.0), "char": self._data.get("char") or {},
                 "loginDelay": self._data["login_delay"], "admin": is_admin(), "bosses": bosses,
                 "lang": self._data["lang"], "bossView": self._data["boss_view"],
                 "gm": load_gm(),
@@ -1797,6 +2039,10 @@ class Api:
                 self._data["lang"] = value
             elif key == "opacity":
                 self._data["opacity"] = max(0.5, min(1.0, float(value)))
+            elif key == "char" and isinstance(value, dict):
+                cls = value.get("cls") if value.get("cls") in CHAR_CLASSES else ""
+                race = value.get("race") if value.get("race") in {c[0] for c in CHAR_CLASSES.values()} else ""
+                self._data["char"] = {"race": race, "cls": cls, "only": bool(value.get("only", True))}
             elif key == "scale":
                 self._data["scale"] = max(0.9, min(1.5, float(value)))
             self._save()
