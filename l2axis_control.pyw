@@ -1103,6 +1103,12 @@ def class_fits(cls, kind, cat):
 NPC_RECIPE_BASE = 1_000_000  # ids of the NPC "recipes" (dual weapons)
 MW_RECIPE_BASE = 2_000_000  # masterwork: Blacksmith of Mammon varnish (and unseal)
 FOUNDATION_RECIPE_BASE = 3_000_000  # the base recipe, counted until it gives the rare Foundation
+OBTAIN_BASE = 4_000_000  # top gear without a recipe: where to get it
+OBTAIN_FAMILIES = ("Dynasty", "Icarus", "Moirai", "Vesper", "Vorpal", "Elegia")
+_OBTAIN_SKIP = re.compile(r"Royal Guard|Guard Earring|Cloak|^Sealed |^Foundation |\(Not In Use\)|Shadow|Transparent|"
+                          r"for NPC|Master Yogi|Lizardspear|Peltast")
+# boss jewelry is S grade or lower but still end game
+_BOSS_JEWELS = re.compile(r"Antharas|Valakas|Baium|Queen Ant|Zaken|Frintezza|Freya|Beleth|Orfen|Core|Fafurion")
 
 
 class RecipeBook:
@@ -1155,6 +1161,39 @@ class RecipeBook:
             self.by_product.setdefault(final, recipe)
             self.mw_recipes[final] = recipe["id"]
 
+    def add_obtain_entries(self, stats_db, extra=None):
+        """Top gear that has no recipe gets an entry too, so the guide can say how to get it."""
+        if not stats_db:
+            return
+        masterwork = (extra or {}).get("masterwork", {})
+        sealed_of = {}
+        for k, it in stats_db["items"].items():
+            if it["name"].startswith("Sealed ") and not it["add"]:
+                sealed_of.setdefault(re.sub(r"s\b", "", it["name"][7:].lower()), int(k))
+        for k, it in stats_db["items"].items():
+            item_id = int(k)
+            if item_id in self.by_product or k in masterwork or it["add"] or _COMPARE_SKIP.search(it["name"]) \
+                    or _OBTAIN_SKIP.search(it["name"]) or " - " in it["name"]:
+                continue
+            jewel = it["kind"] == "armor" and armor_kind(it["name"]) == "jewelry"
+            hero = it["name"].startswith("Infinity ")  # Olympiad hero weapons are S grade
+            if it["grade"] < 6 and not hero and not (jewel and _BOSS_JEWELS.search(it["name"])):
+                continue
+            # only real gear: a known weapon type, or an armor/jewelry slot
+            if it["kind"] == "weapon":
+                if weapon_cat(it) is None or (weapon_cat(it) != "shield" and it["patk"] < 200):
+                    continue
+            elif not item_slot(it["name"]) or (jewel and it["mdef"] < 40) or (not jewel and not it["pdef"]
+                                                                                and armor_kind(it["name"]) != "sigil"):
+                continue
+            sealed = sealed_of.get(re.sub(r"s\b", "", it["name"].lower()))
+            self.recipes[OBTAIN_BASE + item_id] = {
+                "id": OBTAIN_BASE + item_id, "recipeItem": 0, "level": 0, "product": item_id, "count": 1,
+                "mp": 0, "rate": 100, "mats": [], "obtain": {"sealed": sealed}}
+            self.names.setdefault(item_id, it["name"])
+            if sealed:
+                self.names.setdefault(sealed, stats_db["items"][str(sealed)]["name"])
+
     def add_npc_recipes(self, extra):
         """Dual swords and dual daggers have no recipe: an NPC combines two weapons and a Dualsword
         Craft Stamp. They become recipes too, so the guide expands the two weapons' own recipes."""
@@ -1188,8 +1227,9 @@ class RecipeBook:
         else:
             slot = item_slot(me["name"])
             jewel = slot in ("earring", "necklace", "ring")
+            my_kind = armor_kind(me["name"])
             same = lambda it: (it["kind"] == "armor" and item_slot(it["name"]) == slot
-                               and (jewel or it["atype"] == me["atype"]))
+                               and (jewel or (it["atype"] == me["atype"] and armor_kind(it["name"]) == my_kind)))
             key = lambda it: (it["mdef"] if jewel else it["pdef"], it["mp"])
         bonus, masterwork = extra.get("bonus", {}), extra.get("masterwork", {})
         # masterwork versions of this recipe's product (sealed and unsealed for armor)
@@ -1200,7 +1240,8 @@ class RecipeBook:
         rows, seen = [], set()
         for item_id, it in items.items():
             # skip Special Ability variants and {PvP} copies: same base stats as the plain item
-            if (it["add"] and item_id != recipe["product"]) or _COMPARE_SKIP.search(it["name"]) or not same(it):
+            if (it["add"] and item_id != recipe["product"]) or _COMPARE_SKIP.search(it["name"]) or not same(it) \
+                    or (it["name"].startswith("Sealed ") and item_id != recipe["product"]):
                 continue
             mw = masterwork.get(str(item_id))
             label = it["name"] + (f" ({it['add']})" if it["add"] else "")
@@ -1324,6 +1365,8 @@ class RecipeBook:
                 how, recipe = "unseal", self.by_product[by_unsealed[item_id]]["id"]
             else:
                 how = "drop"
+                if OBTAIN_BASE + item_id in self.recipes:
+                    recipe = OBTAIN_BASE + item_id
             slots[slot].append({"id": item_id, "name": it["name"] + (" (Masterwork)" if mw and " - " not in it["name"] else ""),
                                 "grade": it["grade"], "how": how, "recipe": recipe, "score": score,
                                 "patk": it.get("patk"), "matk": it.get("matk"), "pdef": it.get("pdef"),
@@ -1370,6 +1413,21 @@ class RecipeBook:
             if r.get("rare") or r.get("mwStep"):
                 continue  # internal steps of a masterwork
             product = self.name(r["product"])
+            if r.get("obtain"):
+                stats = (stats_db or {}).get("items", {}).get(str(r["product"]))
+                if not stats:
+                    continue
+                if stats["kind"] == "weapon":
+                    cat = weapon_cat(stats)
+                    kind = "armor" if cat == "shield" else "weapon"
+                else:
+                    cat = armor_kind(product)
+                    kind = "jewelry" if cat == "jewelry" else "armor"
+                family = next((f for f in OBTAIN_FAMILIES if re.search(rf"\b{f}\b", product)), "Other")
+                out.append({"id": r["id"], "productId": r["product"], "product": product, "family": family,
+                            "grade": {7: "S84", 6: "S80"}.get(stats["grade"], "S"), "cat": cat, "kind": kind,
+                            "rate": 100, "mp": 0, "level": 0, "npc": False, "mw": None, "obtain": True})
+                continue
             classify = self.name(self.recipes[r["mw"]["base"]]["product"]) if r.get("mw") else product
             if r.get("mw") and " - " not in product:
                 product += " (Masterwork)"  # armor masterworks keep the plain item's name
@@ -1443,6 +1501,12 @@ class RecipeBook:
         recipe = self.recipes.get(int(recipe_id))
         if not recipe:
             return None
+        if recipe.get("obtain"):
+            name = self.name(recipe["product"])
+            return {"obtain": True, "product": recipe["product"], "sealed": recipe["obtain"]["sealed"],
+                    "sealedName": self.name(recipe["obtain"]["sealed"]) if recipe["obtain"]["sealed"] else None,
+                    "hero": name.startswith("Infinity "), "plan": [], "shopping": [], "root": None,
+                    "recipeItem": None, "npc": [], "mw": None, "crafts": 0, "mp": 0, "maxLevel": 0}
         quantity = max(1, min(999, int(quantity)))
         root, shopping, plan, stats = self._expand(recipe, quantity * recipe["count"], expand_all)
         out = {"root": root, "shopping": shopping, "plan": plan,
@@ -1660,6 +1724,7 @@ class Api:
         if self._recipes:
             self._recipes.add_npc_recipes(self._items)
             self._recipes.add_masterwork_recipes(self._items)
+            self._recipes.add_obtain_entries(self._stats, self._items)
         self._board = BoardWatcher(self._on_board_rows)
         self._board.start()
         self._adopt_running()
@@ -1810,6 +1875,8 @@ class Api:
         return self._recipes.tree(recipe_id, quantity, bool(expand_all)) if self._recipes else None
 
     def item_sources(self, item_id):
+        if not item_id:
+            return None
         names = {}
         if self._recipes:
             names = {str(k): v for k, v in self._recipes.names.items()}

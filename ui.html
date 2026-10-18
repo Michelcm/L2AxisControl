@@ -405,6 +405,11 @@
   .prow .src { font-size: 8px; text-align: center; border-radius: 2px; padding: 1px 0; }
   .rt.npc { color: #b8dcff; font-size: 9px; }
   .rt.mw { color: #e7c8ff; font-size: 9px; width: 52px; }
+  .rt.drop { color: #a39a86; font-size: 9px; }
+  .recipe.droprow .nm { color: #cfc4a8; }
+  .g.sx { background: linear-gradient(#d9d0b8, #8f8670); }
+  .obtain { margin: 2px 0 4px; padding: 4px 6px; font-size: 10px; line-height: 14px; color: var(--text-hi);
+            background: rgba(90,74,36,.25); border-left: 2px solid var(--gold); }
   .recipe.mwrow .nm { color: #e7c8ff; }
   .charbar { display: flex; gap: 3px; align-items: center; margin-bottom: 4px; }
   .charbar select.e { flex: 1; min-width: 0; }
@@ -585,6 +590,9 @@
         <button class="b" data-cf="Icarus">Icarus</button>
         <button class="b" data-cf="Moirai">Moirai</button>
         <button class="b" data-cf="Vesper">Vesper</button>
+        <button class="b" data-cf="Vorpal">Vorpal</button>
+        <button class="b" data-cf="Elegia">Elegia</button>
+        <button class="b" data-cf="Other" data-i18n="cOther"></button>
       </div>
       <div class="crow2">
         <select class="e" id="cKind">
@@ -592,6 +600,11 @@
           <option value="weapon" data-i18n="cWeapon"></option>
           <option value="armor" data-i18n="cArmor"></option>
           <option value="jewelry" data-i18n="cJewelry"></option>
+        </select>
+        <select class="e" id="cSrc">
+          <option value="" data-i18n="cSrcAll"></option>
+          <option value="craft" data-i18n="cSrcCraft"></option>
+          <option value="obtain" data-i18n="cSrcObtain"></option>
         </select>
         <select class="e" id="cRate">
           <option value="" data-i18n="cAllRates"></option>
@@ -761,7 +774,7 @@ const I18N = {
     warp_checking: "verificando", warp_missing: "não instalado", warp_error: "erro",
     tabCraft: "Craft", cAllKinds: "Todos os tipos", cWeapon: "Armas", cArmor: "Armaduras", cJewelry: "Joias",
     cAllRates: "Toda chance", cSearch: "Buscar item…", cAll: "Todos",
-    cInfo: "{n} receitas de topo (S80/S84). Clique numa receita para ver o passo a passo.",
+    cInfo: "{n} itens de topo. Clique para ver como fazer (CRAFT, NPC, MW) ou onde conseguir (DROP).",
     cNone: "Nenhuma receita neste filtro.", cUnavailable: "Dados de receitas não encontrados — a pasta do painel está dentro da pasta do jogo?",
     cQty: "Quantidade", cFull: "Fazer tudo do zero", cBuy: "Comprar intermediários",
     cTabPlan: "Passos", cTabTree: "Árvore", cTabShop: "Compras",
@@ -782,8 +795,12 @@ const I18N = {
     cNpcStep: "NPC: {npc}",
     cMwOnly: "Masterwork", cMwSummary: "<b>Masterwork</b>: faça <b>{base}</b> até sair o Foundation ({rarity}% dos crafts com sucesso → {rate}% por tentativa, ~<b>{attempts}</b> tentativas em média). Depois o <b>Blacksmith of Mammon</b> termina o item. A lista de compras já conta essa média.",
     cStepRare: "Faça ~{qty}× {of} até sair: {name}", cStepRareMeta: "{rarity}% de chance de Foundation em cada sucesso",
+    cOther: "Outros", cSrcAll: "Craft e drop", cSrcCraft: "Só craftáveis", cSrcObtain: "Só drop/outros",
+    cObtainSummary: "<b>Este item não tem receita.</b> Em <b>Fontes</b> está quem dropa (chance, nível e região) e as trocas em NPC. Toque num ingrediente de uma troca para ver de onde ele vem.",
+    cObtainHero: "<b>Arma de Herói:</b> só quem vira Herói na Olimpíada pode pegar (no Monument of Heroes).",
+    cObtainSealed: "Normalmente ele vem <b>selado</b> ({sealed}) e o Blacksmith of Mammon tira o selo.",
     cTabSrc: "Fontes", srcPick: "Toque num item para ver de onde ele vem.", srcDrop: "Drop", srcSpoil: "Spoil",
-    srcBuy: "Troca em NPC", srcInto: "Vira (tirar selo / upgrade)", srcNone: "Nenhum mob ou troca conhecida: vem de craft, quest ou loja.",
+    srcBuy: "Troca em NPC", srcInto: "Vira (tirar selo / upgrade)", srcNone: "Nenhum drop ou troca nos dados oficiais: pode vir de quest, evento, Olimpíada ou loja do servidor.",
     srcNoArea: "instância / evento", srcRecipe: "receita", srcNote: "Dados oficiais da High Five (datapack L2J). O L2Axis pode ter rates e drops próprios: use como mapa, não como garantia.",
     cmpMw: "MW", cmpMwTip: "Masterwork: {rarity}% de chance no craft de sair {foundation}; o Blacksmith of Mammon transforma com {varnish} Mammon's Varnish Enhancer.",
     cmpDmg: "Dano", cmpSpd: "Vel.", cmpCrit: "Crít. {v}", cmpCritAdd: "+{v} dano crít.",
@@ -860,7 +877,7 @@ const I18N = {
     warp_checking: "checking", warp_missing: "not installed", warp_error: "error",
     tabCraft: "Craft", cAllKinds: "All types", cWeapon: "Weapons", cArmor: "Armor", cJewelry: "Jewelry",
     cAllRates: "Any rate", cSearch: "Search item…", cAll: "All",
-    cInfo: "{n} top-tier recipes (S80/S84). Click a recipe for the step-by-step guide.",
+    cInfo: "{n} top-tier items. Click one to see how to make it (CRAFT, NPC, MW) or where to get it (DROP).",
     cNone: "No recipe in this filter.", cUnavailable: "Recipe data not found — is the panel folder inside the game folder?",
     cQty: "Quantity", cFull: "Craft everything", cBuy: "Buy intermediates",
     cTabPlan: "Steps", cTabTree: "Tree", cTabShop: "Shopping",
@@ -881,8 +898,12 @@ const I18N = {
     cNpcStep: "NPC: {npc}",
     cMwOnly: "Masterwork", cMwSummary: "<b>Masterwork</b>: craft <b>{base}</b> until the Foundation comes out ({rarity}% of successful crafts → {rate}% per attempt, ~<b>{attempts}</b> attempts on average). Then the <b>Blacksmith of Mammon</b> finishes it. The shopping list already counts that average.",
     cStepRare: "Craft ~{qty}× {of} until you get: {name}", cStepRareMeta: "{rarity}% Foundation chance on each success",
+    cOther: "Other", cSrcAll: "Craft & drop", cSrcCraft: "Craftable only", cSrcObtain: "Drop/other only",
+    cObtainSummary: "<b>This item has no recipe.</b> <b>Sources</b> shows who drops it (chance, level and area) and the NPC exchanges. Tap an exchange ingredient to see where it comes from.",
+    cObtainHero: "<b>Hero weapon:</b> only Olympiad Heroes can get it (at the Monument of Heroes).",
+    cObtainSealed: "It usually comes <b>sealed</b> ({sealed}) and the Blacksmith of Mammon removes the seal.",
     cTabSrc: "Sources", srcPick: "Tap an item to see where it comes from.", srcDrop: "Drop", srcSpoil: "Spoil",
-    srcBuy: "NPC exchange", srcInto: "Turns into (unseal / upgrade)", srcNone: "No known mob or exchange: it comes from crafting, quests or shops.",
+    srcBuy: "NPC exchange", srcInto: "Turns into (unseal / upgrade)", srcNone: "No drop or exchange in the official data: it may come from a quest, event, the Olympiad or a server shop.",
     srcNoArea: "instance / event", srcRecipe: "recipe", srcNote: "Official High Five data (L2J datapack). L2Axis may use its own rates and drops: treat it as a map, not a promise.",
     cmpMw: "MW", cmpMwTip: "Masterwork: {rarity}% chance when crafting to get {foundation}; the Blacksmith of Mammon turns it into this with {varnish} Mammon's Varnish Enhancer.",
     cmpDmg: "Dmg", cmpSpd: "Spd", cmpCrit: "Crit {v}", cmpCritAdd: "+{v} crit dmg",
@@ -959,7 +980,7 @@ const I18N = {
     warp_checking: "prüfe", warp_missing: "nicht installiert", warp_error: "Fehler",
     tabCraft: "Craft", cAllKinds: "Alle Typen", cWeapon: "Waffen", cArmor: "Rüstungen", cJewelry: "Schmuck",
     cAllRates: "Jede Chance", cSearch: "Item suchen…", cAll: "Alle",
-    cInfo: "{n} Top-Rezepte (S80/S84). Ein Rezept anklicken für die Schritt-für-Schritt-Anleitung.",
+    cInfo: "{n} Top-Items. Anklicken: wie man es herstellt (CRAFT, NPC, MW) oder wo man es bekommt (DROP).",
     cNone: "Kein Rezept in diesem Filter.", cUnavailable: "Rezeptdaten nicht gefunden — liegt der Panel-Ordner im Spielordner?",
     cQty: "Menge", cFull: "Alles selbst craften", cBuy: "Zwischenprodukte kaufen",
     cTabPlan: "Schritte", cTabTree: "Baum", cTabShop: "Einkauf",
@@ -980,8 +1001,12 @@ const I18N = {
     cNpcStep: "NPC: {npc}",
     cMwOnly: "Masterwork", cMwSummary: "<b>Masterwork</b>: <b>{base}</b> craften, bis die Foundation kommt ({rarity}% der erfolgreichen Crafts → {rate}% pro Versuch, im Schnitt ~<b>{attempts}</b> Versuche). Danach stellt der <b>Blacksmith of Mammon</b> das Item fertig. Die Einkaufsliste rechnet diesen Schnitt schon ein.",
     cStepRare: "~{qty}× {of} craften, bis du bekommst: {name}", cStepRareMeta: "{rarity}% Foundation-Chance pro Erfolg",
+    cOther: "Andere", cSrcAll: "Craft & Drop", cSrcCraft: "Nur craftbar", cSrcObtain: "Nur Drop/Andere",
+    cObtainSummary: "<b>Dieses Item hat kein Rezept.</b> Unter <b>Quellen</b> steht, wer es droppt (Chance, Stufe, Gebiet), und die NPC-Tauschgeschäfte. Tippe auf eine Zutat, um ihre Herkunft zu sehen.",
+    cObtainHero: "<b>Heldenwaffe:</b> nur Olympiade-Helden können sie erhalten (am Monument of Heroes).",
+    cObtainSealed: "Es kommt meist <b>versiegelt</b> ({sealed}), der Blacksmith of Mammon entfernt das Siegel.",
     cTabSrc: "Quellen", srcPick: "Tippe auf ein Item, um zu sehen, woher es kommt.", srcDrop: "Drop", srcSpoil: "Spoil",
-    srcBuy: "NPC-Tausch", srcInto: "Wird zu (Entsiegeln / Upgrade)", srcNone: "Kein bekannter Mob oder Tausch: kommt aus Crafting, Quests oder Shops.",
+    srcBuy: "NPC-Tausch", srcInto: "Wird zu (Entsiegeln / Upgrade)", srcNone: "Kein Drop oder Tausch in den offiziellen Daten: evtl. Quest, Event, Olympiade oder Server-Shop.",
     srcNoArea: "Instanz / Event", srcRecipe: "Rezept", srcNote: "Offizielle High-Five-Daten (L2J-Datapack). L2Axis kann eigene Raten und Drops haben: als Karte nutzen, nicht als Garantie.",
     cmpMw: "MW", cmpMwTip: "Masterwork: {rarity}% Chance beim Craften auf {foundation}; der Blacksmith of Mammon macht daraus mit {varnish} Mammon's Varnish Enhancer dieses Item.",
     cmpDmg: "Schaden", cmpSpd: "Tempo", cmpCrit: "Krit. {v}", cmpCritAdd: "+{v} Krit.-Schaden",
@@ -1348,7 +1373,7 @@ function build() {
     document.querySelectorAll("[data-cf]").forEach(x => x.classList.toggle("on", x === b));
     renderCraftList();
   });
-  ["#cKind", "#cRate"].forEach(id => $(id).onchange = renderCraftList);
+  ["#cKind", "#cRate", "#cSrc"].forEach(id => $(id).onchange = renderCraftList);
   $("#cSearch").oninput = renderCraftList;
   $("#bVoteMain").onclick = () => api.vote_ready(true);
   $("#bVoteAll").onclick = () => api.vote_ready(false);
@@ -1619,14 +1644,15 @@ function renderCraftList() {
   if (!RECIPES.length) { box.innerHTML = `<div class="small" style="padding:6px">${esc(t("cUnavailable"))}</div>`; return; }
   const kind = $("#cKind").value, rate = $("#cRate").value, q = $("#cSearch").value.trim().toLowerCase();
   const list = RECIPES.filter(r => (!craftFamily || r.family === craftFamily) && (!kind || r.kind === kind) &&
-    (!rate || String(r.rate) === rate) && (!q || r.product.toLowerCase().includes(q)) && classFits(r));
+    (!rate || String(r.rate) === rate) && (!q || r.product.toLowerCase().includes(q)) && classFits(r) &&
+    (!$("#cSrc").value || ($("#cSrc").value === "obtain") === !!r.obtain));
   $("#cInfo").textContent = t("cInfo", { n: list.length });
   box.innerHTML = list.length ? "" : `<div class="small" style="padding:6px">${esc(t("cNone"))}</div>`;
   list.forEach(r => {
     const row = document.createElement("div");
-    row.className = "recipe" + (openRecipe === r.id ? " open" : "") + (r.mw ? " mwrow" : "");
-    row.innerHTML = `<span class="g ${r.grade === "S84" ? "s84" : ""}">${r.grade}</span>${ico(r.productId)}<span class="nm"></span>
-      <span class="small">${r.npc ? "" : "Lv " + r.level}</span>${r.mw ? `<span class="rt mw" title="${esc(t("cMwOnly"))}">MW ${r.mw.rate.toLocaleString(LOCALES[LANG])}%</span>` : r.npc ? `<span class="rt npc">NPC</span>` : `<span class="rt ${r.rate === 100 ? "r100" : "r60"}">${r.rate}%</span>`}`;
+    row.className = "recipe" + (openRecipe === r.id ? " open" : "") + (r.mw ? " mwrow" : "") + (r.obtain ? " droprow" : "");
+    row.innerHTML = `<span class="g ${r.grade === "S84" ? "s84" : r.grade === "S" ? "sx" : ""}">${r.grade}</span>${ico(r.productId)}<span class="nm"></span>
+      <span class="small">${r.npc || r.obtain ? "" : "Lv " + r.level}</span>${r.obtain ? `<span class="rt drop">DROP</span>` : r.mw ? `<span class="rt mw" title="${esc(t("cMwOnly"))}">MW ${r.mw.rate.toLocaleString(LOCALES[LANG])}%</span>` : r.npc ? `<span class="rt npc">NPC</span>` : `<span class="rt ${r.rate === 100 ? "r100" : "r60"}">${r.rate}%</span>`}`;
     row.querySelector(".nm").textContent = r.product;
     row.onclick = () => {
       openRecipe = openRecipe === r.id ? null : r.id; craftData = null; craftCmp = null; srcItem = null;
@@ -1667,6 +1693,11 @@ function fmtChance(c) {
 function srcItems(r) {
   const d = craftData, seen = new Set(), out = [];
   const add = (id, name, tag) => { if (id && !seen.has(id)) { seen.add(id); out.push({ id, name, tag }); } };
+  if (d.obtain) {
+    add(r.productId, r.product);
+    if (d.sealed) add(d.sealed, d.sealedName, "S");
+    return out;
+  }
   add(d.recipeItemId, d.recipeItem, t("srcRecipe"));
   add(r.productId, r.product);
   (d.avgShopping || d.shopping).forEach(s => add(s.id, s.name));
@@ -1675,6 +1706,7 @@ function srcItems(r) {
 }
 
 async function loadSources(id) {
+  if (!id) return;
   if (srcData[id] === undefined) {
     srcData[id] = null;
     srcData[id] = await api.item_sources(id) || false;
@@ -1686,7 +1718,7 @@ async function loadSources(id) {
 function sourcesHtml(r) {
   const items = srcItems(r);
   if (!srcItem) srcItem = items[0].id;
-  const chips = items.map(x => `<span class="chip ${x.id === srcItem ? "on" : ""}" data-pick="${x.id}" title="${esc(x.name)}">${ico(x.id)}${x.tag ? "<b>R</b>" : ""}</span>`).join("");
+  const chips = items.map(x => `<span class="chip ${x.id === srcItem ? "on" : ""}" data-pick="${x.id}" title="${esc(x.name)}">${ico(x.id)}${x.tag ? `<b>${x.tag === "S" ? "S" : "R"}</b>` : ""}</span>`).join("");
   const s = srcData[srcItem], cur = items.find(x => x.id === srcItem);
   let html = `<div class="small">${esc(t("srcPick"))}</div><div class="chips">${chips}</div>` +
     `<div class="srcname">${ico(srcItem)}${esc(cur ? cur.name : (srcData[srcItem] && srcData[srcItem].name) || "")}</div>`;
@@ -1702,7 +1734,7 @@ function sourcesBody(s, current) {
       <span class="where">${esc(m.area || t("srcNoArea"))}${m.max > 1 ? ` · ${m.min}–${m.max}` : ""}</span></div>`).join("") : "";
   const deals = (title, list, into) => list.length ? `<div class="srch">${esc(title)}</div>` + list.map(d => `<div class="deal">
       <span class="who">${esc(d.npc.join(", "))}</span>${into ? ` → ${ico(d.productId)}<span data-src="${d.productId}">${esc(d.product)}</span>` : ""}
-      <div class="cost">${d.cost.filter(c => !into || c.id !== current).map(c => `${fmtInt(c.count)} × ${esc(c.name)}`).join(" + ")}</div></div>`).join("") : "";
+      <div class="cost">${d.cost.filter(c => !into || c.id !== current).map(c => `${fmtInt(c.count)} × <span data-src="${c.id}">${esc(c.name)}</span>`).join(" + ")}</div></div>`).join("") : "";
   const body = mobs(t("srcDrop"), s.drop) + mobs(t("srcSpoil"), s.spoil) + deals(t("srcBuy"), s.buy, false) + deals(t("srcInto"), s.into, true);
   return (body || `<div class="small">${esc(t("srcNone"))}</div>`) +
     `<div class="small" style="margin-top:5px;line-height:13px">${esc(t("srcNote"))}</div>`;
@@ -1873,6 +1905,7 @@ function renderCraftDetail(r) {
       <span class="grow"></span><span class="small">${r.grade} · ${esc(r.family)}</span></div>
     <div class="cmode"><button class="b ${craftFull ? "on" : ""}" data-cm="1">${esc(t("cFull"))}</button>
       <button class="b ${craftFull ? "" : "on"}" data-cm="0">${esc(t("cBuy"))}</button></div>`;
+  if (r.obtain) return renderObtainDetail(det, r);
   if (!craftData) { det.innerHTML = head + `<div class="small">…</div>`; bindCraftHead(det, r); return; }
   const d = craftData;
   const rare = d.plan.find(s => s.rare);
@@ -1923,6 +1956,32 @@ function renderCraftDetail(r) {
     try { await navigator.clipboard.writeText(shoppingText(r)); } catch (_) {}
     copy.textContent = t("cCopied");
   };
+}
+
+function renderObtainDetail(det, r) {
+  if (!craftData) { det.innerHTML = `<div class="small">…</div>`; det.onclick = e => e.stopPropagation(); return; }
+  if (craftView !== "src" && craftView !== "cmp") craftView = "src";
+  const d = craftData;
+  let body = `<div class="obtain">${t("cObtainSummary")}` +
+    (d.hero ? `<br>${t("cObtainHero")}` : "") +
+    (d.sealed ? `<br>${t("cObtainSealed", { sealed: esc(d.sealedName) })}` : "") + `</div>`;
+  body += `<div class="ctabs">${["src", "cmp"].map(v => `<button class="b ${craftView === v ? "on" : ""}" data-cv="${v}">${esc(t(v === "src" ? "cTabSrc" : "cTabCompare"))}</button>`).join("")}</div>`;
+  const content = craftView === "cmp" ? compareHtml() : sourcesHtml(r);
+  det.innerHTML = body + `<div class="cbody">${content}</div>`;
+  det.onclick = e => e.stopPropagation();
+  det.querySelectorAll("[data-cv]").forEach(b => b.onclick = async e => {
+    e.stopPropagation(); craftView = b.dataset.cv; renderCraftDetail(r);
+    if (craftView === "cmp" && (!craftCmp || craftCmp.id !== r.id)) {
+      craftCmp = { id: r.id, data: await api.recipe_compare(r.id) };
+      if (openRecipe === r.id) renderCraftDetail(r);
+    }
+  });
+  det.querySelectorAll("[data-src], [data-pick]").forEach(el => el.onclick = e => {
+    e.stopPropagation();
+    srcItem = +(el.dataset.src || el.dataset.pick); craftView = "src";
+    renderCraftDetail(r); loadSources(srcItem);
+  });
+  if (craftView === "src" && srcItem && srcData[srcItem] === undefined) loadSources(srcItem);
 }
 
 function bindCraftHead(det, r) {
