@@ -9,6 +9,8 @@ erros.log
 bosses_db.json
 recipes_db.json
 stats_db.json
+# item icons: NCSoft art read from the player's own client, never published
+icons/
 
 # personal screenshots and drafts
 prints_gm/

@@ -11,7 +11,6 @@ import ctypes
 import json
 import math
 import re
-import math
 import os
 import socket
 import struct
@@ -588,9 +587,9 @@ _SLOTS = [("Earring", "earring"), ("Necklace", "necklace"), ("Ring", "ring"), ("
           ("Breastplate", "chest"), ("Breast Plate", "chest"), ("Armor", "chest"), ("Robe", "chest")]
 
 
-def _scan_grp(data, tag, nints):
+def _grp_records(data, tag):
     """Records start with tag u32 + id u32, then 20 bytes and the model path (ustr).
-    Stats follow the equip sound string. The first header for an id is the real one."""
+    Yields (start, end, item id); the first header for an id is the real one."""
     pattern = re.compile(re.escape(struct.pack("<I", tag)) + rb"(.{4}).{20}(.{4})((?:[ -~]\x00){4,24})", re.S)
     heads = []
     for m in pattern.finditer(data):
@@ -601,10 +600,17 @@ def _scan_grp(data, tag, nints):
         if m.group(3).decode("utf-16le").startswith(("LineageEffect", "ItemSound")):
             continue  # effect/sound paths inside a record, not a record start
         heads.append((m.start(), item_id))
-    records = {}
+    seen = set()
     for (start, item_id), (nxt, _) in zip(heads, heads[1:] + [(len(data), 0)]):
-        if item_id in records:
-            continue
+        if item_id not in seen:
+            seen.add(item_id)
+            yield start, nxt, item_id
+
+
+def _scan_grp(data, tag, nints):
+    """Stats follow the equip sound string inside each record."""
+    records = {}
+    for start, nxt, item_id in _grp_records(data, tag):
         a = data.find(_EQUIP_SOUND, start, nxt)
         if a < 0:
             continue
@@ -680,6 +686,290 @@ def item_slot(name):
 
 # pet gear and duplicate "Shadow/Common Item" copies are not useful in a comparison
 _COMPARE_SKIP = re.compile(r"^(Shadow Item|Common Item)|\{PvP\}|Fenrir|Wolf|Hatchling|Strider|Wyvern")
+
+
+# ---------------------------------------------------------------- item icons (the user's own client)
+# Icons are NCSoft art: they are read from the player's SysTextures folder and cached in icons/
+# (gitignored), never shipped with the panel.
+TEXTURE_DIR = APP_DIR.parent / "SysTextures"
+ICON_DIR = APP_DIR / "icons"
+_ICON_REF = re.compile(rb"((?:[A-Za-z0-9_]\x00){3,40})\.\x00((?:[A-Za-z0-9_]\x00){3,80})")
+
+
+def _read_ver121(path):
+    """Lineage2Ver121 files: 28-byte header, then XOR with a key made from the file name."""
+    data = path.read_bytes()
+    if data[:28].decode("utf-16le", "replace") != "Lineage2Ver121":
+        return data
+    key = sum(map(ord, path.name.lower())) & 0xFF
+    return data[28:].translate(bytes(b ^ key for b in range(256)))
+
+
+class _UPackage:
+    """Just enough of an Unreal Engine 2 package (v123) to pull textures out."""
+
+    def __init__(self, data):
+        self.d = data
+        _tag, _ver, _lic, _flags, nc, no, ec, eo, _ic, _io = struct.unpack_from("<IHHIIIIIII", data, 0)
+        p, self.names = no, []
+        for _ in range(nc):
+            ln, p = self._ci(p)
+            if ln < 0:  # UTF-16 name (some icons have Korean names)
+                self.names.append(data[p:p - 2 * ln - 2].decode("utf-16le", "replace"))
+                p += -2 * ln + 4
+            else:
+                self.names.append(data[p:p + ln - 1].decode("latin1"))
+                p += ln + 4
+        p, self.exports = eo, {}
+        for _ in range(ec):
+            _cls, p = self._ci(p)
+            _sup, p = self._ci(p)
+            p += 4
+            name, p = self._ci(p)
+            p += 4
+            size, p = self._ci(p)
+            off = 0
+            if size > 0:
+                off, p = self._ci(p)
+            self.exports.setdefault(self.names[name].lower(), (off, size))
+
+    def _ci(self, p):
+        """Unreal compact index."""
+        b = self.d[p]
+        p += 1
+        v = b & 0x3F
+        if b & 0x40:
+            shift = 6
+            while True:
+                c = self.d[p]
+                p += 1
+                v |= (c & 0x7F) << shift
+                shift += 7
+                if not c & 0x80:
+                    break
+        return (-v if b & 0x80 else v), p
+
+    def _props(self, p):
+        """Tagged properties until 'None' -> (int/byte values, position after)."""
+        props = {}
+        while True:
+            idx, p = self._ci(p)
+            name = self.names[idx]
+            if name == "None":
+                return props, p
+            info = self.d[p]
+            p += 1
+            ptype, size_code, is_array = info & 0x0F, (info >> 4) & 0x07, info & 0x80
+            if ptype == 10:  # struct name
+                _, p = self._ci(p)
+            size = {0: 1, 1: 2, 2: 4, 3: 12, 4: 16}.get(size_code)
+            if size_code == 5:
+                size, p = self.d[p], p + 1
+            elif size_code == 6:
+                size, p = struct.unpack_from("<H", self.d, p)[0], p + 2
+            elif size_code == 7:
+                size, p = struct.unpack_from("<I", self.d, p)[0], p + 4
+            if is_array and ptype != 3:
+                b = self.d[p]
+                p += 1
+                if b & 0x80:
+                    p += 1 if not b & 0x40 else 3
+            if ptype == 3:  # bool lives in the array bit
+                continue
+            raw = self.d[p:p + size]
+            p += size
+            if ptype == 1:
+                props[name] = raw[0]
+            elif ptype == 2:
+                props[name] = struct.unpack_from("<i", raw)[0]
+
+    def texture(self, name):
+        """(format, width, height, first mip bytes) or None.
+        L2 keeps extra data between the properties and the mips, so the mip array is found by its
+        self-checking layout: count, absolute end offset (int32), size == size the format needs."""
+        found = self.exports.get(name.lower())
+        if not found or found[1] <= 0:
+            return None
+        off, size = found
+        props, p = self._props(off)
+        w, h, fmt = props.get("USize", 0), props.get("VSize", 0), props.get("Format", 0)
+        if not (w and h) or fmt not in (3, 5, 7, 8):  # DXT1, RGBA8, DXT3, DXT5
+            return None
+        expected = w * h * 4 if fmt == 5 else (max(4, w) * max(4, h)) // (2 if fmt == 3 else 1)
+        for q in range(p, off + size - 8):
+            count, q2 = self._ci(q)
+            if not 1 <= count <= 16:
+                continue
+            nxt = struct.unpack_from("<i", self.d, q2)[0]
+            length, q3 = self._ci(q2 + 4)
+            if length == expected and nxt == q3 + length:
+                return fmt, w, h, self.d[q3:q3 + length]
+        return None
+
+
+def _rgb565(c):
+    return ((c >> 11) & 31) * 255 // 31, ((c >> 5) & 63) * 255 // 63, (c & 31) * 255 // 31
+
+
+def _decode_texture(fmt, w, h, data):
+    """DXT1 / DXT3 / DXT5 / BGRA8 -> RGBA bytes."""
+    if fmt == 5:
+        px = bytearray(data)
+        px[0::4], px[2::4] = data[2::4], data[0::4]
+        return bytes(px)
+    out = bytearray(w * h * 4)
+    block = 8 if fmt == 3 else 16
+    pos = 0
+    for by in range(0, h, 4):
+        for bx in range(0, w, 4):
+            alpha = None
+            if fmt == 7:  # explicit 4-bit alpha
+                bits = int.from_bytes(data[pos:pos + 8], "little")
+                alpha = [((bits >> (4 * i)) & 15) * 17 for i in range(16)]
+            elif fmt == 8:  # interpolated alpha
+                a0, a1 = data[pos], data[pos + 1]
+                if a0 > a1:
+                    table = [a0, a1] + [((7 - i) * a0 + i * a1) // 7 for i in range(1, 7)]
+                else:
+                    table = [a0, a1] + [((5 - i) * a0 + i * a1) // 5 for i in range(1, 5)] + [0, 255]
+                bits = int.from_bytes(data[pos + 2:pos + 8], "little")
+                alpha = [table[(bits >> (3 * i)) & 7] for i in range(16)]
+            cpos = pos + (8 if fmt in (7, 8) else 0)
+            c0, c1, bits = struct.unpack_from("<HHI", data, cpos)
+            p0, p1 = _rgb565(c0), _rgb565(c1)
+            if c0 > c1 or fmt != 3:
+                colors = [p0 + (255,), p1 + (255,),
+                          tuple((2 * a + b) // 3 for a, b in zip(p0, p1)) + (255,),
+                          tuple((a + 2 * b) // 3 for a, b in zip(p0, p1)) + (255,)]
+            else:
+                colors = [p0 + (255,), p1 + (255,),
+                          tuple((a + b) // 2 for a, b in zip(p0, p1)) + (255,), (0, 0, 0, 0)]
+            for i in range(16):
+                x, y = bx + (i & 3), by + (i >> 2)
+                if x < w and y < h:
+                    r, g, b, a = colors[(bits >> (2 * i)) & 3]
+                    o = (y * w + x) * 4
+                    out[o:o + 4] = bytes((r, g, b, alpha[i] if alpha else a))
+            pos += block
+    return bytes(out)
+
+
+def _png(w, h, rgba):
+    import zlib
+
+    def chunk(kind, body):
+        return struct.pack(">I", len(body)) + kind + body + struct.pack(">I", zlib.crc32(kind + body))
+    rows = b"".join(b"\x00" + rgba[y * w * 4:(y + 1) * w * 4] for y in range(h))
+    return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 6, 0, 0, 0))
+            + chunk(b"IDAT", zlib.compress(rows, 9)) + chunk(b"IEND", b""))
+
+
+class IconStore:
+    """item id -> PNG, extracted on first use from the client's icon packages and cached on disk."""
+
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._map = None
+        self._packages = {}
+
+    def _icon_map(self):
+        if self._map is not None:
+            return self._map
+        paths = [GAME_DIR / f for f in ("weapongrp.dat", "armorgrp.dat", "etcitemgrp.dat")]
+        self._map = {}
+        if not all(p.exists() for p in paths):
+            return self._map
+        stamp = ":".join(str(p.stat().st_mtime) for p in paths)
+        cache = ICON_DIR / "map.json"
+        try:
+            cached = json.loads(cache.read_text(encoding="utf-8"))
+            if cached.get("stamp") == stamp:
+                self._map = {int(k): v for k, v in cached["icons"].items()}
+                return self._map
+        except (OSError, ValueError):
+            pass
+        for path, tag in zip(paths, (0, 1, 2)):
+            data = l2_decrypt413(path)
+            for start, nxt, item_id in _grp_records(data, tag):
+                for m in _ICON_REF.finditer(data, start, nxt):
+                    package = m.group(1).decode("utf-16le")
+                    if "icon" in package.lower():
+                        self._map.setdefault(item_id, f"{package}.{m.group(2).decode('utf-16le')}")
+                        break
+        ICON_DIR.mkdir(exist_ok=True)
+        cache.write_text(json.dumps({"stamp": stamp, "icons": self._map}), encoding="utf-8")
+        return self._map
+
+    def _package(self, name):
+        if name not in self._packages:
+            path = TEXTURE_DIR / f"{name}.utx"
+            try:
+                self._packages[name] = _UPackage(_read_ver121(path)) if path.exists() else None
+            except Exception:
+                log_error("icons", f"{name}.utx: {traceback.format_exc()}")
+                self._packages[name] = None
+        return self._packages[name]
+
+    def png(self, item_id):
+        cached = ICON_DIR / f"{item_id}.png"
+        if cached.exists():
+            return cached.read_bytes()
+        with self._lock:
+            ref = self._icon_map().get(item_id)
+            if not ref:
+                return None
+            package_name, texture_name = ref.split(".", 1)
+            package = self._package(package_name)
+            tex = None
+            if package:  # a few grp records carry a stray character after the icon name
+                tex = package.texture(texture_name) or package.texture(texture_name[:-1])
+            if not tex:
+                return None
+            fmt, w, h, data = tex
+            png = _png(w, h, _decode_texture(fmt, w, h, data))
+            ICON_DIR.mkdir(exist_ok=True)
+            cached.write_bytes(png)
+            return png
+
+
+# ---------------------------------------------------------------- drop / exchange database (shipped)
+# Generated once by tools/build_drops_db.py from the L2J High Five datapack (GPL-3.0, see data/NOTICE.md).
+DROPS_DB_FILE = APP_DIR / "data" / "drops_db.json"
+
+
+class DropBook:
+    def __init__(self):
+        try:
+            self.db = json.loads(DROPS_DB_FILE.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            log_error("info", "data/drops_db.json not found: drop sources disabled")
+            self.db = None
+
+    def sources(self, item_id, names):
+        """Mobs that drop/spoil the item and NPC exchanges that give or upgrade it."""
+        if not self.db:
+            return None
+        key = str(int(item_id))
+        npcs, extra = self.db["npcs"], self.db["names"]
+
+        def name(i):
+            return names.get(str(i)) or extra.get(str(i)) or str(i)
+
+        def mobs(kind):
+            out = []
+            for npc_id, chance, lo, hi in self.db["items"].get(key, {}).get(kind, []):
+                npc = npcs[str(npc_id)]
+                out.append({"npc": npc["name"], "level": npc["level"], "area": npc.get("area"),
+                            "boss": npc["type"] in ("L2RaidBoss", "L2GrandBoss"),
+                            "chance": chance, "min": lo, "max": hi})
+            return out
+
+        def deals(kind):
+            return [{"npc": d["npc"], "productId": d["product"], "product": name(d["product"]),
+                     "cost": [{"id": i, "name": name(i), "count": c} for i, c in d["cost"]]}
+                    for d in self.db["shops"].get(key, {}).get(kind, [])]
+        return {"name": name(key), "drop": mobs("drop"), "spoil": mobs("spoil"), "buy": deals("buy"),
+                "into": deals("into")}
 
 
 class RecipeBook:
@@ -802,6 +1092,7 @@ class RecipeBook:
         quantity = max(1, min(999, int(quantity)))
         root, shopping, plan, stats = self._expand(recipe, quantity * recipe["count"], expand_all)
         out = {"root": root, "shopping": shopping, "plan": plan, "recipeItem": self.name(recipe["recipeItem"]),
+               "recipeItemId": recipe["recipeItem"],
                "quantity": quantity, "rate": recipe["rate"], **stats}
         if recipe["rate"] < 100:
             attempts = math.ceil(quantity / (recipe["rate"] / 100))
@@ -1004,6 +1295,8 @@ class Api:
         except Exception:
             log_error("stats_db", traceback.format_exc())
             self._stats = None
+        self._icons = IconStore()
+        self._drops = DropBook()
         self._board = BoardWatcher(self._on_board_rows)
         self._board.start()
         self._adopt_running()
@@ -1144,6 +1437,14 @@ class Api:
 
     def recipe_tree(self, recipe_id, quantity, expand_all=True):
         return self._recipes.tree(recipe_id, quantity, bool(expand_all)) if self._recipes else None
+
+    def item_sources(self, item_id):
+        names = {}
+        if self._recipes:
+            names = {str(k): v for k, v in self._recipes.names.items()}
+        if self._stats:
+            names = {**{k: v["name"] for k, v in self._stats["items"].items()}, **names}
+        return self._drops.sources(item_id, names)
 
     def recipe_compare(self, recipe_id):
         return self._recipes.compare(recipe_id, self._stats) if self._recipes else None
@@ -1510,11 +1811,11 @@ def make_server(api, token):
         def log_message(self, *args):
             pass
 
-        def _send(self, code, body, ctype="application/json; charset=utf-8"):
+        def _send(self, code, body, ctype="application/json; charset=utf-8", cache="no-store"):
             data = body if isinstance(body, bytes) else body.encode("utf-8")
             self.send_response(code)
             self.send_header("Content-Type", ctype)
-            self.send_header("Cache-Control", "no-store")
+            self.send_header("Cache-Control", cache)
             self.send_header("Content-Length", str(len(data)))
             self.end_headers()
             self.wfile.write(data)
@@ -1525,6 +1826,16 @@ def make_server(api, token):
                 self._send(200, UI_FILE.read_bytes(), "text/html; charset=utf-8")
             elif path.startswith("/assets/") and path[8:] in ASSETS and (ASSETS_DIR / path[8:]).exists():
                 self._send(200, (ASSETS_DIR / path[8:]).read_bytes(), "image/png")
+            elif re.fullmatch(r"/icon/\d{1,7}\.png", path):
+                try:
+                    png = api._icons.png(int(path[6:-4]))
+                except Exception:
+                    log_error("icons", traceback.format_exc())
+                    png = None
+                if png:  # icons never change: let the browser keep them across re-renders
+                    self._send(200, png, "image/png", "max-age=604800, immutable")
+                else:
+                    self._send(404, "{}")
             else:
                 self._send(404, "{}")
 

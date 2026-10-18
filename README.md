@@ -13,6 +13,7 @@ and want ping, votes, timers and boss respawns in one place.
 | **Clients** | Up to 5 slots: open, focus, minimize and close game windows, RAM/uptime per client, *Open all* and *Arrange* (tile windows). Warns before exceeding the server limit of **4 clients per HWID**. Optional auto-login (see below). |
 | **Network** | Live ping and packet loss to the game server (ICMP, every 2 s) with a 2-minute graph. Cloudflare WARP status and on/off toggle. |
 | **Bosses** | Respawn countdowns with absolute date/time, filters (epics / dead / ★ favorites), search, sort by respawn/level/name and level ranges. Level, area and coordinates come from the game's own data files. Beeps when a ★ boss respawns. |
+| **Craft** | Step-by-step guide for every top-tier recipe (Dynasty, Icarus, Moirai, Vesper): crafting order, full material tree, shopping list (including the average for recipes below 100%), a same-slot stat comparison with boss and drop gear, and **Sources**: which mobs drop or spoil the recipe, its pieces and each material (chance, level, area), and the NPC exchanges that unseal or upgrade it. Item icons are read from your own game client. |
 | **Votes** | All 17 vote sites in one place, the 4 main ones highlighted. A 12-hour timer per site, a beep when a vote is available again, and one button to open every available site at once. |
 | **Timers** | Named countdowns (raid respawns, instance cooldowns, buffs…) with presets. |
 | **Options** | Language (**English / Português / Deutsch**), links (site, forum, news, donations, rules), game folders, transparency. |
@@ -83,7 +84,10 @@ That file is personal — it is ignored by Git and should never be shared.
 
 ## License
 
-[MIT](LICENSE). Lineage II is a trademark of NCSOFT. This is an unofficial community tool and is not affiliated with
+[MIT](LICENSE). The drop/exchange database `data/drops_db.json` is derived from the
+[L2J Server datapack](https://bitbucket.org/l2jserver/l2j-server-datapack) and is distributed under the
+**GPL-3.0** (see [data/NOTICE.md](data/NOTICE.md)). Those are the official High Five values: L2Axis may use its own
+rates and drop lists. Game icons are not included: the panel reads them from your own client. Lineage II is a trademark of NCSOFT. This is an unofficial community tool and is not affiliated with
 NCSOFT or with the L2Axis staff.
 
 ---
@@ -92,7 +96,8 @@ NCSOFT or with the L2Axis staff.
 
 Painel flutuante para quem joga no **L2Axis**, com o visual das janelas do jogo. Junta num lugar só: abrir e organizar
 clientes (respeitando o limite de 4 por HWID), ping e perda de pacotes até o servidor, status dos bosses (lido da página
-Alt+B → Bosses), os 17 sites de votação com timer de 12h e um botão que abre todos os disponíveis, e timers livres.
+Alt+B → Bosses), um guia de craft dos itens top (Dynasty, Icarus, Moirai, Vesper) com árvore de materiais, lista de
+compras, comparação com itens de boss e onde dropa cada receita, pedaço e material, os 17 sites de votação com timer de 12h e um botão que abre todos os disponíveis, e timers livres.
 Interface em português, inglês e alemão.
 
 **Não** lê memória nem tráfego do jogo e **não** automatiza nada dentro dele. O login automático é opcional e usa as suas
