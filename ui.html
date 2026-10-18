@@ -614,7 +614,6 @@
           <option value="bracelet" data-i18n="acc_bracelet"></option>
           <option value="talisman" data-i18n="acc_talisman"></option>
           <option value="cloak" data-i18n="acc_cloak"></option>
-          <option value="hair" data-i18n="acc_hair"></option>
         </select>
         <select class="e" id="cSrc">
           <option value="" data-i18n="cSrcAll"></option>
@@ -1688,10 +1687,12 @@ function renderCraftList() {
   if (!RECIPES) return;
   if (!RECIPES.length) { box.innerHTML = `<div class="small" style="padding:6px">${esc(t("cUnavailable"))}</div>`; return; }
   const kind = $("#cKind").value, rate = $("#cRate").value, q = $("#cSearch").value.trim().toLowerCase();
-  const list = RECIPES.filter(r => (!craftFamily || r.family === craftFamily) && (!kind || r.kind === kind) &&
+  const list = RECIPES.filter(r => r.id === openRecipe || (!craftFamily || r.family === craftFamily) && (!kind || r.kind === kind) &&
     (!rate || String(r.rate) === rate) && (!q || r.product.toLowerCase().includes(q)) && classFits(r) &&
     (!$("#cSrc").value || ($("#cSrc").value === "obtain") === !!r.obtain) &&
-    (!$("#cAccSlot").value || (r.kind === "accessory" && r.cat === $("#cAccSlot").value)));
+    (!$("#cAccSlot").value || (r.kind === "accessory" && r.cat === $("#cAccSlot").value)) &&
+    // accessories only when asked for (Accessories button, type or slot): they would flood the list
+    (r.kind !== "accessory" || craftFamily === "Acc" || kind === "accessory" || !!$("#cAccSlot").value));
   $("#cInfo").textContent = t("cInfo", { n: list.length });
   box.innerHTML = list.length ? "" : `<div class="small" style="padding:6px">${esc(t("cNone"))}</div>`;
   list.forEach(r => {

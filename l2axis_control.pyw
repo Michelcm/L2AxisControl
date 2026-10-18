@@ -1198,8 +1198,10 @@ class RecipeBook:
     def add_accessory_entries(self, extra, in_client=None):
         """Shirts, belts, bracelets, talismans, cloaks and hair accessories: no recipe, but they help.
         in_client: item ids the player's client knows (items missing there do not exist on L2Axis)."""
+        junk = re.compile(r"limited period|not in use|common item|event|kratei", re.I)
         self.accessories = {k: v for k, v in (extra or {}).get("accessories", {}).items()
-                            if in_client is None or int(k) in in_client}
+                            if (in_client is None or int(k) in in_client)
+                            and not junk.search(self.names.get(int(k), v["name"]))}
         for k, acc in self.accessories.items():
             item_id = int(k)
             self.recipes[OBTAIN_BASE + item_id] = {

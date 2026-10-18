@@ -32,8 +32,10 @@ def plural_free(name):
 # accessory slots (client body parts) shown in the Craft tab
 ACCESSORY_SLOTS = {"underwear": "shirt", "waist": "belt", "rbracelet": "bracelet", "deco1": "talisman",
                    "back": "cloak", "hair": "hair", "hairall": "hair"}
-ACCESSORY_SKIP = re.compile(r"limited period|[Ee]vent|\{PvP\}|Shadow Item|Test|Agathion|Mount|Poison Bottle|"
-                            r"Undergarment|Swimsuit|Bikini|Underwear of|Pailaka|_|Summon")
+ACCESSORY_SKIP = re.compile(r"limited period|event|\{PvP\}|Shadow Item|Test|Agathion|Mount|Poison Bottle|"
+                            r"Undergarment|Swimsuit|Bikini|Underwear of|Pailaka|_|Summon|Not In Use|"
+                            r"Common Item|Kratei|Ticket|Gift|Hat|Ears|Wings|Mask|Glasses|Goggles|Monocle|"
+                            r"Hair ?pin|Bandana|Eyepatch|Eyepiece", re.I)
 
 
 def load_items(data):
@@ -190,6 +192,8 @@ def main(datapack):
         slot = ACCESSORY_SLOTS.get(it["bodypart"])
         if not slot or ACCESSORY_SKIP.search(it["name"] or ""):
             continue
+        if "Talisman" in it["name"]:
+            slot = "talisman"  # a few talismans are filed under another body part
         effects, actives = list(it["stats"]), []
         for part in (it["skill"] or "").split(";"):
             m = re.fullmatch(r"\s*(\d+)-(\d+)\s*", part)
