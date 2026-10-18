@@ -25,6 +25,10 @@ STAT_OPS = ("add", "sub", "mul", "basemul")
 POOL_EFFECTS = {"MaxHp": "maxHp", "MaxMp": "maxMp", "MaxCp": "maxCp"}
 
 
+BODYPARTS = {"chest", "onepiece", "alldress", "legs", "head", "gloves", "feet", "neck", "rear;lear",
+             "rfinger;lfinger", "lhand"}
+
+
 def plural_free(name):
     return re.sub(r"s\b", "", name.lower())
 
@@ -221,6 +225,10 @@ def main(datapack):
         "masterwork": masterwork,
         "combos": {k: v for k, v in combos.items() if " - " not in items[v["product"]]["name"]},
         "accessories": accessories,
+        # real equipment slot of every armor piece / jewel (names are misleading: "Dynasty Leather Armor" is
+        # a chest piece, "Draconic Leather Armor" a one-piece)
+        "bodyparts": {str(k): v["bodypart"] for k, v in sorted(items.items())
+                      if v["bodypart"] in BODYPARTS},
         "names": {str(k): items[k]["name"] for k in sorted({c["foundation"] for c in masterwork.values()}
                                                           | {i for c in masterwork.values() for i, _ in c["varnish"]}
                                                           | combo_ids | {int(k) for k in combos}

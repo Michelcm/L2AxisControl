@@ -677,12 +677,35 @@ def build_stats_db():
     return db
 
 
-def item_slot(name):
+# real body part of each armor piece (from data/items_db.json); filled when the panel starts
+_BODYPARTS = {}
+_BODYPART_SLOT = {"chest": "chest", "onepiece": "fullbody", "alldress": "fullbody", "legs": "legs",
+                  "head": "helmet", "gloves": "gloves", "feet": "boots", "neck": "necklace",
+                  "rear;lear": "earring", "rfinger;lfinger": "ring"}
+
+
+def item_slot(name, item_id=None):
+    """Equipment slot: the item's real body part when known, otherwise guessed from the name."""
+    part = _BODYPARTS.get(str(item_id)) if item_id is not None else None
+    if part == "lhand":
+        return "sigil" if "Sigil" in name else "shield"
+    if part in _BODYPART_SLOT:
+        return _BODYPART_SLOT[part]
     slot = next((slot for word, slot in _SLOTS if word in name), None)
-    # one-piece armors/robes cover chest + legs: never compare them with a breastplate/tunic
+    # unknown item: one-piece armors/robes usually say "Armor"/"Robe" without "Breastplate"
     if slot == "chest" and ("Armor" in name or "Robe" in name) and "Breastplate" not in name:
         return "fullbody"
     return slot
+
+
+def top_tier_item(it):
+    """Dynasty and above: the client files Dynasty as plain S grade like older sets, so the name decides;
+    boss jewelry and hero (Infinity) weapons are end game too."""
+    if it["grade"] >= 6 or "Dynasty" in it["name"]:
+        return True
+    if it["kind"] == "weapon":
+        return it["name"].startswith("Infinity ")
+    return bool(_BOSS_JEWELS.search(it["name"]))
 
 
 # pet gear and duplicate "Shadow/Common Item" copies are not useful in a comparison
@@ -984,7 +1007,9 @@ _MAX_CRIT = 500
 
 def _load_items_db():
     try:
-        return json.loads(ITEMS_DB_FILE.read_text(encoding="utf-8"))
+        db = json.loads(ITEMS_DB_FILE.read_text(encoding="utf-8"))
+        _BODYPARTS.update(db.get("bodyparts", {}))
+        return db
     except (OSError, ValueError):
         log_error("info", "data/items_db.json not found: masterwork bonuses disabled")
         return {"bonus": {}, "masterwork": {}, "names": {}}
@@ -1184,7 +1209,7 @@ class RecipeBook:
             if it["kind"] == "weapon":
                 if weapon_cat(it) is None or (weapon_cat(it) != "shield" and it["patk"] < 200):
                     continue
-            elif not item_slot(it["name"]) or (jewel and it["mdef"] < 40) or (not jewel and not it["pdef"]
+            elif not item_slot(it["name"], item_id) or (jewel and it["mdef"] < 40) or (not jewel and not it["pdef"]
                                                                                 and armor_kind(it["name"]) != "sigil"):
                 continue
             sealed = sealed_of.get(re.sub(r"s\b", "", it["name"].lower()))
@@ -1240,10 +1265,10 @@ class RecipeBook:
             same = lambda it: it["kind"] == "weapon" and it["wtype"] == me["wtype"] and it["speed"] == me["speed"]
             key = lambda it: (it["patk"], it["matk"])
         else:
-            slot = item_slot(me["name"])
+            slot = item_slot(me["name"], recipe["product"])
             jewel = slot in ("earring", "necklace", "ring")
             my_kind = armor_kind(me["name"])
-            same = lambda it: (it["kind"] == "armor" and item_slot(it["name"]) == slot
+            same = lambda it: (it["kind"] == "armor" and item_slot(it["name"], it["id"]) == slot
                                and (jewel or (it["atype"] == me["atype"] and armor_kind(it["name"]) == my_kind)))
             key = lambda it: (it["mdef"] if jewel else it["pdef"], it["mp"])
         bonus, masterwork = extra.get("bonus", {}), extra.get("masterwork", {})
@@ -1252,10 +1277,15 @@ class RecipeBook:
         # the client is inconsistent with plurals ("Sealed Dynasty Gaiter" unseals into "Dynasty Gaiters")
         plain = lambda name: re.sub(r"s\b", "", name.lower())
         unsealed_name = plain(me["name"][len("Sealed "):]) if me["name"].startswith("Sealed ") else None
+        # items made by crafting their sealed version and removing the seal
+        unseal_craft = {plain(self.name(pid)[len("Sealed "):]) for pid, rec in self.by_product.items()
+                        if self.name(pid).startswith("Sealed ") and not rec.get("mw") and not rec.get("mwStep")}
         rows, seen = [], set()
         for item_id, it in items.items():
             # skip Special Ability variants and {PvP} copies: same base stats as the plain item
+            it = {**it, "id": item_id}
             if (it["add"] and item_id != recipe["product"]) or _COMPARE_SKIP.search(it["name"]) or not same(it) \
+                    or (not top_tier_item(it) and item_id != recipe["product"]) \
                     or (it["name"].startswith("Sealed ") and item_id != recipe["product"]):
                 continue
             mw = masterwork.get(str(item_id))
@@ -1273,7 +1303,8 @@ class RecipeBook:
                           "varnish": mw["varnish"][0][1] if mw["varnish"] else 0} if mw else None,
                    "bonus": effects,
                    # the same item after the Blacksmith of Mammon removes the seal
-                   "unsealed": bool(unsealed_name) and plain(it["name"]) == unsealed_name}
+                   "unsealed": bool(unsealed_name) and plain(it["name"]) == unsealed_name,
+                   "unsealCraft": not mw and item_id not in craftable and plain(it["name"]) in unseal_craft}
             if me["kind"] == "weapon":
                 row["final"] = weapon_final(it, effects)
             rows.append(row)
@@ -1336,16 +1367,16 @@ class RecipeBook:
                     slot = "weapon"
                 else:
                     slot = None
-                if it["grade"] < 6 and slot == "weapon":
+                if not top_tier_item(it) and slot == "weapon":
                     slot = None  # S80 and above only
             else:
                 cat = armor_kind(it["name"])
                 if cat == "jewelry":
-                    slot = item_slot(it["name"])
+                    slot = item_slot(it["name"], item_id)
                 elif cat == "sigil":
                     slot = "offhand" if CHAR_CLASSES[cls][4] == "sigil" else None
                 else:
-                    slot = item_slot(it["name"]) if cat in CHAR_CLASSES[cls][3] and it["grade"] >= 6 else None
+                    slot = item_slot(it["name"], item_id) if cat in CHAR_CLASSES[cls][3] and top_tier_item(it) else None
                 if slot == "shield":
                     slot = None
             if slot not in slots:
