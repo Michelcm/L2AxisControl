@@ -186,6 +186,11 @@
   .vote.sub .nm { color: var(--dim); }
   .vote .st { width: 62px; font-size: 10px; text-align: right; padding-right: 4px; }
   .st.ready { color: var(--good); }
+  .warpvote { display: none; margin: 0 2px 5px; padding: 4px 6px; font-size: 10px; line-height: 13px; color: #e8c547;
+    background: rgba(232,197,71,.07); border: 1px solid rgba(232,197,71,.35); }
+  .presets { display: flex; gap: 3px; justify-content: center; margin: 8px 0 2px; }
+  .presets button.b { padding: 0 6px; white-space: nowrap; }
+  #pInput { width: 70px; text-align: center; margin-top: 8px; }
 
   /* network */
   .stats { display: grid; grid-template-columns: repeat(4, 1fr); text-align: center; }
@@ -430,6 +435,7 @@
         <button class="b" id="bVoteAll" data-i18n="voteOpenAll"></button>
       </div>
       <div class="small" style="margin:2px 2px 5px" data-i18n-html="voteNote"></div>
+      <div class="warpvote" id="warpVoteWarn" data-i18n="warpVoteWarn"></div>
       <div class="panel" style="padding:2px" id="votes"></div>
     </div>
 
@@ -522,6 +528,17 @@
     </div>
   </div>
 
+  <div class="modal" id="promptModal">
+    <div class="dlg">
+      <div class="title"><div class="name" style="text-align:center" data-i18n="sysMessage"></div></div>
+      <div class="msg"><span id="pMsg"></span>
+        <div class="presets" id="pPresets"></div>
+        <input class="e" id="pInput" inputmode="numeric" maxlength="3">
+      </div>
+      <div class="row"><button class="b gold" id="pOk">OK</button><button class="b" id="pNo" data-i18n="btnCancel"></button></div>
+    </div>
+  </div>
+
   <div class="modal" id="modal">
     <div class="dlg">
       <div class="title"><div class="name" style="text-align:center" data-i18n="sysMessage"></div></div>
@@ -572,6 +589,9 @@ const I18N = {
     dLore: "História", dCustom: "Boss customizado do L2Axis — sem dados no cliente.", dId: "ID do NPC",
     voteOpenMain: "Abrir ★ disponíveis", voteOpenAll: "Abrir todos disponíveis",
     voteNote: "Votar abre o site e inicia 12h. Depois use <span class=\"hi\">.vote</span> no jogo.", voteReadyLbl: "disponível",
+    tipVotedAgo: "Votei há X min (ajustar o timer)", votedAgoMsg: "Há quantos minutos você votou no {site}?",
+    votedNow: "agora", badMinutes: "Informe minutos entre 0 e 720.",
+    warpVoteWarn: "⚠ WARP ligado: os sites contam o voto pelo IP. Se um voto não contar no .vote, vote com o WARP desligado.",
     tName: "Nome (ex.: Baium)", tTimeTip: "h:mm ou minutos", timerEmpty: "Nenhum timer. Use para respawn de raid, cooldown de instância, buffs…",
     timerDoneLbl: "PRONTO", badTime: "Tempo inválido.\nUse h:mm (ex.: 2:30) ou minutos.",
     presetInstance: "Instância", presetRaid: "Raid", presetBuff: "Buff", presetTimer: "Timer",
@@ -626,6 +646,9 @@ const I18N = {
     dLore: "Lore", dCustom: "Custom L2Axis boss — no data in the client.", dId: "NPC ID",
     voteOpenMain: "Open available ★", voteOpenAll: "Open all available",
     voteNote: "Vote opens the site and starts a 12h timer. Then use <span class=\"hi\">.vote</span> in game.", voteReadyLbl: "available",
+    tipVotedAgo: "I voted X min ago (adjust the timer)", votedAgoMsg: "How many minutes ago did you vote on {site}?",
+    votedNow: "now", badMinutes: "Enter minutes between 0 and 720.",
+    warpVoteWarn: "⚠ WARP is on: vote sites count votes per IP. If a vote doesn't count for .vote, vote with WARP off.",
     tName: "Name (e.g. Baium)", tTimeTip: "h:mm or minutes", timerEmpty: "No timers. Use them for raid respawns, instance cooldowns, buffs…",
     timerDoneLbl: "READY", badTime: "Invalid time.\nUse h:mm (e.g. 2:30) or minutes.",
     presetInstance: "Instance", presetRaid: "Raid", presetBuff: "Buff", presetTimer: "Timer",
@@ -680,6 +703,9 @@ const I18N = {
     dLore: "Hintergrund", dCustom: "Eigener L2Axis-Boss — keine Daten im Client.", dId: "NPC-ID",
     voteOpenMain: "Verfügbare ★ öffnen", voteOpenAll: "Alle verfügbaren öffnen",
     voteNote: "Voten öffnet die Seite und startet 12h. Danach im Spiel <span class=\"hi\">.vote</span> nutzen.", voteReadyLbl: "verfügbar",
+    tipVotedAgo: "Vor X Min. gevotet (Timer anpassen)", votedAgoMsg: "Vor wie vielen Minuten hast du auf {site} gevotet?",
+    votedNow: "jetzt", badMinutes: "Minuten zwischen 0 und 720 eingeben.",
+    warpVoteWarn: "⚠ WARP ist an: Vote-Seiten zählen Stimmen pro IP. Zählt ein Vote bei .vote nicht, mit ausgeschaltetem WARP voten.",
     tName: "Name (z. B. Baium)", tTimeTip: "h:mm oder Minuten", timerEmpty: "Keine Timer. Für Raid-Respawns, Instanz-Cooldowns, Buffs…",
     timerDoneLbl: "FERTIG", badTime: "Ungültige Zeit.\nh:mm (z. B. 2:30) oder Minuten verwenden.",
     presetInstance: "Instanz", presetRaid: "Raid", presetBuff: "Buff", presetTimer: "Timer",
@@ -725,8 +751,8 @@ function applyI18n() {
     d.querySelector('[data-a="close"]').title = t("btnClose");
   });
   document.querySelectorAll(".vote").forEach(r => {
-    const [bv, br] = r.querySelectorAll("button");
-    bv.textContent = t("btnVote"); br.title = t("tipVoteReset");
+    const [bv, ba, br] = r.querySelectorAll("button");
+    bv.textContent = t("btnVote"); ba.title = t("tipVotedAgo"); br.title = t("tipVoteReset");
   });
   document.querySelectorAll("#links button").forEach(b => b.textContent = t(b.dataset.key));
   ["#bosses", "#timers"].forEach(s => { const el = $(s); if (el) { el.dataset.sig = ""; el.dataset.ids = ""; } });
@@ -761,6 +787,33 @@ function confirmDlg(msg, okText = "OK", cancel = true) {
     const done = v => { $("#modal").classList.remove("show"); $("#mOk").onclick = $("#mNo").onclick = null; res(v); };
     $("#mOk").onclick = () => done(true);
     $("#mNo").onclick = () => done(false);
+  });
+}
+
+// asks for a number of minutes; resolves to a number or null (cancelled)
+function minutesDlg(msg) {
+  return new Promise(res => {
+    $("#pMsg").textContent = msg;
+    $("#pInput").value = "";
+    const box = $("#pPresets");
+    box.innerHTML = "";
+    [0, 5, 15, 30, 60].forEach(m => {
+      const b = document.createElement("button");
+      b.className = "b"; b.textContent = m ? `${m} min` : t("votedNow");
+      b.onclick = () => done(m);
+      box.appendChild(b);
+    });
+    $("#promptModal").classList.add("show");
+    $("#pInput").focus();
+    const done = v => { $("#promptModal").classList.remove("show"); $("#pOk").onclick = $("#pNo").onclick = $("#pInput").onkeydown = null; res(v); };
+    const fromInput = () => {
+      const v = $("#pInput").value.trim();
+      if (!/^\d{1,3}$/.test(v) || +v > 720) { $("#pMsg").textContent = msg + "\n" + t("badMinutes"); return; }
+      done(+v);
+    };
+    $("#pOk").onclick = fromInput;
+    $("#pInput").onkeydown = e => { if (e.key === "Enter") fromInput(); if (e.key === "Escape") done(null); };
+    $("#pNo").onclick = () => done(null);
   });
 }
 
@@ -850,10 +903,14 @@ function build() {
     r.className = "vote" + (v.main ? "" : " sub");
     r.dataset.k = v.key;
     r.innerHTML = `<span class="star">${v.main ? "★" : ""}</span><span class="nm"></span><span class="st"></span>
-      <button class="b" style="width:46px"></button><button class="b sq">↺</button>`;
+      <button class="b" style="width:46px"></button><button class="b sq">⏱</button><button class="b sq">↺</button>`;
     r.querySelector(".nm").textContent = v.name;
-    const [bv, br] = r.querySelectorAll("button");
+    const [bv, ba, br] = r.querySelectorAll("button");
     bv.onclick = () => api.vote(v.key);
+    ba.onclick = async () => {
+      const m = await minutesDlg(t("votedAgoMsg", { site: v.name }));
+      if (m != null) api.vote_set_ago(v.key, m);
+    };
     br.onclick = () => api.vote_reset(v.key);
     votes.appendChild(r);
   });
@@ -1033,6 +1090,7 @@ function render() {
   $("#bWarp").disabled = S.warp === "missing" || S.warp === "waiting";
 
   // votes
+  $("#warpVoteWarn").style.display = ["connected", "connecting"].includes(S.warp) ? "block" : "none";
   S.votes.forEach(v => {
     const st = document.querySelector(`.vote[data-k="${v.key}"] .st`);
     const ready = v.remaining <= 0;

@@ -67,6 +67,8 @@ LAUNCH_SPACING = 5  # seconds between clients on "Open all"
 # +12 px top/left: room for the GM medallion to stick out of the frame
 WIN_W, WIN_H, COMPACT_H = 392, 652, 104
 ASSETS_DIR = APP_DIR / "assets"
+APP_ICON = ASSETS_DIR / "app.ico"
+APP_ID = "L2Axis.Control"  # own taskbar identity, so Windows does not group the panel with Python
 ASSETS = {"gm_96.png", "gm_256.png", "gm_512.png"}
 
 # (key, name, url, main?) - the 4 main sites are the ones that count for .vote
@@ -999,6 +1001,16 @@ class Api:
             self._data["votes"][key] = time.time()
             self._save()
 
+    def vote_set_ago(self, key, minutes):
+        """The player voted outside the panel: start the 12 h timer from `minutes` ago."""
+        if key not in {s[0] for s in VOTE_SITES}:
+            return False
+        minutes = max(0.0, min(VOTE_COOLDOWN / 60, float(minutes)))
+        with self._lock:
+            self._data["votes"][key] = time.time() - minutes * 60
+            self._save()
+        return True
+
     def vote_reset(self, key):
         with self._lock:
             self._data["votes"].pop(key, None)
@@ -1189,6 +1201,10 @@ def make_server(api, token):
 
 
 def main():
+    try:
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(APP_ID)
+    except (AttributeError, OSError):
+        pass
     api = Api()
     token = secrets.token_urlsafe(24)
     server = make_server(api, token)
@@ -1202,7 +1218,7 @@ def main():
     )
     api._window = window
     clear_board_file()  # never leave an old Alt+B page (character name/IP) on disk
-    webview.start(private_mode=True)
+    webview.start(private_mode=True, icon=str(APP_ICON) if APP_ICON.exists() else None)
     clear_board_file()
 
 
