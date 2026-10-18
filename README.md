@@ -13,12 +13,12 @@ and want ping, votes, timers and boss respawns in one place.
 | **Clients** | Up to 5 slots: open, focus, minimize and close game windows, RAM/uptime per client, *Open all* and *Arrange* (tile windows). Warns before exceeding the server limit of **4 clients per HWID**. Optional auto-login (see below). |
 | **Network** | Live ping and packet loss to the game server (ICMP, every 2 s) with a 2-minute graph. Cloudflare WARP status and on/off toggle. |
 | **Bosses** | Respawn countdowns with absolute date/time, filters (epics / dead / ★ favorites), search, sort by respawn/level/name and level ranges. Level, area and coordinates come from the game's own data files. Beeps when a ★ boss respawns. |
-| **Craft** | Step-by-step guide for every top-tier recipe (Dynasty, Icarus, Moirai, Vesper): crafting order, full material tree, shopping list (including the average for recipes below 100%), a same-slot stat comparison with boss and drop gear, and **Sources**: which mobs drop or spoil the recipe, its pieces and each material (chance, level, area), and the NPC exchanges that unseal or upgrade it. Item icons are read from your own game client. |
+| **Craft** | Step-by-step guide for every top-tier item (Dynasty, Icarus, Moirai, Vesper): crafting order, full material tree, shopping list (including the average for recipes below 100%). **Character profile**: pick race and class to see only what that class uses, and **My plan** shows the best items for the class in every slot and how to get each one (craft, craft + unseal, masterwork or drop). **Compare** ranks same-slot gear by an estimated damage with masterwork and boss-weapon bonuses. **Sources** shows which mobs drop or spoil each recipe, piece and material and the NPC exchanges (unseal, upgrades, dual swords/daggers). Item icons are read from your own game client. |
 | **Votes** | All 17 vote sites in one place, the 4 main ones highlighted. A 12-hour timer per site, a beep when a vote is available again, and one button to open every available site at once. |
 | **Timers** | Named countdowns (raid respawns, instance cooldowns, buffs…) with presets. |
 | **Options** | Language (**English / Português / Deutsch**), links (site, forum, news, donations, rules), game folders, transparency. |
 
-The window stays on top, can be dragged by its title bar and has a compact mode that shows only ping, loss and clients.
+The window stays on top, can be dragged by its title bar, resized from its edges and corner, and has a compact mode that shows only ping, loss and clients. Options include a text size setting (100% / 115% / 130%).
 
 Click the medallion in the top-left corner to open the **About** window — a small tribute to **GM RockStar**, who keeps
 L2Axis alive. His avatar is included with his permission (`gm.json` + `assets/gm_*.png`).
@@ -96,7 +96,7 @@ NCSOFT or with the L2Axis staff.
 
 Painel flutuante para quem joga no **L2Axis**, com o visual das janelas do jogo. Junta num lugar só: abrir e organizar
 clientes (respeitando o limite de 4 por HWID), ping e perda de pacotes até o servidor, status dos bosses (lido da página
-Alt+B → Bosses), um guia de craft dos itens top (Dynasty, Icarus, Moirai, Vesper) com árvore de materiais, lista de
+Alt+B → Bosses), um guia de craft dos itens top (Dynasty, Icarus, Moirai, Vesper) com plano por classe, masterworks, árvore de materiais, lista de
 compras, comparação com itens de boss e onde dropa cada receita, pedaço e material, os 17 sites de votação com timer de 12h e um botão que abre todos os disponíveis, e timers livres.
 Interface em português, inglês e alemão.
 
