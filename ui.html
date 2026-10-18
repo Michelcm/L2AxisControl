@@ -1,0 +1,1198 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>L2Axis Control</title>
+<style>
+  :root {
+    --op: .92;
+    --text: #d9cfb4;
+    --text-hi: #f3e9cc;
+    --dim: #8f8670;
+    --gold: #c9a55a;
+    --gold-hi: #f0cf7e;
+    --frame: #6a5c3e;
+    --frame-dark: #2a241a;
+    --good: #7fd36b;
+    --warn: #e8c547;
+    --bad: #e45a4a;
+    --cp: #d58f1d;
+    --hp: #b3261e;
+    --mp: #2552b8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  /* fundo escuro: so aparece nas sobras do recorte da janela, em volta do medalhao */
+  html, body { background: #0b0a08; height: 100%; overflow: hidden; }
+  body {
+    font: 11px Tahoma, Verdana, "Segoe UI", sans-serif;
+    color: var(--text);
+    user-select: none;
+    -webkit-font-smoothing: none;
+  }
+
+  /* ------------------------------------------------ moldura da janela */
+  .wnd {
+    position: absolute; inset: 12px 0 0 12px;
+    display: flex; flex-direction: column;
+    background:
+      radial-gradient(ellipse at 50% -10%, rgba(120, 100, 60, .18), transparent 60%),
+      repeating-linear-gradient(0deg, rgba(255,255,255,.012) 0 1px, transparent 1px 3px),
+      rgba(8, 8, 10, var(--op));
+    border: 1px solid #000;
+    box-shadow:
+      inset 0 0 0 1px var(--frame),
+      inset 0 0 0 2px #000,
+      inset 0 0 0 3px rgba(106, 92, 62, .35),
+      0 0 10px rgba(0,0,0,.8);
+    border-radius: 3px;
+  }
+  /* cantoneiras ornamentais */
+  .wnd::before, .wnd::after {
+    content: ""; position: absolute; width: 14px; height: 14px; pointer-events: none;
+    border: 2px solid var(--gold);
+  }
+  .wnd::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; border-radius: 3px 0 0 0; }
+  .wnd::after  { bottom: -1px; right: -1px; border-left: 0; border-top: 0; border-radius: 0 0 3px 0; }
+
+  .title {
+    height: 22px; flex: none;
+    display: flex; align-items: center;
+    padding: 0 4px 0 8px;
+    background: linear-gradient(#3b3326, #1d1912 55%, #120f0a);
+    border-bottom: 1px solid #000;
+    box-shadow: 0 1px 0 rgba(201, 165, 90, .35);
+  }
+  .wnd > .title { padding-left: 34px; }
+  .title .name { flex: 1; font-weight: bold; color: var(--text-hi); letter-spacing: .3px;
+                 text-shadow: 1px 1px 0 #000; }
+  .title .name b { color: var(--gold-hi); }
+  .tbtn {
+    width: 15px; height: 15px; margin-left: 3px;
+    display: grid; place-items: center;
+    font: bold 9px Tahoma; color: var(--text);
+    background: linear-gradient(#5a4c33, #2b2418);
+    border: 1px solid #000; box-shadow: inset 0 0 0 1px #7d6a45;
+    cursor: pointer;
+  }
+  .tbtn:hover { color: #fff; background: linear-gradient(#77653f, #3a301f); }
+  .tbtn.on { color: var(--gold-hi); box-shadow: inset 0 0 0 1px var(--gold); }
+  .tbtn.x:hover { background: linear-gradient(#8a2e22, #3d140f); }
+
+  /* ------------------------------------------------ resumo (estilo janela de status) */
+  .status { flex: none; padding: 6px 8px 5px; border-bottom: 1px solid rgba(106,92,62,.5); }
+  .grow-g { display: flex; align-items: center; margin-top: 3px; }
+  .grow-g .k { width: 56px; font-size: 10px; font-weight: bold; color: var(--gold); text-shadow: 1px 1px 0 #000; }
+  .gauge { position: relative; height: 13px; flex: 1;
+           background: #0a0a0a; border: 1px solid #000; box-shadow: inset 0 0 0 1px #3a3328; }
+  .gauge .fill { position: absolute; inset: 1px auto 1px 1px; transition: width .4s; }
+  .gauge .val { position: absolute; inset: 0; text-align: center; line-height: 11px; font-size: 10px;
+                color: #fff; text-shadow: 1px 1px 0 #000; }
+  .fill.cp { background: linear-gradient(#f0b54a, var(--cp) 50%, #7a4c08); }
+  .fill.hp { background: linear-gradient(#e2574b, var(--hp) 50%, #5e0f0a); }
+  .fill.mp { background: linear-gradient(#5a86e6, var(--mp) 50%, #0f2768); }
+  .fill.ok { background: linear-gradient(#9de07f, #3f9a35 50%, #1e4d18); }
+  .chips { display: flex; gap: 10px; margin-top: 5px; font-size: 10px; color: var(--dim); }
+  .chips span b { color: var(--text-hi); font-weight: normal; }
+  .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 3px;
+         border: 1px solid #000; vertical-align: -1px; background: #444; }
+  .dot.g { background: var(--good); box-shadow: 0 0 4px var(--good); }
+  .dot.y { background: var(--warn); }
+  .dot.r { background: var(--bad); }
+  .toast { margin-top: 4px; color: var(--gold-hi); font-size: 10px; display: none; }
+
+  /* ------------------------------------------------ abas */
+  .tabs { flex: none; display: flex; gap: 1px; padding: 5px 6px 0; border-bottom: 1px solid var(--frame); }
+  .tab {
+    flex: 1; font-size: 10px; text-align: center; height: 20px; line-height: 18px; cursor: pointer;
+    color: var(--dim);
+    background: linear-gradient(#24201a, #110f0c);
+    border: 1px solid #000; border-bottom: 0;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+    border-radius: 3px 3px 0 0;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.sel { color: var(--gold-hi); background: linear-gradient(#4a3f2b, #1e1a12);
+             box-shadow: inset 0 0 0 1px rgba(201,165,90,.45); }
+  .body { flex: 1; overflow-y: auto; padding: 6px; }
+  .page { display: none; }
+  .page.sel { display: block; }
+  .compact .tabs, .compact .body { display: none; }
+
+  .body::-webkit-scrollbar { width: 10px; }
+  .body::-webkit-scrollbar-track { background: #0b0a08; border-left: 1px solid #2a241a; }
+  .body::-webkit-scrollbar-thumb { background: linear-gradient(90deg, #5a4c33, #2b2418); border: 1px solid #000; }
+
+  /* ------------------------------------------------ componentes */
+  .panel {
+    position: relative; margin-bottom: 5px; padding: 5px 6px;
+    background: linear-gradient(rgba(40,35,26,.55), rgba(16,14,11,.55));
+    border: 1px solid #000; box-shadow: inset 0 0 0 1px rgba(106,92,62,.45);
+  }
+  .sep { height: 1px; margin: 6px 0;
+         background: linear-gradient(90deg, transparent, var(--gold), transparent); opacity: .5; }
+  .row { display: flex; align-items: center; gap: 3px; }
+  .grow { flex: 1; min-width: 0; }
+  .small { font-size: 10px; color: var(--dim); }
+  .hi { color: var(--text-hi); }
+
+  button.b {
+    height: 19px; padding: 0 7px; cursor: pointer;
+    font: 11px Tahoma, sans-serif; color: #e8dcc0;
+    background: linear-gradient(#6d5b3a, #4a3d27 45%, #2c2416);
+    border: 1px solid #000; box-shadow: inset 0 0 0 1px #8c784e, inset 0 2px 0 rgba(255,255,255,.08);
+    text-shadow: 1px 1px 0 #000;
+  }
+  button.b:hover:not(:disabled) { color: #fff; background: linear-gradient(#85704a, #5a4b30 45%, #372d1c); }
+  button.b:active:not(:disabled) { background: linear-gradient(#2c2416, #4a3d27); }
+  button.b:disabled { color: #5d5648; background: linear-gradient(#2a261f, #191612);
+                      box-shadow: inset 0 0 0 1px #3a3428; cursor: default; }
+  button.b.gold { color: var(--gold-hi); box-shadow: inset 0 0 0 1px var(--gold), inset 0 2px 0 rgba(255,255,255,.1); }
+  button.b.sq { width: 19px; padding: 0; }
+  button.b.wide { width: 100%; margin-bottom: 3px; }
+  .btnbar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; margin: 4px 0; }
+  .btnbar.two { grid-template-columns: 1fr 1fr; }
+
+  input.e {
+    height: 18px; padding: 0 4px; font: 11px Tahoma; color: var(--text-hi);
+    background: #050505; border: 1px solid #000; box-shadow: inset 0 0 0 1px #4a4232;
+    outline: none;
+  }
+  input.e:focus { box-shadow: inset 0 0 0 1px var(--gold); }
+  input.name { width: 90px; background: transparent; box-shadow: none; font-weight: bold; padding: 0 2px; }
+  input.name:hover { box-shadow: inset 0 0 0 1px #4a4232; }
+  input.name:focus { background: #050505; box-shadow: inset 0 0 0 1px var(--gold); }
+
+  label.chk { display: flex; align-items: center; gap: 5px; cursor: pointer; color: var(--dim); margin: 3px 0; }
+  label.chk input { display: none; }
+  label.chk i { width: 12px; height: 12px; background: #050505; border: 1px solid #000;
+                box-shadow: inset 0 0 0 1px #6a5c3e; position: relative; }
+  label.chk input:checked + i::after { content: "✔"; position: absolute; left: 1px; top: -2px;
+                                       color: var(--gold-hi); font-size: 11px; }
+
+  input[type=range] { -webkit-appearance: none; width: 100%; height: 8px; background: #050505;
+                      border: 1px solid #000; box-shadow: inset 0 0 0 1px #4a4232; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 10px; height: 14px;
+      background: linear-gradient(#8c784e, #3a301f); border: 1px solid #000; cursor: pointer; }
+
+  /* clientes */
+  .slot .info { margin-top: 2px; font-size: 10px; color: var(--dim); white-space: nowrap; }
+  .slot.on { box-shadow: inset 0 0 0 1px rgba(127,211,107,.35); }
+  .warn { color: #b8955a; font-size: 10px; margin-top: 3px; white-space: pre-line; }
+
+  /* votos */
+  .vote { display: flex; align-items: center; gap: 3px; padding: 2px 4px; border-bottom: 1px solid rgba(106,92,62,.18); }
+  .vote .star { width: 12px; color: var(--gold); }
+  .vote .nm { flex: 1; }
+  .vote.sub .nm { color: var(--dim); }
+  .vote .st { width: 62px; font-size: 10px; text-align: right; padding-right: 4px; }
+  .st.ready { color: var(--good); }
+
+  /* rede */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); text-align: center; }
+  .stats .k { font-size: 10px; color: var(--dim); }
+  .stats .v { font-size: 17px; color: var(--text-hi); text-shadow: 1px 1px 0 #000; margin-top: 1px; }
+  canvas { display: block; width: 100%; height: 96px; margin-top: 6px; background: #050505;
+           border: 1px solid #000; box-shadow: inset 0 0 0 1px #3a3328; }
+
+  /* bosses */
+  .bfilter { display: grid; grid-template-columns: repeat(4, 1fr) 1.4fr; gap: 3px; margin-bottom: 4px; }
+  .bfilter button.b.on { color: var(--gold-hi); box-shadow: inset 0 0 0 1px var(--gold); }
+  .boss { display: flex; align-items: center; gap: 4px; padding: 2px 4px; border-bottom: 1px solid rgba(106,92,62,.18); }
+  .boss .fav { width: 14px; cursor: pointer; color: #4a4232; text-align: center; }
+  .boss .fav.on { color: var(--gold-hi); }
+  .boss .tag { width: 12px; font-size: 9px; color: #b06a6a; }
+  .boss .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .boss.epic .nm { color: #f0b0a0; }
+  .boss .st { width: 74px; text-align: right; font-size: 10px; }
+  .st.alive { color: var(--good); }
+  .st.soon { color: var(--warn); }
+  .st.dead { color: #c96a5e; }
+
+  /* timers */
+  .timer { display: flex; align-items: center; gap: 4px; padding: 3px 4px; border-bottom: 1px solid rgba(106,92,62,.18); }
+  .timer .t { width: 70px; text-align: right; font-size: 11px; }
+
+  /* dialogo modal estilo "System Message" */
+  .modal { position: absolute; inset: 0; background: rgba(0,0,0,.55); display: none;
+           align-items: center; justify-content: center; z-index: 10; }
+  .modal.show { display: flex; }
+  .dlg { width: 280px; background: rgba(10,10,12,.97); border: 1px solid #000;
+         box-shadow: inset 0 0 0 1px var(--frame), 0 0 12px #000; }
+  .dlg .title { justify-content: center; padding: 0; }
+  .dlg .msg { padding: 14px 12px; text-align: center; line-height: 15px; color: var(--text-hi); white-space: pre-line; }
+  .dlg .row { justify-content: center; gap: 8px; padding: 0 0 10px; }
+  .dlg button.b { width: 80px; }
+  .form { padding: 10px 12px 4px; }
+  .form .f { display: flex; align-items: center; margin-bottom: 6px; }
+  .form .f span { width: 52px; color: var(--dim); }
+  .form .f input.e { flex: 1; }
+  .form .note { font-size: 10px; color: #b8955a; line-height: 13px; margin: 4px 0 6px; }
+  .acc { color: var(--gold); }
+
+  /* medalhao do GM, saindo da quina da moldura */
+  .gm {
+    position: absolute; left: 1px; top: 1px; width: 40px; height: 40px; z-index: 5; cursor: pointer;
+    background: #000 url(/assets/gm_96.png) center / cover no-repeat;
+    border: 1px solid #000; border-radius: 3px;
+    box-shadow: 0 0 0 1px var(--gold), 0 0 0 3px #1c160c, 0 0 0 4px #8c6a2c, 0 3px 8px rgba(0,0,0,.9);
+    transition: filter .15s, box-shadow .15s;
+  }
+  .gm.generic { background: radial-gradient(circle at 50% 35%, #4a3c22, #120e08 75%);
+    display: grid; place-items: center; font: bold 15px Georgia, serif; color: var(--gold-hi);
+    text-shadow: 0 1px 0 #000, 0 0 6px rgba(240,207,126,.5); }
+  .gm.generic::after { display: none; }
+  .gm:hover { filter: brightness(1.15);
+    box-shadow: 0 0 0 1px var(--gold-hi), 0 0 0 3px #1c160c, 0 0 0 4px var(--gold), 0 0 10px rgba(240,207,126,.45); }
+  .gm::after {
+    content: "GM"; position: absolute; right: -7px; bottom: -6px; padding: 0 3px; line-height: 10px;
+    font: bold 8px Tahoma; color: #1a1408; background: linear-gradient(#f6dc94, #a77f35);
+    border: 1px solid #000; border-radius: 2px;
+  }
+  .dlg.about { width: 300px; }
+  .about .row button.b { width: auto; padding: 0 10px; white-space: nowrap; }
+  .about .abody { padding: 12px 14px 6px; text-align: center; }
+  .about .portrait { width: 128px; height: 128px; margin: 0 auto 8px; border: 1px solid #000;
+    box-shadow: 0 0 0 1px var(--gold), 0 0 0 4px #1c160c, 0 0 0 5px #8c6a2c, 0 4px 14px #000; }
+  .about .portrait img { width: 100%; height: 100%; display: block; }
+  .about .gmname { font-size: 13px; color: var(--text-hi); text-shadow: 1px 1px 0 #000; }
+  .about .gmname b { color: var(--gold-hi); }
+  .about .mail { font-family: Consolas, monospace; font-size: 10px; color: var(--dim); margin: 2px 0 2px; }
+  .about .thanks { font-size: 10px; line-height: 14px; color: #c9bc98; font-style: italic; padding: 0 4px; }
+
+  /* ordenacao / faixa de nivel */
+  .bsort { display: flex; align-items: center; gap: 3px; margin-bottom: 4px; font-size: 10px; color: var(--dim); }
+  select.e { height: 18px; padding: 0 2px; font: 11px Tahoma; color: var(--text-hi); background: #050505;
+             border: 1px solid #000; box-shadow: inset 0 0 0 1px #4a4232; outline: none; cursor: pointer; }
+  select.e:focus { box-shadow: inset 0 0 0 1px var(--gold); }
+  select.e option { background: #111; color: var(--text-hi); }
+  input.lv { width: 30px; text-align: center; }
+  .bsort .sp { flex: 1; }
+
+  /* detalhes do boss */
+  .boss { cursor: pointer; }
+  .boss:hover { background: rgba(201,165,90,.07); }
+  .boss.open { background: rgba(201,165,90,.12); box-shadow: inset 2px 0 0 var(--gold); }
+  .boss .lv { width: 18px; font-size: 10px; color: var(--dim); text-align: right; }
+  .bdetail { margin: 2px 2px 6px 18px; padding: 6px 8px; background: rgba(0,0,0,.45);
+             border: 1px solid #000; box-shadow: inset 0 0 0 1px rgba(106,92,62,.4); }
+  .kv { display: flex; align-items: center; gap: 6px; min-height: 17px; }
+  .kv > span:first-child { width: 78px; flex: none; color: var(--dim); font-size: 10px; }
+  .kv > b { font-weight: normal; color: var(--text-hi); flex: 1; min-width: 0; }
+  .mono { font-family: Consolas, monospace; font-size: 10px; }
+  button.b.copy { height: 15px; padding: 0 5px; font-size: 9px; margin-left: 4px; }
+  .gauge.hpg { flex: 1; height: 13px; }
+  .bdetail .hint { color: #8f7a55; margin: 3px 0; }
+  .bdetail .right { text-align: right; margin-bottom: 2px; }
+  .lore { margin-top: 5px; padding-top: 5px; border-top: 1px solid rgba(106,92,62,.3);
+          font-size: 10px; line-height: 13px; color: #b9ad8e; font-style: italic; }
+  .lore span { display: block; font-style: normal; color: var(--dim); margin-bottom: 2px; }
+</style>
+</head>
+<body>
+<div class="gm" id="gmBadge"></div>
+<div class="wnd" id="wnd">
+  <div class="title drag">
+    <div class="name"><b>L2Axis</b> Control</div>
+    <div class="tbtn" id="bPin" data-i18n-title="tipPin">▲</div>
+    <div class="tbtn" id="bCompact" data-i18n-title="tipCompact">▬</div>
+    <div class="tbtn" id="bMin" data-i18n-title="tipMinimize">_</div>
+    <div class="tbtn x" id="bClose" data-i18n-title="tipClose">✕</div>
+  </div>
+
+  <div class="status drag">
+    <div class="grow-g"><span class="k" data-i18n="gPing"></span><div class="gauge"><div class="fill cp" id="gPing"></div><div class="val" id="vPing">—</div></div></div>
+    <div class="grow-g"><span class="k" data-i18n="gLoss"></span><div class="gauge"><div class="fill hp" id="gLoss"></div><div class="val" id="vLoss">—</div></div></div>
+    <div class="grow-g"><span class="k" data-i18n="gClients"></span><div class="gauge"><div class="fill mp" id="gCli"></div><div class="val" id="vCli">—</div></div></div>
+    <div class="chips">
+      <span><i class="dot" id="dWarp"></i>WARP <b id="sWarp">—</b></span>
+      <span>★ <span data-i18n="chipVotes"></span> <b id="sVotes">—</b></span>
+      <span id="sBoss"></span>
+      <span id="sTimer"></span>
+    </div>
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab sel" data-p="cli" data-i18n="tabClients"></div>
+    <div class="tab" data-p="net" data-i18n="tabNet"></div>
+    <div class="tab" data-p="boss" data-i18n="tabBosses"></div>
+    <div class="tab" data-p="vote" data-i18n="tabVotes"></div>
+    <div class="tab" data-p="tmr" data-i18n="tabTimers"></div>
+    <div class="tab" data-p="lnk" data-i18n="tabOptions"></div>
+  </div>
+
+  <div class="body">
+    <!-- CLIENTES -->
+    <div class="page sel" id="p-cli">
+      <div id="slots"></div>
+      <div class="small" id="external"></div>
+      <div class="btnbar">
+        <button class="b gold" id="bLaunchAll" data-i18n="btnOpenAll"></button>
+        <button class="b" id="bTile" data-i18n="btnTile"></button>
+        <button class="b" id="bMinAll" data-i18n="btnMinimize"></button>
+        <button class="b" id="bCloseAll" data-i18n="btnClose"></button>
+      </div>
+      <div class="warn" id="hwidWarn"></div>
+    </div>
+
+    <!-- REDE -->
+    <div class="page" id="p-net">
+      <div class="panel">
+        <div class="stats">
+          <div><div class="k" data-i18n="gPing"></div><div class="v" id="nLast">—</div></div>
+          <div><div class="k" data-i18n="netAvg"></div><div class="v" id="nAvg">—</div></div>
+          <div><div class="k" data-i18n="gLoss"></div><div class="v" id="nLoss">—</div></div>
+          <div><div class="k" data-i18n="netJitter"></div><div class="v" id="nJit">—</div></div>
+        </div>
+        <canvas id="graph" width="680" height="192"></canvas>
+        <div class="small" style="margin-top:4px" id="nSrv"></div>
+      </div>
+      <div class="panel">
+        <div class="row">
+          <div class="grow hi">Cloudflare WARP</div>
+          <span id="nWarp" class="small"></span>
+          <button class="b" id="bWarp" style="width:72px">…</button>
+        </div>
+        <div class="small" style="margin-top:4px" data-i18n="warpNote"></div>
+      </div>
+    </div>
+
+    <!-- BOSSES -->
+    <div class="page" id="p-boss">
+      <div class="bfilter">
+        <button class="b on" data-bf="all" data-i18n="bfAll"></button>
+        <button class="b" data-bf="epic" data-i18n="bfEpic"></button>
+        <button class="b" data-bf="dead" data-i18n="bfDead"></button>
+        <button class="b" data-bf="fav">★</button>
+        <input class="e" id="bSearch" data-i18n-ph="bSearch" spellcheck="false">
+      </div>
+      <div class="bsort">
+        <span data-i18n="sortLbl"></span>
+        <select class="e" id="bSort">
+          <option value="respawn" data-i18n="sortRespawn"></option>
+          <option value="lvlAsc" data-i18n="sortLvlAsc"></option>
+          <option value="lvlDesc" data-i18n="sortLvlDesc"></option>
+          <option value="name" data-i18n="sortName"></option>
+        </select>
+        <span class="sp"></span>
+        <span data-i18n="lvlLbl"></span>
+        <select class="e" id="bRange">
+          <option value="" data-i18n="lvlAny"></option>
+          <option value="1-39">1–39</option>
+          <option value="40-59">40–59</option>
+          <option value="60-75">60–75</option>
+          <option value="76-79">76–79</option>
+          <option value="80-99">80+</option>
+          <option value="custom" data-i18n="lvlCustom"></option>
+        </select>
+        <input class="e lv" id="bLvMin" maxlength="2" placeholder="min">
+        <span id="bDash">–</span>
+        <input class="e lv" id="bLvMax" maxlength="2" placeholder="max">
+      </div>
+      <div class="small" id="bInfo" style="margin:0 2px 5px"></div>
+      <div class="panel" style="padding:2px" id="bosses"></div>
+    </div>
+
+    <!-- VOTOS -->
+    <div class="page" id="p-vote">
+      <div class="btnbar two">
+        <button class="b gold" id="bVoteMain" data-i18n="voteOpenMain"></button>
+        <button class="b" id="bVoteAll" data-i18n="voteOpenAll"></button>
+      </div>
+      <div class="small" style="margin:2px 2px 5px" data-i18n-html="voteNote"></div>
+      <div class="panel" style="padding:2px" id="votes"></div>
+    </div>
+
+    <!-- TIMERS -->
+    <div class="page" id="p-tmr">
+      <div class="panel">
+        <div class="row">
+          <input class="e grow" id="tName" data-i18n-ph="tName" maxlength="24">
+          <input class="e" id="tTime" value="1:00" style="width:48px" data-i18n-title="tTimeTip">
+          <button class="b gold" id="bTAdd" data-i18n="btnAdd"></button>
+        </div>
+        <div class="btnbar" style="margin-bottom:0">
+          <button class="b" data-preset="presetInstance|1440" data-i18n="presetInstanceBtn"></button>
+          <button class="b" data-preset="presetRaid|720" data-i18n="presetRaidBtn"></button>
+          <button class="b" data-preset="presetBuff|120" data-i18n="presetBuffBtn"></button>
+          <button class="b" data-preset="presetTimer|30">30 min</button>
+        </div>
+      </div>
+      <div class="panel" style="padding:2px" id="timers"></div>
+    </div>
+
+    <!-- OPCOES / LINKS -->
+    <div class="page" id="p-lnk">
+      <div class="panel">
+        <div class="row">
+          <span class="grow hi" data-i18n="optLang"></span>
+          <button class="b" data-lang="pt">PT-BR</button>
+          <button class="b" data-lang="en">EN</button>
+          <button class="b" data-lang="de">DE</button>
+        </div>
+      </div>
+      <div class="panel" id="links"></div>
+      <div class="panel">
+        <button class="b wide" data-folder="game" data-i18n="folderGame"></button>
+        <button class="b wide" data-folder="system" data-i18n="folderSystem"></button>
+        <button class="b wide" data-folder="shots" data-i18n="folderShots"></button>
+      </div>
+      <div class="panel">
+        <label class="chk"><input type="checkbox" id="oRename"><i></i><span data-i18n="optRename"></span></label>
+        <div class="row" style="margin:4px 0 2px">
+          <span class="grow small" data-i18n="optDelay"></span>
+          <input class="e" id="oDelay" style="width:40px;text-align:center"><span class="small">&nbsp;s</span>
+        </div>
+        <div class="sep"></div>
+        <div class="small" data-i18n="optOpacity"></div>
+        <input type="range" id="oOpacity" min="0.5" max="1" step="0.02">
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="accModal">
+    <div class="dlg">
+      <div class="title"><div class="name" style="text-align:center" id="aTitle"></div></div>
+      <div class="form">
+        <div class="f"><span>Login</span><input class="e" id="aLogin" maxlength="32" spellcheck="false" autocomplete="off"></div>
+        <div class="f"><span data-i18n="accPassword"></span><input class="e" id="aPwd" type="password" maxlength="32" autocomplete="new-password"></div>
+        <label class="chk"><input type="checkbox" id="aAuto"><i></i><span data-i18n="accAuto"></span></label>
+        <div class="note" data-i18n="accNote"></div>
+      </div>
+      <div class="row">
+        <button class="b gold" id="aSave" data-i18n="btnSave"></button>
+        <button class="b" id="aClear" data-i18n="btnDelete"></button>
+        <button class="b" id="aCancel" data-i18n="btnCancel"></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="aboutModal">
+    <div class="dlg about">
+      <div class="title"><div class="name" style="text-align:center" data-i18n="aboutTitle"></div></div>
+      <div class="abody">
+        <div class="portrait"><img src="/assets/gm_256.png" alt=""></div>
+        <div class="gmname">GM <b id="gmName"></b></div>
+        <div class="mail" id="gmMail"></div>
+        <div class="small" data-i18n="aboutServer"></div>
+        <div class="sep"></div>
+        <div class="thanks" data-i18n="aboutThanks"></div>
+      </div>
+      <div class="row">
+        <button class="b gold" id="abMail" data-i18n="linkMail"></button>
+        <button class="b" id="abSite" data-i18n="linkSite"></button>
+        <button class="b" id="abClose" data-i18n="btnClose"></button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="modal">
+    <div class="dlg">
+      <div class="title"><div class="name" style="text-align:center" data-i18n="sysMessage"></div></div>
+      <div class="msg" id="mMsg"></div>
+      <div class="row"><button class="b gold" id="mOk">OK</button><button class="b" id="mNo" data-i18n="btnCancel"></button></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ================================================= traducoes
+const I18N = {
+  pt: {
+    tipPin: "Sempre por cima", tipCompact: "Modo compacto", tipMinimize: "Minimizar", tipClose: "Fechar",
+    gPing: "Ping", gLoss: "Perda", gClients: "Clientes", chipVotes: "Votos",
+    tabClients: "Clientes", tabNet: "Rede", tabBosses: "Bosses", tabVotes: "Votos", tabTimers: "Timers", tabOptions: "Opções",
+    btnOpenAll: "Abrir todos", btnTile: "Organizar", btnMinimize: "Minimizar", btnClose: "Fechar",
+    btnOpen: "Abrir", btnFocus: "Focar", btnAdd: "Adicionar", btnSave: "Salvar", btnDelete: "Apagar", btnCancel: "Cancelar",
+    btnVote: "Votar", btnOn: "Ligar", btnOff: "Desligar", btnCopy: "Copiar", copied: "copiado!",
+    tipLogin: "Preencher login e senha", tipAccount: "Configurar conta", tipVoteReset: "Zerar timer", tipRemove: "Remover",
+    stopped: "parado", opening: "abrindo…", runningInfo: "PID {pid} · RAM {ram} · aberto há {up}", auto: "auto",
+    accountTip: "Conta: {login}{auto}", autoLoginTag: " (login automático)",
+    external: "{n} cliente(s) fora dos slots: PID {pids}",
+    hwidWarn: "O servidor permite até {n} clientes por HWID — o 5º slot deve ser recusado no login.",
+    notAdmin: "⚠ Painel sem administrador: o Windows vai pedir UAC a cada cliente e o login automático não funciona. Abra pelo atalho da Área de Trabalho.",
+    confirmLimit: "Já existem {n} clientes abertos.\nO servidor permite {max} por HWID — o próximo deve ser recusado no login.\n\nAbrir mesmo assim?",
+    confirmLimitAll: "Abrir {n} clientes passa do limite de {max} por HWID.\n\nOK = abrir só {room}\nCancelar = abrir todos os {n}",
+    openN: "Abrir {n}", confirmClose: "Fechar o cliente \"{name}\"?", confirmCloseAll: "Fechar todos os {n} clientes?",
+    fillFail: "Não foi possível preencher:\n{why}",
+    noWindow: "o cliente ainda não tem janela", noAccount: "conta não configurada", badPassword: "não consegui abrir a senha salva (salve de novo)",
+    accTitle: "Conta — {name}", accPassword: "Senha", accAuto: "Logar automaticamente ao abrir pelo painel",
+    accKeep: "•••••• (salva — deixe vazio p/ manter)", confirmClearAcc: "Apagar login e senha salvos de \"{name}\"?",
+    accNote: "A senha fica criptografada pelo Windows (só seu usuário neste PC abre). Atenção: o L2Axis cria conta nova se o login não existir — confira a digitação.",
+    netAvg: "Média", netJitter: "Variação", netServer: "Servidor {ip} (Alemanha) · medido a cada 2s · últimos 2 min",
+    warpNote: "Rota alternativa que zerou a perda de pacotes até o servidor.", pingLost: "PERDIDO",
+    warp_connected: "conectado", warp_connecting: "conectando", warp_off: "desligado", warp_waiting: "aguarde",
+    warp_checking: "verificando", warp_missing: "não instalado", warp_error: "erro",
+    bfAll: "Todos", bfEpic: "Epics", bfDead: "Mortos", bSearch: "Buscar boss ou área…",
+    sortLbl: "Ordenar", sortRespawn: "Respawn", sortLvlAsc: "Nível ↑", sortLvlDesc: "Nível ↓", sortName: "Nome",
+    lvlLbl: "Nível", lvlAny: "Todos", lvlCustom: "Outro…", bossShown: "{shown} de {n}",
+    bossInfo: "{shown} · última leitura há {age} · abra <span class=\"hi\">Alt+B → Bosses</span> para atualizar",
+    bossEmpty: "Abra <span class=\"hi\">Alt+B → Bosses</span> no jogo (epics e páginas de raids). O painel lê automaticamente.",
+    bossNone: "Nenhum boss neste filtro.", bossAlive: "vivo", bossSpawned: "nasceu?",
+    bossSpawnedTip: "O tempo de respawn acabou — confira no Alt+B", tipFav: "Avisar quando nascer",
+    dLevel: "Nível", dZone: "Área", dZoneNear: "perto de {zone}", dZoneLv: "área nv. {lv}", dCoords: "Coordenadas",
+    dRespawn: "Respawn", dRespawnAt: "{date} ({left})", dStatus: "Status", dHp: "HP", dHpAge: "lido há {age}",
+    dHpHint: "Clique em Info no Alt+B para ler o HP.", dDrops: "Drops", dDropsHint: "Clique em Show Drops no Alt+B para capturar.",
+    dLore: "História", dCustom: "Boss customizado do L2Axis — sem dados no cliente.", dId: "ID do NPC",
+    voteOpenMain: "Abrir ★ disponíveis", voteOpenAll: "Abrir todos disponíveis",
+    voteNote: "Votar abre o site e inicia 12h. Depois use <span class=\"hi\">.vote</span> no jogo.", voteReadyLbl: "disponível",
+    tName: "Nome (ex.: Baium)", tTimeTip: "h:mm ou minutos", timerEmpty: "Nenhum timer. Use para respawn de raid, cooldown de instância, buffs…",
+    timerDoneLbl: "PRONTO", badTime: "Tempo inválido.\nUse h:mm (ex.: 2:30) ou minutos.",
+    presetInstance: "Instância", presetRaid: "Raid", presetBuff: "Buff", presetTimer: "Timer",
+    presetInstanceBtn: "Inst. 24h", presetRaidBtn: "Raid 12h", presetBuffBtn: "Buff 2h",
+    optLang: "Idioma", folderGame: "Pasta do jogo", folderSystem: "Pasta system", folderShots: "Screenshots",
+    optRename: "Nome da conta no título da janela do jogo", optDelay: "Espera até a tela de login (login automático)",
+    optOpacity: "Transparência do painel", sysMessage: "Mensagem do Sistema",
+    aboutGenericName: "L2Axis Control", aboutGenericServer: "Painel da comunidade · L2Axis High Five x15",
+    aboutGenericThanks: "Feito por jogadores para a comunidade L2Axis.",
+    tipGm: "GM {name} — L2Axis", aboutTitle: "Sobre", linkMail: "E-mail do GM",
+    aboutServer: "Game Master do L2Axis · High Five x15",
+    aboutThanks: "Painel feito por jogadores para a comunidade L2Axis. Obrigado, {name}, por manter o servidor vivo!",
+    linkSite: "Site L2Axis", linkForum: "Fórum", linkNews: "Notícias / Patches", linkDonate: "Doação", linkRules: "Regras",
+    a_launchFail: "Não abriu {slot}: {err}", a_voteReady: "Voto disponível: {name}", a_timerDone: "Timer pronto: {name}",
+    a_bossSpawn: "Boss nasceu: {name}",
+  },
+  en: {
+    tipPin: "Always on top", tipCompact: "Compact mode", tipMinimize: "Minimize", tipClose: "Close",
+    gPing: "Ping", gLoss: "Loss", gClients: "Clients", chipVotes: "Votes",
+    tabClients: "Clients", tabNet: "Network", tabBosses: "Bosses", tabVotes: "Votes", tabTimers: "Timers", tabOptions: "Options",
+    btnOpenAll: "Open all", btnTile: "Arrange", btnMinimize: "Minimize", btnClose: "Close",
+    btnOpen: "Open", btnFocus: "Focus", btnAdd: "Add", btnSave: "Save", btnDelete: "Delete", btnCancel: "Cancel",
+    btnVote: "Vote", btnOn: "Turn on", btnOff: "Turn off", btnCopy: "Copy", copied: "copied!",
+    tipLogin: "Fill in login and password", tipAccount: "Account settings", tipVoteReset: "Reset timer", tipRemove: "Remove",
+    stopped: "stopped", opening: "opening…", runningInfo: "PID {pid} · RAM {ram} · up {up}", auto: "auto",
+    accountTip: "Account: {login}{auto}", autoLoginTag: " (auto login)",
+    external: "{n} client(s) outside the slots: PID {pids}",
+    hwidWarn: "The server allows up to {n} clients per HWID — the 5th slot will likely be refused at login.",
+    notAdmin: "⚠ Panel not running as administrator: Windows will ask for UAC on every client and auto login won't work. Use the desktop shortcut.",
+    confirmLimit: "{n} clients are already open.\nThe server allows {max} per HWID — the next one will likely be refused at login.\n\nOpen anyway?",
+    confirmLimitAll: "Opening {n} clients exceeds the limit of {max} per HWID.\n\nOK = open only {room}\nCancel = open all {n}",
+    openN: "Open {n}", confirmClose: "Close the client \"{name}\"?", confirmCloseAll: "Close all {n} clients?",
+    fillFail: "Could not fill in:\n{why}",
+    noWindow: "the client has no window yet", noAccount: "account not configured", badPassword: "could not read the saved password (save it again)",
+    accTitle: "Account — {name}", accPassword: "Password", accAuto: "Log in automatically when opened from the panel",
+    accKeep: "•••••• (saved — leave empty to keep)", confirmClearAcc: "Delete the saved login and password of \"{name}\"?",
+    accNote: "The password is encrypted by Windows (only your user on this PC can read it). Note: L2Axis creates a new account if the login doesn't exist — double-check the spelling.",
+    netAvg: "Average", netJitter: "Jitter", netServer: "Server {ip} (Germany) · measured every 2s · last 2 min",
+    warpNote: "Alternative route that brought packet loss to the server down to zero.", pingLost: "LOST",
+    warp_connected: "connected", warp_connecting: "connecting", warp_off: "off", warp_waiting: "please wait",
+    warp_checking: "checking", warp_missing: "not installed", warp_error: "error",
+    bfAll: "All", bfEpic: "Epics", bfDead: "Dead", bSearch: "Search boss or area…",
+    sortLbl: "Sort", sortRespawn: "Respawn", sortLvlAsc: "Level ↑", sortLvlDesc: "Level ↓", sortName: "Name",
+    lvlLbl: "Level", lvlAny: "All", lvlCustom: "Custom…", bossShown: "{shown} of {n}",
+    bossInfo: "{shown} · last read {age} ago · open <span class=\"hi\">Alt+B → Bosses</span> to refresh",
+    bossEmpty: "Open <span class=\"hi\">Alt+B → Bosses</span> in game (epics and raid pages). The panel reads it automatically.",
+    bossNone: "No boss in this filter.", bossAlive: "alive", bossSpawned: "spawned?",
+    bossSpawnedTip: "The respawn timer has ended — check Alt+B", tipFav: "Alert me when it spawns",
+    dLevel: "Level", dZone: "Area", dZoneNear: "near {zone}", dZoneLv: "area lv. {lv}", dCoords: "Coordinates",
+    dRespawn: "Respawn", dRespawnAt: "{date} ({left})", dStatus: "Status", dHp: "HP", dHpAge: "read {age} ago",
+    dHpHint: "Click Info in Alt+B to read the HP.", dDrops: "Drops", dDropsHint: "Click Show Drops in Alt+B to capture them.",
+    dLore: "Lore", dCustom: "Custom L2Axis boss — no data in the client.", dId: "NPC ID",
+    voteOpenMain: "Open available ★", voteOpenAll: "Open all available",
+    voteNote: "Vote opens the site and starts a 12h timer. Then use <span class=\"hi\">.vote</span> in game.", voteReadyLbl: "available",
+    tName: "Name (e.g. Baium)", tTimeTip: "h:mm or minutes", timerEmpty: "No timers. Use them for raid respawns, instance cooldowns, buffs…",
+    timerDoneLbl: "READY", badTime: "Invalid time.\nUse h:mm (e.g. 2:30) or minutes.",
+    presetInstance: "Instance", presetRaid: "Raid", presetBuff: "Buff", presetTimer: "Timer",
+    presetInstanceBtn: "Inst. 24h", presetRaidBtn: "Raid 12h", presetBuffBtn: "Buff 2h",
+    optLang: "Language", folderGame: "Game folder", folderSystem: "System folder", folderShots: "Screenshots",
+    optRename: "Account name in the game window title", optDelay: "Wait until the login screen (auto login)",
+    optOpacity: "Panel transparency", sysMessage: "System Message",
+    aboutGenericName: "L2Axis Control", aboutGenericServer: "Community panel · L2Axis High Five x15",
+    aboutGenericThanks: "Made by players for the L2Axis community.",
+    tipGm: "GM {name} — L2Axis", aboutTitle: "About", linkMail: "Email the GM",
+    aboutServer: "L2Axis Game Master · High Five x15",
+    aboutThanks: "A panel made by players for the L2Axis community. Thank you, {name}, for keeping the server alive!",
+    linkSite: "L2Axis website", linkForum: "Forum", linkNews: "News / Patches", linkDonate: "Donate", linkRules: "Rules",
+    a_launchFail: "Could not open {slot}: {err}", a_voteReady: "Vote available: {name}", a_timerDone: "Timer done: {name}",
+    a_bossSpawn: "Boss spawned: {name}",
+  },
+  de: {
+    tipPin: "Immer im Vordergrund", tipCompact: "Kompaktmodus", tipMinimize: "Minimieren", tipClose: "Schließen",
+    gPing: "Ping", gLoss: "Verlust", gClients: "Clients", chipVotes: "Votes",
+    tabClients: "Clients", tabNet: "Netzwerk", tabBosses: "Bosse", tabVotes: "Votes", tabTimers: "Timer", tabOptions: "Optionen",
+    btnOpenAll: "Alle öffnen", btnTile: "Anordnen", btnMinimize: "Minimieren", btnClose: "Schließen",
+    btnOpen: "Öffnen", btnFocus: "Fokus", btnAdd: "Hinzufügen", btnSave: "Speichern", btnDelete: "Löschen", btnCancel: "Abbrechen",
+    btnVote: "Voten", btnOn: "Ein", btnOff: "Aus", btnCopy: "Kopieren", copied: "kopiert!",
+    tipLogin: "Login und Passwort eintragen", tipAccount: "Konto einrichten", tipVoteReset: "Timer zurücksetzen", tipRemove: "Entfernen",
+    stopped: "gestoppt", opening: "startet…", runningInfo: "PID {pid} · RAM {ram} · läuft seit {up}", auto: "auto",
+    accountTip: "Konto: {login}{auto}", autoLoginTag: " (Auto-Login)",
+    external: "{n} Client(s) außerhalb der Slots: PID {pids}",
+    hwidWarn: "Der Server erlaubt bis zu {n} Clients pro HWID — der 5. Slot wird beim Login wahrscheinlich abgelehnt.",
+    notAdmin: "⚠ Panel läuft nicht als Administrator: Windows fragt bei jedem Client nach UAC und Auto-Login funktioniert nicht. Über die Desktop-Verknüpfung öffnen.",
+    confirmLimit: "Es sind bereits {n} Clients offen.\nDer Server erlaubt {max} pro HWID — der nächste wird wahrscheinlich abgelehnt.\n\nTrotzdem öffnen?",
+    confirmLimitAll: "{n} Clients überschreiten das Limit von {max} pro HWID.\n\nOK = nur {room} öffnen\nAbbrechen = alle {n} öffnen",
+    openN: "{n} öffnen", confirmClose: "Client \"{name}\" schließen?", confirmCloseAll: "Alle {n} Clients schließen?",
+    fillFail: "Eintragen nicht möglich:\n{why}",
+    noWindow: "der Client hat noch kein Fenster", noAccount: "Konto nicht eingerichtet", badPassword: "gespeichertes Passwort nicht lesbar (bitte neu speichern)",
+    accTitle: "Konto — {name}", accPassword: "Passwort", accAuto: "Automatisch einloggen, wenn über das Panel geöffnet",
+    accKeep: "•••••• (gespeichert — leer lassen zum Behalten)", confirmClearAcc: "Gespeicherten Login und Passwort von \"{name}\" löschen?",
+    accNote: "Das Passwort wird von Windows verschlüsselt (nur dein Benutzer auf diesem PC kann es lesen). Achtung: L2Axis legt ein neues Konto an, wenn der Login nicht existiert — Schreibweise prüfen.",
+    netAvg: "Schnitt", netJitter: "Jitter", netServer: "Server {ip} (Deutschland) · alle 2s gemessen · letzte 2 Min.",
+    warpNote: "Alternative Route, die den Paketverlust zum Server auf null gebracht hat.", pingLost: "VERLOREN",
+    warp_connected: "verbunden", warp_connecting: "verbindet", warp_off: "aus", warp_waiting: "bitte warten",
+    warp_checking: "prüfe", warp_missing: "nicht installiert", warp_error: "Fehler",
+    bfAll: "Alle", bfEpic: "Epics", bfDead: "Tot", bSearch: "Boss oder Gebiet suchen…",
+    sortLbl: "Sortieren", sortRespawn: "Respawn", sortLvlAsc: "Level ↑", sortLvlDesc: "Level ↓", sortName: "Name",
+    lvlLbl: "Level", lvlAny: "Alle", lvlCustom: "Eigene…", bossShown: "{shown} von {n}",
+    bossInfo: "{shown} · zuletzt gelesen vor {age} · <span class=\"hi\">Alt+B → Bosses</span> öffnen zum Aktualisieren",
+    bossEmpty: "Im Spiel <span class=\"hi\">Alt+B → Bosses</span> öffnen (Epics und Raid-Seiten). Das Panel liest es automatisch.",
+    bossNone: "Kein Boss in diesem Filter.", bossAlive: "lebt", bossSpawned: "gespawnt?",
+    bossSpawnedTip: "Der Respawn-Timer ist abgelaufen — in Alt+B prüfen", tipFav: "Benachrichtigen, wenn er spawnt",
+    dLevel: "Level", dZone: "Gebiet", dZoneNear: "nahe {zone}", dZoneLv: "Gebiet Lv. {lv}", dCoords: "Koordinaten",
+    dRespawn: "Respawn", dRespawnAt: "{date} ({left})", dStatus: "Status", dHp: "HP", dHpAge: "gelesen vor {age}",
+    dHpHint: "In Alt+B auf Info klicken, um die HP zu lesen.", dDrops: "Drops", dDropsHint: "In Alt+B auf Show Drops klicken, um sie zu erfassen.",
+    dLore: "Hintergrund", dCustom: "Eigener L2Axis-Boss — keine Daten im Client.", dId: "NPC-ID",
+    voteOpenMain: "Verfügbare ★ öffnen", voteOpenAll: "Alle verfügbaren öffnen",
+    voteNote: "Voten öffnet die Seite und startet 12h. Danach im Spiel <span class=\"hi\">.vote</span> nutzen.", voteReadyLbl: "verfügbar",
+    tName: "Name (z. B. Baium)", tTimeTip: "h:mm oder Minuten", timerEmpty: "Keine Timer. Für Raid-Respawns, Instanz-Cooldowns, Buffs…",
+    timerDoneLbl: "FERTIG", badTime: "Ungültige Zeit.\nh:mm (z. B. 2:30) oder Minuten verwenden.",
+    presetInstance: "Instanz", presetRaid: "Raid", presetBuff: "Buff", presetTimer: "Timer",
+    presetInstanceBtn: "Inst. 24h", presetRaidBtn: "Raid 12h", presetBuffBtn: "Buff 2h",
+    optLang: "Sprache", folderGame: "Spielordner", folderSystem: "System-Ordner", folderShots: "Screenshots",
+    optRename: "Kontoname im Titel des Spielfensters", optDelay: "Warten bis zum Login-Bildschirm (Auto-Login)",
+    optOpacity: "Transparenz des Panels", sysMessage: "Systemnachricht",
+    aboutGenericName: "L2Axis Control", aboutGenericServer: "Community-Panel · L2Axis High Five x15",
+    aboutGenericThanks: "Von Spielern für die L2Axis-Community gemacht.",
+    tipGm: "GM {name} — L2Axis", aboutTitle: "Über", linkMail: "GM per E-Mail",
+    aboutServer: "Game Master von L2Axis · High Five x15",
+    aboutThanks: "Ein Panel von Spielern für die L2Axis-Community. Danke, {name}, dass du den Server am Leben hältst!",
+    linkSite: "L2Axis-Website", linkForum: "Forum", linkNews: "News / Patches", linkDonate: "Spenden", linkRules: "Regeln",
+    a_launchFail: "{slot} konnte nicht geöffnet werden: {err}", a_voteReady: "Vote verfügbar: {name}", a_timerDone: "Timer fertig: {name}",
+    a_bossSpawn: "Boss gespawnt: {name}",
+  },
+};
+const LOCALES = { pt: "pt-BR", en: "en-GB", de: "de-DE" };
+let LANG = "pt";
+const t = (key, vars = {}) => (I18N[LANG][key] ?? I18N.pt[key] ?? key).replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? "");
+
+function applyI18n() {
+  document.documentElement.lang = LOCALES[LANG];
+  const gm = S && S.gm;
+  const gmVars = { name: gm ? gm.name : "" };
+  document.querySelectorAll("[data-i18n]").forEach(el => el.textContent = t(el.dataset.i18n, gmVars));
+  $("#gmBadge").title = gm ? t("tipGm", gmVars) : t("aboutGenericName");
+  if (!gm) {  // sem gm_local.json: "Sobre" generico
+    document.querySelector("#aboutModal .gmname").textContent = t("aboutGenericName");
+    document.querySelector('#aboutModal [data-i18n="aboutServer"]').textContent = t("aboutGenericServer");
+    document.querySelector('#aboutModal [data-i18n="aboutThanks"]').textContent = t("aboutGenericThanks");
+  }
+  document.querySelectorAll("[data-i18n-html]").forEach(el => el.innerHTML = t(el.dataset.i18nHtml));
+  document.querySelectorAll("[data-i18n-title]").forEach(el => el.title = t(el.dataset.i18nTitle));
+  document.querySelectorAll("[data-i18n-ph]").forEach(el => el.placeholder = t(el.dataset.i18nPh));
+  document.querySelectorAll("[data-lang]").forEach(b => b.classList.toggle("gold", b.dataset.lang === LANG));
+  // conteudo montado dinamicamente
+  document.querySelectorAll(".slot").forEach(d => {
+    d.querySelector('[data-a="launch"]').textContent = t("btnOpen");
+    d.querySelector('[data-a="focus"]').textContent = t("btnFocus");
+    d.querySelector('[data-a="login"]').title = t("tipLogin");
+    d.querySelector('[data-a="minimize"]').title = t("btnMinimize");
+    d.querySelector('[data-a="close"]').title = t("btnClose");
+  });
+  document.querySelectorAll(".vote").forEach(r => {
+    const [bv, br] = r.querySelectorAll("button");
+    bv.textContent = t("btnVote"); br.title = t("tipVoteReset");
+  });
+  document.querySelectorAll("#links button").forEach(b => b.textContent = t(b.dataset.key));
+  ["#bosses", "#timers"].forEach(s => { const el = $(s); if (el) { el.dataset.sig = ""; el.dataset.ids = ""; } });
+}
+
+// ================================================= utilitarios
+const $ = s => document.querySelector(s);
+let api, S = null, built = false, toastUntil = 0, bossFilter = "all", openBoss = null;
+// ordenacao/faixa de nivel ficam no data.json (o WebView roda em modo privado e apaga o localStorage)
+let bossView = { sort: "respawn", range: "", min: "", max: "" };
+const saveBossView = () => api.set_option("bossView", bossView);
+
+const fmt = s => {
+  s = Math.max(0, Math.floor(s));
+  const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60), ss = s % 60;
+  if (d) return `${d}d${String(h).padStart(2, "0")}h`;
+  return h ? `${h}h${String(m).padStart(2, "0")}m` : `${m}m${String(ss).padStart(2, "0")}s`;
+};
+const fmtNum = n => n == null ? "—" : n.toLocaleString(LOCALES[LANG]);
+const fmtDate = ts => new Date(ts * 1000).toLocaleString(LOCALES[LANG],
+  { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const pingClass = ms => ms == null ? "r" : ms < 220 ? "g" : ms < 320 ? "y" : "r";
+const pingColor = ms => ({ g: "#7fd36b", y: "#e8c547", r: "#e45a4a" })[pingClass(ms)];
+
+function confirmDlg(msg, okText = "OK", cancel = true) {
+  return new Promise(res => {
+    $("#mMsg").textContent = msg;
+    $("#mOk").textContent = okText;
+    $("#mNo").style.display = cancel ? "" : "none";
+    $("#modal").classList.add("show");
+    const done = v => { $("#modal").classList.remove("show"); $("#mOk").onclick = $("#mNo").onclick = null; res(v); };
+    $("#mOk").onclick = () => done(true);
+    $("#mNo").onclick = () => done(false);
+  });
+}
+
+async function accountDlg(i) {
+  const acc = await api.get_account(i);
+  $("#aTitle").textContent = t("accTitle", { name: S.slots[i].name });
+  $("#aLogin").value = acc.login;
+  $("#aPwd").value = "";
+  $("#aPwd").placeholder = acc.hasPassword ? t("accKeep") : "";
+  $("#aAuto").checked = acc.auto;
+  $("#accModal").classList.add("show");
+  $("#aLogin").focus();
+  const close = () => { $("#accModal").classList.remove("show"); $("#aPwd").value = ""; };
+  $("#aCancel").onclick = close;
+  $("#aClear").onclick = async () => {
+    close();
+    if (await confirmDlg(t("confirmClearAcc", { name: S.slots[i].name }), t("btnDelete"))) api.clear_account(i);
+  };
+  $("#aSave").onclick = async () => {
+    const login = $("#aLogin").value.trim();
+    if (!login) { $("#aLogin").focus(); return; }
+    if (!acc.hasPassword && !$("#aPwd").value) { $("#aPwd").focus(); return; }
+    await api.set_account(i, login, $("#aPwd").value, $("#aAuto").checked);
+    close();
+  };
+}
+
+// ================================================= abas e janela
+document.querySelectorAll(".tab").forEach(tb => tb.onclick = () => {
+  document.querySelectorAll(".tab").forEach(x => x.classList.toggle("sel", x === tb));
+  document.querySelectorAll(".page").forEach(p => p.classList.toggle("sel", p.id === "p-" + tb.dataset.p));
+});
+$("#bClose").onclick = () => api.quit();
+$("#bMin").onclick = () => api.minimize_self();
+$("#bPin").onclick = () => api.set_option("topmost", !S.topmost);
+$("#bCompact").onclick = () => {
+  const c = !S.compact;
+  S.compact = c;
+  $("#wnd").classList.toggle("compact", c);
+  api.set_option("compact", c);
+};
+
+// ================================================= construcao inicial
+function build() {
+  LANG = S.lang || "pt";
+  Object.assign(bossView, S.bossView || {});
+  const slots = $("#slots");
+  S.slots.forEach((s, i) => {
+    const d = document.createElement("div");
+    d.className = "panel slot";
+    d.innerHTML = `
+      <div class="row">
+        <i class="dot"></i>
+        <input class="e name grow" maxlength="20" spellcheck="false">
+        <button class="b gold" data-a="launch"></button>
+        <button class="b" data-a="focus"></button>
+        <button class="b sq" data-a="login">🔑</button>
+        <button class="b sq" data-a="account">⚙</button>
+        <button class="b sq" data-a="minimize">_</button>
+        <button class="b sq" data-a="close">✕</button>
+      </div>
+      <div class="info"></div>`;
+    const inp = d.querySelector("input");
+    inp.value = s.name;
+    inp.addEventListener("change", async () => { inp.value = await api.rename(i, inp.value); });
+    inp.addEventListener("keydown", e => { if (e.key === "Enter") inp.blur(); });
+    d.querySelectorAll("button").forEach(b => b.onclick = async () => {
+      const a = b.dataset.a;
+      if (a === "launch") {
+        if (S.running >= S.hwidLimit && !await confirmDlg(t("confirmLimit", { n: S.running, max: S.hwidLimit }), t("btnOpen"))) return;
+        api.launch(i);
+      } else if (a === "account") {
+        accountDlg(i);
+      } else if (a === "login") {
+        const r = await api.fill_login(i);
+        if (r !== "ok") confirmDlg(t("fillFail", { why: t(r) }), "OK", false);
+      } else if (a === "close") {
+        if (await confirmDlg(t("confirmClose", { name: S.slots[i].name }), t("btnClose"))) api.close(i);
+      } else api[a](i);
+    });
+    slots.appendChild(d);
+  });
+
+  const votes = $("#votes");
+  S.votes.forEach(v => {
+    const r = document.createElement("div");
+    r.className = "vote" + (v.main ? "" : " sub");
+    r.dataset.k = v.key;
+    r.innerHTML = `<span class="star">${v.main ? "★" : ""}</span><span class="nm"></span><span class="st"></span>
+      <button class="b" style="width:46px"></button><button class="b sq">↺</button>`;
+    r.querySelector(".nm").textContent = v.name;
+    const [bv, br] = r.querySelectorAll("button");
+    bv.onclick = () => api.vote(v.key);
+    br.onclick = () => api.vote_reset(v.key);
+    votes.appendChild(r);
+  });
+
+  const links = $("#links");
+  S.links.filter(([key]) => key !== "linkMail").forEach(([key, url]) => {
+    const b = document.createElement("button");
+    b.className = "b wide"; b.dataset.key = key;
+    b.onclick = () => api.open_link(url);
+    links.appendChild(b);
+  });
+  document.querySelectorAll("[data-folder]").forEach(b => b.onclick = () => api.open_folder(b.dataset.folder));
+  document.querySelectorAll("[data-lang]").forEach(b => b.onclick = () => {
+    LANG = b.dataset.lang;
+    api.set_option("lang", LANG);
+    applyI18n();
+    render();
+  });
+
+  $("#oRename").checked = S.renameWindows;
+  $("#oRename").onchange = e => api.set_option("renameWindows", e.target.checked);
+  $("#oDelay").value = S.loginDelay;
+  $("#oDelay").onchange = async e => { e.target.value = await api.set_login_delay(e.target.value || 15); };
+  $("#oOpacity").value = S.opacity;
+  $("#oOpacity").oninput = e => document.documentElement.style.setProperty("--op", e.target.value);
+  $("#oOpacity").onchange = e => api.set_option("opacity", e.target.value);
+  document.documentElement.style.setProperty("--op", S.opacity);
+  $("#wnd").classList.toggle("compact", S.compact);
+
+  $("#bLaunchAll").onclick = async () => {
+    const free = S.slots.map((s, i) => (!s.pid && !s.pending) ? i : -1).filter(i => i >= 0);
+    if (!free.length) return;
+    const room = Math.max(0, S.hwidLimit - S.running);
+    let list = free;
+    if (free.length > room) {
+      const onlyRoom = await confirmDlg(t("confirmLimitAll", { n: free.length, max: S.hwidLimit, room }), t("openN", { n: room }));
+      list = onlyRoom ? free.slice(0, room) : free;
+    }
+    if (list.length) api.launch_many(list);
+  };
+  $("#bTile").onclick = () => api.tile();
+  $("#bMinAll").onclick = () => api.minimize_all();
+  $("#bCloseAll").onclick = async () => {
+    if (S.running && await confirmDlg(t("confirmCloseAll", { n: S.running }), t("btnClose"))) api.close_all();
+  };
+  $("#bWarp").onclick = () => api.warp_toggle();
+  document.querySelectorAll("[data-bf]").forEach(b => b.onclick = () => {
+    bossFilter = b.dataset.bf;
+    document.querySelectorAll("[data-bf]").forEach(x => x.classList.toggle("on", x === b));
+    $("#bosses").dataset.sig = "";
+    renderBosses();
+  });
+  $("#bSearch").oninput = () => { $("#bosses").dataset.sig = ""; renderBosses(); };
+  const refreshBosses = () => { saveBossView(); $("#bosses").dataset.sig = ""; renderBosses(); };
+  const syncRangeInputs = () => {
+    const custom = bossView.range === "custom";
+    ["#bLvMin", "#bDash", "#bLvMax"].forEach(id => $(id).style.display = custom ? "" : "none");
+  };
+  $("#bSort").value = bossView.sort;
+  $("#bRange").value = bossView.range;
+  $("#bLvMin").value = bossView.min;
+  $("#bLvMax").value = bossView.max;
+  syncRangeInputs();
+  $("#bSort").onchange = e => { bossView.sort = e.target.value; refreshBosses(); };
+  $("#bRange").onchange = e => { bossView.range = e.target.value; syncRangeInputs(); refreshBosses(); };
+  const lvInput = e => { e.target.value = e.target.value.replace(/\D/g, ""); bossView.min = $("#bLvMin").value; bossView.max = $("#bLvMax").value; refreshBosses(); };
+  $("#bLvMin").oninput = lvInput;
+  $("#bLvMax").oninput = lvInput;
+  $("#bVoteMain").onclick = () => api.vote_ready(true);
+  $("#bVoteAll").onclick = () => api.vote_ready(false);
+
+  const addTimer = (name, mins) => api.timer_add(name, mins);
+  $("#bTAdd").onclick = () => {
+    const v = $("#tTime").value.trim();
+    const mins = v.includes(":") ? (+v.split(":")[0] || 0) * 60 + (+v.split(":")[1] || 0) : +v;
+    if (!(mins > 0)) { confirmDlg(t("badTime"), "OK", false); return; }
+    addTimer($("#tName").value.trim() || t("presetTimer"), mins);
+    $("#tName").value = "";
+  };
+  document.querySelectorAll("[data-preset]").forEach(b => b.onclick = () => {
+    const [n, m] = b.dataset.preset.split("|");
+    addTimer($("#tName").value.trim() || t(n), +m);
+    $("#tName").value = "";
+  });
+  const gm = S.gm;
+  const linkUrl = key => (S.links.find(([k]) => k === key) || [])[1];
+  if (gm) {
+    $("#gmName").textContent = gm.name;
+    $("#gmMail").textContent = gm.email;
+    $("#abMail").onclick = () => api.open_link("mailto:" + gm.email);
+  }
+  $("#abMail").style.display = gm && gm.email ? "" : "none";
+  $("#gmMail").style.display = gm && gm.email ? "" : "none";
+  if (!gm || !gm.avatar) {
+    $("#gmBadge").classList.add("generic");
+    $("#gmBadge").textContent = "L2";
+    document.querySelector("#aboutModal .portrait").style.display = "none";
+  }
+  $("#gmBadge").onclick = () => $("#aboutModal").classList.add("show");
+  $("#abClose").onclick = () => $("#aboutModal").classList.remove("show");
+  $("#abSite").onclick = () => api.open_link(linkUrl("linkSite"));
+  applyI18n();
+  built = true;
+  api.ui_ready();
+  // ?view=... abre direto numa tela (usado para gerar prints)
+  const view = new URLSearchParams(location.search).get("view");
+  if (view === "about") $("#gmBadge").click();
+  else if (view) document.querySelector(`.tab[data-p="${view.split(":")[0]}"]`)?.click();
+  if (view && view.includes(":")) openBoss = view.split(":")[1];
+}
+
+// ================================================= atualizacao
+function render() {
+  const p = S.ping;
+  if (p) {
+    const last = p.last;
+    $("#vPing").textContent = last == null ? t("pingLost") : `${Math.round(last)} ms`;
+    $("#gPing").style.width = last == null ? "0" : `calc(${Math.min(100, last / 400 * 100)}% - 2px)`;
+    $("#gPing").className = "fill " + (pingClass(last) === "g" ? "ok" : pingClass(last) === "y" ? "cp" : "hp");
+    $("#vLoss").textContent = `${Math.round(p.loss)}%`;
+    $("#gLoss").style.width = `calc(${Math.min(100, p.loss)}% - 2px)`;
+  }
+  $("#vCli").textContent = `${S.running} / ${S.hwidLimit}`;
+  $("#gCli").style.width = `calc(${Math.min(100, S.running / S.hwidLimit * 100)}% - 2px)`;
+  const wc = S.warp === "connected" ? "g" : ["connecting", "waiting", "checking"].includes(S.warp) ? "y" : "r";
+  $("#dWarp").className = "dot " + wc;
+  $("#sWarp").textContent = t("warp_" + S.warp);
+  $("#sVotes").textContent = `${S.votes.filter(v => v.main && v.remaining <= 0).length}/4`;
+  const nt = S.timers.find(x => x.remaining > 0);
+  $("#sTimer").innerHTML = nt ? `⏱ ${esc(nt.name)} <b>${fmt(nt.remaining)}</b>` : "";
+
+  if (S.alerts.length) {
+    $("#toast").textContent = "🔔 " + S.alerts.map(a => t("a_" + a.k, a)).join(" · ");
+    toastUntil = Date.now() + 15000;
+  }
+  $("#toast").style.display = Date.now() < toastUntil ? "block" : "none";
+  $("#bPin").classList.toggle("on", S.topmost);
+  $("#bCompact").classList.toggle("on", S.compact);
+
+  // clientes
+  document.querySelectorAll(".slot").forEach((d, i) => {
+    const s = S.slots[i];
+    d.querySelector(".dot").className = "dot " + (s.pid ? (s.window ? "g" : "y") : s.pending ? "y" : "");
+    d.classList.toggle("on", !!s.pid);
+    const autoTag = s.account.auto ? ` (${t("auto")})` : "";
+    d.querySelector(".info").textContent = s.pid
+      ? t("runningInfo", { pid: s.pid, ram: s.ram ? fmtNum(Math.round(s.ram)) + " MB" : "—", up: fmt(s.uptime) })
+      : s.pending ? t("opening") : (s.account.login ? `${t("stopped")} · 🔑 ${s.account.login}${autoTag}` : t("stopped"));
+    const inp = d.querySelector("input");
+    if (document.activeElement !== inp && inp.value !== s.name) inp.value = s.name;
+    d.querySelector('[data-a="launch"]').disabled = !!s.pid || s.pending;
+    d.querySelector('[data-a="focus"]').disabled = !s.window;
+    d.querySelector('[data-a="minimize"]').disabled = !s.window;
+    d.querySelector('[data-a="close"]').disabled = !s.pid;
+    d.querySelector('[data-a="login"]').disabled = !s.window || !s.account.hasPassword;
+    const ab = d.querySelector('[data-a="account"]');
+    ab.classList.toggle("gold", s.account.hasPassword);
+    ab.title = s.account.login ? t("accountTip", { login: s.account.login, auto: s.account.auto ? t("autoLoginTag") : "" }) : t("tipAccount");
+  });
+  $("#external").textContent = S.external.length ? t("external", { n: S.external.length, pids: S.external.join(", ") }) : "";
+  $("#hwidWarn").textContent = t("hwidWarn", { n: S.hwidLimit }) + (S.admin ? "" : "\n" + t("notAdmin"));
+
+  // rede
+  if (p) {
+    $("#nLast").textContent = p.last == null ? "—" : Math.round(p.last);
+    $("#nLast").style.color = pingColor(p.last);
+    $("#nAvg").textContent = p.avg == null ? "—" : Math.round(p.avg);
+    $("#nLoss").textContent = Math.round(p.loss) + "%";
+    $("#nLoss").style.color = p.loss === 0 ? "#7fd36b" : p.loss < 5 ? "#e8c547" : "#e45a4a";
+    $("#nJit").textContent = Math.round(p.jitter);
+    drawGraph(p.samples);
+  }
+  $("#nSrv").textContent = t("netServer", { ip: S.server });
+  $("#nWarp").textContent = t("warp_" + S.warp);
+  $("#nWarp").style.color = { g: "#7fd36b", y: "#e8c547", r: "#e45a4a" }[wc];
+  $("#bWarp").textContent = ["connected", "connecting"].includes(S.warp) ? t("btnOff") : t("btnOn");
+  $("#bWarp").disabled = S.warp === "missing" || S.warp === "waiting";
+
+  // votos
+  S.votes.forEach(v => {
+    const st = document.querySelector(`.vote[data-k="${v.key}"] .st`);
+    const ready = v.remaining <= 0;
+    st.textContent = ready ? t("voteReadyLbl") : fmt(v.remaining);
+    st.className = "st" + (ready ? " ready" : "");
+  });
+
+  renderBosses();
+  renderTimers();
+}
+
+function renderTimers() {
+  const box = $("#timers");
+  const ids = S.timers.map(x => x.id).join(",");
+  if (box.dataset.ids !== ids) {
+    box.dataset.ids = ids;
+    box.innerHTML = S.timers.length ? "" : `<div class="small" style="padding:6px">${esc(t("timerEmpty"))}</div>`;
+    S.timers.forEach(x => {
+      const r = document.createElement("div");
+      r.className = "timer"; r.dataset.id = x.id;
+      r.innerHTML = `<span class="grow hi"></span><span class="t"></span><button class="b sq">✕</button>`;
+      r.querySelector(".grow").textContent = x.name;
+      r.querySelector("button").title = t("tipRemove");
+      r.querySelector("button").onclick = () => api.timer_remove(x.id);
+      box.appendChild(r);
+    });
+  }
+  S.timers.forEach(x => {
+    const el = box.querySelector(`[data-id="${CSS.escape(x.id)}"] .t`);
+    if (!el) return;
+    const done = x.remaining <= 0;
+    el.textContent = done ? t("timerDoneLbl") : fmt(x.remaining);
+    el.style.color = done ? "#7fd36b" : x.remaining < 300 ? "#e8c547" : "";
+  });
+}
+
+// ================================================= bosses
+function bossStatus(b) {
+  if (b.remaining != null && b.remaining > 0) return { txt: fmt(b.remaining), cls: b.remaining < 3600 ? "soon" : "dead" };
+  if (b.remaining != null) return { txt: t("bossSpawned"), cls: "soon", tip: t("bossSpawnedTip") };
+  return { txt: b.status === "alive" ? t("bossAlive") : b.status, cls: "alive" };
+}
+
+function bossDetail(b) {
+  const rows = [];
+  const kv = (k, v) => rows.push(`<div class="kv"><span>${esc(k)}</span><b>${v}</b></div>`);
+  kv(t("dId"), esc(b.id));
+  if (b.level) kv(t("dLevel"), esc(b.level));
+  if (b.zone) kv(t("dZone"), esc(t("dZoneNear", { zone: b.zone })) + (b.zoneLevel ? ` <span class="small">· ${esc(t("dZoneLv", { lv: b.zoneLevel }))}</span>` : ""));
+  if (b.x != null && (b.x || b.y)) {
+    kv(t("dCoords"), `<span class="mono">${b.x}, ${b.y}, ${b.z}</span> <button class="b copy" data-copy="${b.x} ${b.y} ${b.z}">${esc(t("btnCopy"))}</button>`);
+  }
+  const st = bossStatus(b);
+  if (b.respawnAt && b.remaining > 0) kv(t("dRespawn"), esc(t("dRespawnAt", { date: fmtDate(b.respawnAt), left: fmt(b.remaining) })));
+  else kv(t("dStatus"), `<span class="st ${st.cls}">${esc(st.txt)}</span>`);
+  if (b.maxHp) {
+    const pct = b.hp != null ? Math.max(0, Math.min(100, b.hp / b.maxHp * 100)) : 0;
+    rows.push(`<div class="kv"><span>${esc(t("dHp"))}</span><div class="gauge hpg"><div class="fill hp" style="width:calc(${pct}% - 2px)"></div>
+      <div class="val">${fmtNum(b.hp)} / ${fmtNum(b.maxHp)}</div></div></div>
+      <div class="small right">${esc(t("dHpAge", { age: fmt(b.hpAge || 0) }))}</div>`);
+  } else rows.push(`<div class="small hint">${esc(t("dHpHint"))}</div>`);
+  rows.push(`<div class="kv"><span>${esc(t("dDrops"))}</span><b class="small">${esc(t("dDropsHint"))}</b></div>`);
+  if (b.desc) rows.push(`<div class="lore"><span>${esc(t("dLore"))}</span>${esc(b.desc)}</div>`);
+  if (!b.level && !b.zone) rows.push(`<div class="small hint">${esc(t("dCustom"))}</div>`);
+  return rows.join("");
+}
+
+function renderBosses() {
+  const all = S.bosses || [];
+  const q = $("#bSearch").value.trim().toLowerCase();
+  // faixa de nivel: predefinida ("40-59") ou personalizada (min/max)
+  let lo = null, hi = null;
+  if (bossView.range === "custom") {
+    lo = bossView.min !== "" ? +bossView.min : null;
+    hi = bossView.max !== "" ? +bossView.max : null;
+  } else if (bossView.range) {
+    [lo, hi] = bossView.range.split("-").map(Number);
+  }
+  const inRange = b => (lo == null && hi == null) ||
+    (b.level != null && (lo == null || b.level >= lo) && (hi == null || b.level <= hi));
+  const list = all.filter(b =>
+    (bossFilter === "all" || (bossFilter === "epic" && b.type === "epic") ||
+     (bossFilter === "dead" && b.remaining != null && b.remaining > 0) || (bossFilter === "fav" && b.fav)) &&
+    inRange(b) &&
+    (!q || b.name.toLowerCase().includes(q) || (b.zone || "").toLowerCase().includes(q)));
+
+  const respawnKey = b => b.remaining != null && b.remaining > 0 ? b.remaining : 1e12 + (b.type === "epic" ? 0 : 1);
+  const byName = (a, b) => a.name.localeCompare(b.name);
+  const NOLV = 1e6;  // bosses sem nivel (customizados) sempre no fim
+  const sorters = {
+    respawn: (a, b) => respawnKey(a) - respawnKey(b) || byName(a, b),
+    lvlAsc: (a, b) => (a.level ?? NOLV) - (b.level ?? NOLV) || respawnKey(a) - respawnKey(b) || byName(a, b),
+    lvlDesc: (a, b) => (b.level ?? -NOLV) - (a.level ?? -NOLV) || respawnKey(a) - respawnKey(b) || byName(a, b),
+    name: byName,
+  };
+  list.sort(sorters[bossView.sort] || sorters.respawn);
+
+  const newest = all.length ? Math.min(...all.map(b => b.age)) : null;
+  $("#bInfo").innerHTML = all.length
+    ? t("bossInfo", { shown: t("bossShown", { shown: list.length, n: all.length }), age: fmt(newest) })
+    : t("bossEmpty");
+
+  const box = $("#bosses");
+  const sig = LANG + "|" + openBoss + "|" + bossView.sort + "|" + list.map(b => b.id + (b.fav ? "*" : "")).join(",");
+  if (box.dataset.sig !== sig) {
+    box.dataset.sig = sig;
+    box.innerHTML = list.length ? "" : `<div class="small" style="padding:6px">${esc(t("bossNone"))}</div>`;
+    list.forEach(b => {
+      const r = document.createElement("div");
+      r.className = "boss" + (b.type === "epic" ? " epic" : "") + (openBoss === b.id ? " open" : "");
+      r.dataset.id = b.id;
+      r.innerHTML = `<span class="fav${b.fav ? " on" : ""}" title="${esc(t("tipFav"))}">★</span>
+        <span class="tag">${b.type === "epic" ? "E" : ""}</span><span class="lv">${b.level || ""}</span>
+        <span class="nm"></span><span class="st"></span>`;
+      r.querySelector(".nm").textContent = b.name;
+      r.querySelector(".fav").onclick = e => { e.stopPropagation(); api.boss_fav(b.id, !b.fav); };
+      r.onclick = () => { openBoss = openBoss === b.id ? null : b.id; renderBosses(); };
+      box.appendChild(r);
+      if (openBoss === b.id) {
+        const d = document.createElement("div");
+        d.className = "bdetail"; d.dataset.detail = b.id;
+        box.appendChild(d);
+      }
+    });
+  }
+  list.forEach(b => {
+    const st = box.querySelector(`.boss[data-id="${b.id}"] .st`);
+    if (!st) return;
+    const s = bossStatus(b);
+    st.textContent = s.txt; st.className = "st " + s.cls; st.title = s.tip || "";
+  });
+  const det = box.querySelector(".bdetail");
+  if (det) {
+    const b = list.find(x => x.id === det.dataset.detail);
+    if (b) {
+      det.innerHTML = bossDetail(b);
+      det.querySelectorAll("[data-copy]").forEach(btn => btn.onclick = async e => {
+        e.stopPropagation();
+        try { await navigator.clipboard.writeText(btn.dataset.copy); } catch (_) {}
+        btn.textContent = t("copied");
+      });
+    }
+  }
+  const next = all.filter(b => b.fav && b.remaining > 0).sort((a, b) => a.remaining - b.remaining)[0];
+  $("#sBoss").innerHTML = next ? `👑 ${esc(next.name)} <b>${fmt(next.remaining)}</b>` : "";
+}
+
+function drawGraph(samples) {
+  const c = $("#graph"), g = c.getContext("2d");
+  const W = c.width, H = c.height, N = S.pingHistory;
+  g.clearRect(0, 0, W, H);
+  const ok = samples.filter(x => x != null);
+  const top = Math.max(300, ...ok) * 1.1;
+  g.font = "16px Tahoma";
+  [100, 200, 300].forEach(ref => {
+    if (ref >= top) return;
+    const y = H - ref / top * H;
+    g.strokeStyle = "rgba(106,92,62,.35)"; g.setLineDash([4, 6]); g.lineWidth = 1;
+    g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke();
+    g.setLineDash([]); g.fillStyle = "#5d5648"; g.fillText(ref, 4, y - 4);
+  });
+  const step = W / (N - 1), x0 = (N - samples.length) * step;
+  g.beginPath();
+  let started = false;
+  samples.forEach((s, k) => {
+    const x = x0 + k * step;
+    if (s == null) { g.fillStyle = "rgba(228,90,74,.55)"; g.fillRect(x - 2, 0, 4, H); return; }
+    const y = H - s / top * H;
+    started ? g.lineTo(x, y) : (g.moveTo(x, y), started = true);
+  });
+  const grad = g.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, "#f0cf7e"); grad.addColorStop(1, "#8c6a2c");
+  g.strokeStyle = grad; g.lineWidth = 3; g.stroke();
+}
+
+async function loop() {
+  try {
+    S = await api.get_state();
+    if (!built) build();
+    render();
+  } catch (e) { console.error(e); try { api.log_js("loop: " + (e && (e.stack || e.message) || e)); } catch (_) {} }
+  setTimeout(loop, 1000);
+}
+
+// a interface fala com o Python por HTTP local (funciona com e sem administrador)
+const TOKEN = new URLSearchParams(location.search).get("t");
+api = new Proxy({}, {
+  get: (_, name) => (...args) => fetch("/api/" + name, {
+    method: "POST", headers: { "X-Token": TOKEN, "Content-Type": "application/json" }, body: JSON.stringify(args),
+  }).then(r => { if (!r.ok) throw new Error(`${name}: HTTP ${r.status}`); return r.json(); }),
+});
+window.onerror = (m, src, l, c, e) => { try { api.log_js(`${m} @${l}:${c} ${e && e.stack || ""}`); } catch (_) {} };
+document.querySelectorAll(".drag").forEach(el => el.addEventListener("mousedown", e => {
+  if (e.button === 0 && !e.target.closest(".tbtn, button, input")) { e.preventDefault(); api.drag_start(); }
+}));
+loop();
+</script>
+</body>
+</html>

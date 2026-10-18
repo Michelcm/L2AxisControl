@@ -1,0 +1,19 @@
+# --- dados pessoais / locais: NUNCA publicar ---
+data.json
+data.tmp
+gm_local.json
+erros.log
+*.log
+
+# gerado a partir dos arquivos do cliente do jogo
+bosses_db.json
+
+# homenagem ao GM: so publicar com a autorizacao dele
+assets/gm_*.png
+
+# prints e rascunhos pessoais
+prints_gm/
+
+# python
+__pycache__/
+*.pyc
