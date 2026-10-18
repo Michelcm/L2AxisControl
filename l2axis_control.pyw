@@ -35,7 +35,17 @@ UI_FILE = APP_DIR / "ui.html"
 LOG_FILE = APP_DIR / "erros.log"
 
 
+def _anonymize(text):
+    """Remove do log o nome de usuario e da maquina (o log pode ser compartilhado no forum)."""
+    text = re.sub(re.escape(str(Path.home())), "%USERPROFILE%", text, flags=re.IGNORECASE)
+    for real, mask in ((os.environ.get("USERNAME", ""), "<user>"), (os.environ.get("COMPUTERNAME", ""), "<pc>")):
+        if len(real) > 1:  # so a palavra inteira (um PC chamado "ANA" nao pode virar "B<pc>NA" em "BANANA")
+            text = re.sub(r"\b" + re.escape(real) + r"\b", mask, text, flags=re.IGNORECASE)
+    return text
+
+
 def log_error(where, text):
+    text = _anonymize(str(text))
     try:
         with open(LOG_FILE, "a", encoding="utf-8") as f:
             f.write(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {where}: {text}\n")
@@ -514,6 +524,14 @@ def parse_board(text):
             rows.append((m_id.group(2), m_name.group(1).strip(), "epic" if m_id.group(1) == "epic" else "raid",
                          "alive" if status.lower() == "alive" else status, None))
     return rows
+
+
+def clear_board_file():
+    try:
+        if BOARD_FILE.exists() and BOARD_FILE.stat().st_size > 64:
+            BOARD_FILE.write_bytes(b"[B]\r\n")
+    except OSError:
+        pass
 
 
 class BoardWatcher(threading.Thread):
@@ -1183,7 +1201,9 @@ def main():
         on_top=api._data["topmost"], transparent=True, background_color="#000000",
     )
     api._window = window
+    clear_board_file()  # nao deixar pagina antiga do Alt+B (nome/IP do personagem) no disco
     webview.start(private_mode=True)
+    clear_board_file()
 
 
 if __name__ == "__main__":
