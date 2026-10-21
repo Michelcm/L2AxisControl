@@ -135,6 +135,17 @@
   .body::-webkit-scrollbar-thumb { background: linear-gradient(90deg, #5a4c33, #2b2418); border: 1px solid #000; }
 
   /* ------------------------------------------------ components */
+  .augbig { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .augbig button.b { height: 46px; font-size: 13px; }
+  .augmsg { min-height: 16px; margin: 5px 0 2px; font-size: 11px; color: var(--gold-hi); text-align: center; }
+  .augmsg.warn { color: #e8c547; }
+  .augpt { display: grid; grid-template-columns: 14px 1fr 70px 18px; gap: 4px; align-items: center; padding: 2px 0;
+           border-bottom: 1px solid rgba(106,92,62,.15); font-size: 10px; }
+  .augpt .ok { color: #8fd16a; } .augpt .no { color: var(--dim); }
+  .augpt button.b { height: 17px; padding: 0 4px; font-size: 9px; }
+  .augpt button.b.wait { color: #1a1408; background: linear-gradient(#f0cf7e, #a77f35); }
+  .augpt .x { cursor: pointer; color: var(--dim); text-align: center; }
+  .augsec { margin-top: 5px; font-size: 9px; color: var(--gold); text-transform: uppercase; letter-spacing: .5px; }
   .osec { margin: 7px 2px 3px; display: flex; align-items: center; gap: 6px; font-size: 9px; letter-spacing: 1px;
           text-transform: uppercase; color: var(--gold); }
   .osec::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, rgba(201,165,90,.55), transparent); }
@@ -500,6 +511,7 @@
     <div class="tab" data-p="net" data-i18n="tabNet"></div>
     <div class="tab" data-p="boss" data-i18n="tabBosses"></div>
     <div class="tab" data-p="craft" data-i18n="tabCraft"></div>
+    <div class="tab" data-p="aug" data-i18n="tabAug"></div>
     <div class="tab" data-p="vote" data-i18n="tabVotes"></div>
     <div class="tab" data-p="tmr" data-i18n="tabTimers"></div>
     <div class="tab" data-p="lnk" data-i18n="tabOptions"></div>
@@ -636,6 +648,26 @@
       </div>
       <div class="small" id="cInfo" style="margin:0 2px 5px"></div>
       <div class="panel" style="padding:2px" id="recipes"></div>
+      </div>
+    </div>
+
+    <!-- AUGMENT (accessibility helper) -->
+    <div class="page" id="p-aug">
+      <div class="panel">
+        <div class="plannote" id="augIntro" style="margin:0 0 6px"></div>
+        <div class="augbig">
+          <button class="b gold" id="augAdd" data-i18n="augAdd"></button>
+          <button class="b" id="augRem" data-i18n="augRem"></button>
+        </div>
+        <div class="augmsg" id="augMsg"></div>
+        <div class="orow"><span class="lbl small" id="augCounts"></span>
+          <button class="b" id="augReset" data-i18n="augReset"></button></div>
+        <div class="small" id="augGame"></div>
+      </div>
+      <div class="panel">
+        <div class="osec" data-i18n="augCalTitle"></div>
+        <div class="plannote" id="augCalHelp" style="margin:0 0 4px"></div>
+        <div id="augPoints"></div>
       </div>
     </div>
 
@@ -795,6 +827,17 @@ const I18N = {
     warpNote: "Rota alternativa que zerou a perda de pacotes até o servidor.", pingLost: "PERDIDO",
     warp_connected: "conectado", warp_connecting: "conectando", warp_off: "desligado", warp_waiting: "aguarde",
     warp_checking: "verificando", warp_missing: "não instalado", warp_error: "erro",
+    tabAug: "Augment", augIntro: "Ajuda de acessibilidade para quem não consegue fazer o arrasto todo à mão. Fale com o Blacksmith e deixe abertas as janelas <b>Augment</b> e <b>Remove Augmentation</b> e o <b>inventário</b>. Cada clique faz <b>uma</b> tentativa — você confere o resultado e decide a próxima.",
+    augAdd: "⚒ Incluir augment", augRem: "✖ Remover augment", augReset: "Zerar",
+    augCounts: "Tentativas: {a} · Remoções: {r}", augGame: "Janela do jogo: {g}", augNoGame: "Nenhuma janela do jogo calibrada ainda.",
+    augCalTitle: "Calibrar (uma vez)", augCalHelp: "Clique em <b>Marcar</b>, leve o mouse até o lugar no jogo e aperte <b>Ctrl</b> (não precisa segurar o mouse parado). Esc cancela. Os marcados com (opcional) só se aparecer uma confirmação.",
+    augMark: "Marcar", augWait: "Aperte Ctrl…", augSecInv: "No inventário", augSecAdd: "Janela Augment", augSecRem: "Janela Remove Augmentation", augOptional: "(opcional)",
+    aug_invWeapon: "Arma", aug_invStone: "Life Stone", aug_invGem: "Gemstone",
+    aug_augWeapon: "Slot da arma", aug_augStone: "Slot da Life Stone", aug_augGem: "Slot da Gemstone", aug_augButton: "Botão Augment", aug_augConfirm: "OK da confirmação",
+    aug_remWeapon: "Slot da arma", aug_remButton: "Botão Remove", aug_remConfirm: "OK da confirmação",
+    augMsg_calOk: "Marcado ✓", augMsg_calNotGame: "Isso não é a janela do jogo — aponte no jogo e aperte Ctrl.", augMsg_calTimeout: "Tempo esgotado, clique em Marcar de novo.",
+    augMsg_done_add: "Tentativa feita — confira o resultado no jogo.", augMsg_done_remove: "Augment removido.", augMsg_error: "Algo deu errado (veja o errors.log).",
+    augMsg_missing: "Falta calibrar algum ponto desta ação.", augMsg_noGame: "Não achei a janela do jogo calibrada — o jogo está aberto?", augMsg_busy: "Aguarde a ação anterior terminar.",
     tabCraft: "Craft", cAllKinds: "Todos os tipos", cWeapon: "Armas", cArmor: "Armaduras", cJewelry: "Joias",
     cAllRates: "Toda chance", cSearch: "Buscar item…", cAll: "Todos",
     cInfo: "{n} itens de topo. Clique para ver como fazer (CRAFT, NPC, MW) ou onde conseguir (DROP).",
@@ -910,6 +953,17 @@ const I18N = {
     warpNote: "Alternative route that brought packet loss to the server down to zero.", pingLost: "LOST",
     warp_connected: "connected", warp_connecting: "connecting", warp_off: "off", warp_waiting: "please wait",
     warp_checking: "checking", warp_missing: "not installed", warp_error: "error",
+    tabAug: "Augment", augIntro: "Accessibility help for players who cannot do all the dragging by hand. Talk to the Blacksmith and keep the <b>Augment</b> and <b>Remove Augmentation</b> windows and the <b>inventory</b> open. Each click makes <b>one</b> attempt — you check the result and decide the next one.",
+    augAdd: "⚒ Augment", augRem: "✖ Remove augment", augReset: "Reset",
+    augCounts: "Attempts: {a} · Removals: {r}", augGame: "Game window: {g}", augNoGame: "No game window calibrated yet.",
+    augCalTitle: "Calibrate (once)", augCalHelp: "Click <b>Mark</b>, move the mouse to the spot in the game and press <b>Ctrl</b> (no need to hold the mouse still). Esc cancels. Points marked (optional) only if a confirmation shows up.",
+    augMark: "Mark", augWait: "Press Ctrl…", augSecInv: "In the inventory", augSecAdd: "Augment window", augSecRem: "Remove Augmentation window", augOptional: "(optional)",
+    aug_invWeapon: "Weapon", aug_invStone: "Life Stone", aug_invGem: "Gemstone",
+    aug_augWeapon: "Weapon slot", aug_augStone: "Life Stone slot", aug_augGem: "Gemstone slot", aug_augButton: "Augment button", aug_augConfirm: "Confirmation OK",
+    aug_remWeapon: "Weapon slot", aug_remButton: "Remove button", aug_remConfirm: "Confirmation OK",
+    augMsg_calOk: "Marked ✓", augMsg_calNotGame: "That is not the game window — point in the game and press Ctrl.", augMsg_calTimeout: "Time is up, click Mark again.",
+    augMsg_done_add: "Attempt made — check the result in the game.", augMsg_done_remove: "Augment removed.", augMsg_error: "Something went wrong (see errors.log).",
+    augMsg_missing: "A point for this action is not calibrated yet.", augMsg_noGame: "Calibrated game window not found — is the game open?", augMsg_busy: "Wait for the previous action to finish.",
     tabCraft: "Craft", cAllKinds: "All types", cWeapon: "Weapons", cArmor: "Armor", cJewelry: "Jewelry",
     cAllRates: "Any rate", cSearch: "Search item…", cAll: "All",
     cInfo: "{n} top-tier items. Click one to see how to make it (CRAFT, NPC, MW) or where to get it (DROP).",
@@ -1025,6 +1079,17 @@ const I18N = {
     warpNote: "Alternative Route, die den Paketverlust zum Server auf null gebracht hat.", pingLost: "VERLOREN",
     warp_connected: "verbunden", warp_connecting: "verbindet", warp_off: "aus", warp_waiting: "bitte warten",
     warp_checking: "prüfe", warp_missing: "nicht installiert", warp_error: "Fehler",
+    tabAug: "Augment", augIntro: "Barrierefreie Hilfe für Spieler, die das ganze Ziehen nicht von Hand schaffen. Sprich mit dem Blacksmith und lass die Fenster <b>Augment</b> und <b>Remove Augmentation</b> sowie das <b>Inventar</b> offen. Jeder Klick macht <b>einen</b> Versuch — du prüfst das Ergebnis und entscheidest.",
+    augAdd: "⚒ Augmentieren", augRem: "✖ Augment entfernen", augReset: "Zurücksetzen",
+    augCounts: "Versuche: {a} · Entfernt: {r}", augGame: "Spielfenster: {g}", augNoGame: "Noch kein Spielfenster kalibriert.",
+    augCalTitle: "Kalibrieren (einmal)", augCalHelp: "<b>Markieren</b> klicken, die Maus im Spiel auf die Stelle bewegen und <b>Strg</b> drücken (die Maus muss nicht still gehalten werden). Esc bricht ab. (optional) nur, wenn eine Bestätigung erscheint.",
+    augMark: "Markieren", augWait: "Strg drücken…", augSecInv: "Im Inventar", augSecAdd: "Fenster Augment", augSecRem: "Fenster Remove Augmentation", augOptional: "(optional)",
+    aug_invWeapon: "Waffe", aug_invStone: "Life Stone", aug_invGem: "Gemstone",
+    aug_augWeapon: "Waffen-Slot", aug_augStone: "Life-Stone-Slot", aug_augGem: "Gemstone-Slot", aug_augButton: "Augment-Knopf", aug_augConfirm: "Bestätigung OK",
+    aug_remWeapon: "Waffen-Slot", aug_remButton: "Remove-Knopf", aug_remConfirm: "Bestätigung OK",
+    augMsg_calOk: "Markiert ✓", augMsg_calNotGame: "Das ist nicht das Spielfenster — im Spiel zeigen und Strg drücken.", augMsg_calTimeout: "Zeit abgelaufen, erneut Markieren klicken.",
+    augMsg_done_add: "Versuch gemacht — Ergebnis im Spiel prüfen.", augMsg_done_remove: "Augment entfernt.", augMsg_error: "Etwas ist schiefgelaufen (siehe errors.log).",
+    augMsg_missing: "Ein Punkt für diese Aktion ist nicht kalibriert.", augMsg_noGame: "Kalibriertes Spielfenster nicht gefunden — ist das Spiel offen?", augMsg_busy: "Warte, bis die vorige Aktion fertig ist.",
     tabCraft: "Craft", cAllKinds: "Alle Typen", cWeapon: "Waffen", cArmor: "Rüstungen", cJewelry: "Schmuck",
     cAllRates: "Jede Chance", cSearch: "Item suchen…", cAll: "Alle",
     cInfo: "{n} Top-Items. Anklicken: wie man es herstellt (CRAFT, NPC, MW) oder wo man es bekommt (DROP).",
@@ -1433,6 +1498,15 @@ function build() {
     renderCraftList();
   });
   ["#cKind", "#cRate", "#cSrc", "#cAccSlot", "#cSort"].forEach(id => $(id).onchange = renderCraftList);
+  const augAct = async action => {
+    const r = await api.augment_run(action);
+    augLocalMsg = r === "ok" ? "" : r;
+    pollAug();
+  };
+  $("#augAdd").onclick = () => augAct("add");
+  $("#augRem").onclick = () => augAct("remove");
+  $("#augReset").onclick = () => { api.augment_reset_counts(); setTimeout(pollAug, 150); };
+  setInterval(() => { if ($("#p-aug").classList.contains("sel")) pollAug(); }, 500);
   $("#cSort").value = "power";
   $("#cSearch").oninput = renderCraftList;
   $("#bVoteMain").onclick = () => api.vote_ready(true);
@@ -1918,6 +1992,50 @@ function renderPlan() {
     renderPlan();
     if (planOpen && srcData[id] === undefined) { srcData[id] = null; srcData[id] = await api.item_sources(id) || false; renderPlan(); }
   });
+}
+
+// ================================================= augment helper
+const AUG_GROUPS = [["augSecInv", ["invWeapon", "invStone", "invGem"]],
+  ["augSecAdd", ["augWeapon", "augStone", "augGem", "augButton", "augConfirm"]],
+  ["augSecRem", ["remWeapon", "remButton", "remConfirm"]]];
+const AUG_OPT = ["augConfirm", "remConfirm"];
+let augState = null, augLocalMsg = "";
+
+function renderAug() {
+  const s = augState;
+  if (!s) return;
+  $("#augIntro").innerHTML = t("augIntro"); $("#augCalHelp").innerHTML = t("augCalHelp");
+  const msg = augLocalMsg || s.message;
+  $("#augMsg").textContent = msg ? t("augMsg_" + msg) : "";
+  $("#augMsg").classList.toggle("warn", ["missing", "noGame", "busy", "error", "calNotGame", "calTimeout"].includes(msg));
+  $("#augCounts").textContent = t("augCounts", { a: s.counts.add, r: s.counts.remove });
+  $("#augGame").textContent = s.game ? t("augGame", { g: s.game }) : t("augNoGame");
+  ["#augAdd", "#augRem"].forEach(id => { $(id).disabled = s.busy || !!s.calibrating; });
+  let html = "";
+  AUG_GROUPS.forEach(([title, pts]) => {
+    html += `<div class="augsec">${esc(t(title))}</div>`;
+    pts.forEach(p => {
+      const ok = s.points.includes(p), wait = s.calibrating === p;
+      html += `<div class="augpt"><span class="${ok ? "ok" : "no"}">${ok ? "✓" : "•"}</span>
+        <span>${esc(t("aug_" + p))}${AUG_OPT.includes(p) ? ` <span class="small">${esc(t("augOptional"))}</span>` : ""}</span>
+        <button class="b ${wait ? "wait" : ""}" data-mark="${p}">${esc(t(wait ? "augWait" : "augMark"))}</button>
+        <span class="x" data-unmark="${p}" title="✕">${ok ? "✕" : ""}</span></div>`;
+    });
+  });
+  const box = $("#augPoints");
+  if (box.dataset.html !== html) {
+    box.innerHTML = html; box.dataset.html = html;
+    box.querySelectorAll("[data-mark]").forEach(b => b.onclick = () => {
+      augLocalMsg = "";
+      if (augState && augState.calibrating === b.dataset.mark) api.augment_cancel(); else api.augment_calibrate(b.dataset.mark);
+      setTimeout(pollAug, 150);
+    });
+    box.querySelectorAll("[data-unmark]").forEach(b => b.onclick = () => { api.augment_clear(b.dataset.unmark); setTimeout(pollAug, 150); });
+  }
+}
+
+async function pollAug() {
+  try { augState = await api.augment_state(); renderAug(); } catch (_) {}
 }
 
 function compareHtml() {
