@@ -10,7 +10,6 @@ import base64
 import ctypes
 import json
 import math
-import random
 import re
 import os
 import socket
@@ -1137,170 +1136,6 @@ _OBTAIN_SKIP = re.compile(r"Royal Guard|Guard Earring|Cloak|^Sealed |^Foundation
 _BOSS_JEWELS = re.compile(r"Antharas|Valakas|Baium|Queen Ant|Zaken|Frintezza|Freya|Beleth|Orfen|Core|Fafurion")
 
 
-# ---------------------------------------------------------------- augment helper (accessibility)
-# For players who cannot do the long drag-and-drop by hand (tremor, pain): one click in the panel
-# performs ONE augment attempt or ONE removal with ordinary mouse moves on the game window. The player
-# starts every attempt and checks every result; nothing runs on its own, no packets, no memory reading.
-AUG_POINTS = ("invWeapon", "invStone", "invGem", "augWeapon", "augStone", "augGem", "augButton", "augConfirm",
-              "remWeapon", "remButton", "remConfirm")
-AUG_OPTIONAL = {"augConfirm", "remConfirm"}
-AUG_NEEDS = {"add": ("invWeapon", "invStone", "invGem", "augWeapon", "augStone", "augGem", "augButton"),
-             "remove": ("invWeapon", "remWeapon", "remButton")}
-VK_CONTROL, VK_ESCAPE = 0x11, 0x1B
-
-
-def l2_windows():
-    """hwnd -> title of every game window."""
-    by_pid = main_windows_by_pid()
-    return {by_pid[pid]: window_title(by_pid[pid]) for pid in list_l2_pids() if pid in by_pid}
-
-
-class AugmentHelper:
-    def __init__(self, data, save):
-        self._data, self._save = data, save
-        self.calibrating = None   # point being marked
-        self.busy = False
-        self.message = ""
-        self.counts = {"add": 0, "remove": 0}
-
-    @property
-    def cfg(self):
-        return self._data.setdefault("augment", {"points": {}, "title": ""})
-
-    def target(self):
-        windows = l2_windows()
-        for hwnd, title in windows.items():
-            if title == self.cfg.get("title"):
-                return hwnd
-        return next(iter(windows), None) if len(windows) == 1 else None
-
-    # ------------------------------------------------ calibration: hover the spot and press Ctrl
-    def calibrate(self, point):
-        if point not in AUG_POINTS or self.busy:
-            return False
-        self.calibrating, self.message = point, ""
-        threading.Thread(target=self._calibrate, args=(point,), daemon=True).start()
-        return True
-
-    def _calibrate(self, point):
-        deadline = time.time() + 30
-        while user32.GetAsyncKeyState(VK_CONTROL) & 0x8000 and time.time() < deadline:
-            time.sleep(0.02)  # wait for a Ctrl already held to be released
-        while time.time() < deadline and self.calibrating == point:
-            if user32.GetAsyncKeyState(VK_ESCAPE) & 0x8000:
-                break
-            if user32.GetAsyncKeyState(VK_CONTROL) & 0x8000:
-                pt = wintypes.POINT()
-                user32.GetCursorPos(ctypes.byref(pt))
-                user32.WindowFromPoint.argtypes = [wintypes.POINT]
-                user32.WindowFromPoint.restype = wintypes.HWND
-                root = user32.GetAncestor(user32.WindowFromPoint(pt), 2)  # GA_ROOT
-                windows = l2_windows()
-                if root in windows:
-                    user32.ScreenToClient(root, ctypes.byref(pt))
-                    self.cfg["points"][point] = [pt.x, pt.y]
-                    self.cfg["title"] = windows[root]
-                    self._save()
-                    self.message = "calOk"
-                    break
-                self.message = "calNotGame"  # Ctrl pressed outside the game: keep waiting
-                while user32.GetAsyncKeyState(VK_CONTROL) & 0x8000:
-                    time.sleep(0.02)
-            time.sleep(0.02)
-        else:
-            if self.calibrating == point:
-                self.message = "calTimeout"
-        self.calibrating = None
-
-    def clear(self, point=None):
-        if point:
-            self.cfg["points"].pop(point, None)
-        else:
-            self.cfg["points"] = {}
-        self._save()
-
-    # ------------------------------------------------ one attempt
-    def run(self, action):
-        if action not in AUG_NEEDS or self.busy or self.calibrating:
-            return "busy"
-        missing = [p for p in AUG_NEEDS[action] if p not in self.cfg["points"]]
-        if missing:
-            return "missing"
-        hwnd = self.target()
-        if not hwnd:
-            return "noGame"
-        self.busy, self.message = True, ""
-        threading.Thread(target=self._run, args=(action, hwnd), daemon=True).start()
-        return "ok"
-
-    def _screen(self, hwnd, point):
-        x, y = self.cfg["points"][point]
-        pt = wintypes.POINT(x, y)
-        user32.ClientToScreen(hwnd, ctypes.byref(pt))
-        return pt.x, pt.y
-
-    @staticmethod
-    def _pause(base):
-        time.sleep(base + random.uniform(0, base * 0.5))
-
-    def _drag(self, hwnd, src, dst):
-        (x0, y0), (x1, y1) = self._screen(hwnd, src), self._screen(hwnd, dst)
-        user32.SetCursorPos(x0, y0)
-        self._pause(0.12)
-        user32.mouse_event(0x0002, 0, 0, 0, 0)  # left down
-        self._pause(0.12)
-        for k in range(1, 13):  # the game needs to see the mouse travel while the button is held
-            user32.SetCursorPos(round(x0 + (x1 - x0) * k / 12), round(y0 + (y1 - y0) * k / 12))
-            time.sleep(0.02)
-        self._pause(0.1)
-        user32.mouse_event(0x0004, 0, 0, 0, 0)  # left up
-        self._pause(0.35)
-
-    def _click(self, hwnd, point):
-        x, y = self._screen(hwnd, point)
-        user32.SetCursorPos(x, y)
-        self._pause(0.12)
-        user32.mouse_event(0x0002, 0, 0, 0, 0)
-        time.sleep(0.06)
-        user32.mouse_event(0x0004, 0, 0, 0, 0)
-        self._pause(0.35)
-
-    def _run(self, action, hwnd):
-        saved = wintypes.POINT()
-        user32.GetCursorPos(ctypes.byref(saved))
-        try:
-            focus_window(hwnd)
-            self._pause(0.3)
-            points = self.cfg["points"]
-            if action == "add":
-                self._drag(hwnd, "invWeapon", "augWeapon")
-                self._drag(hwnd, "invStone", "augStone")
-                self._drag(hwnd, "invGem", "augGem")
-                self._click(hwnd, "augButton")
-                if "augConfirm" in points:
-                    self._pause(0.4)
-                    self._click(hwnd, "augConfirm")
-            else:
-                self._drag(hwnd, "invWeapon", "remWeapon")
-                self._click(hwnd, "remButton")
-                if "remConfirm" in points:
-                    self._pause(0.4)
-                    self._click(hwnd, "remConfirm")
-            self.counts[action] += 1
-            self.message = "done_" + action
-        except Exception:
-            log_error("augment", traceback.format_exc())
-            self.message = "error"
-        finally:
-            user32.SetCursorPos(saved.x, saved.y)
-            self.busy = False
-
-    def state(self):
-        return {"points": sorted(self.cfg["points"]), "calibrating": self.calibrating, "busy": self.busy,
-                "message": self.message, "counts": self.counts, "game": self.cfg.get("title", ""),
-                "games": sorted(set(l2_windows().values()))}
-
-
 class RecipeBook:
     def __init__(self, db):
         self.accessories = {}
@@ -2017,7 +1852,6 @@ class Api:
             except Exception:
                 in_client = None
             self._recipes.add_accessory_entries(self._items, in_client)
-        self._augment = AugmentHelper(self._data, self._save)
         self._board = BoardWatcher(self._on_board_rows)
         self._board.start()
         self._adopt_running()
@@ -2202,25 +2036,6 @@ class Api:
         except Exception:
             log_error("get_state", traceback.format_exc())
             raise
-
-    def augment_state(self):
-        return self._augment.state()
-
-    def augment_calibrate(self, point):
-        return self._augment.calibrate(point)
-
-    def augment_cancel(self):
-        self._augment.calibrating = None
-
-    def augment_clear(self, point=None):
-        with self._lock:
-            self._augment.clear(point)
-
-    def augment_run(self, action):
-        return self._augment.run(action)
-
-    def augment_reset_counts(self):
-        self._augment.counts = {"add": 0, "remove": 0}
 
     def log_js(self, text):
         log_error("ui", str(text)[:2000])
