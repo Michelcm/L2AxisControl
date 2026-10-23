@@ -518,6 +518,16 @@
         <button class="b" id="bMinAll" data-i18n="btnMinimize"></button>
         <button class="b" id="bCloseAll" data-i18n="btnClose"></button>
       </div>
+      <div class="panel" style="margin-top:5px">
+        <div class="osec" data-i18n="winTitle"></div>
+        <div class="orow"><span class="lbl small" data-i18n="winWhere"></span>
+          <select class="e" id="tileTarget"></select></div>
+        <div class="ogrid two" style="margin-top:3px">
+          <button class="b" id="bSaveLayout" data-i18n="winSave"></button>
+          <button class="b" id="bRestoreLayout" data-i18n="winRestore"></button>
+        </div>
+        <div class="small" id="winMsg" style="margin-top:3px;line-height:13px"></div>
+      </div>
       <div class="warn" id="hwidWarn"></div>
     </div>
 
@@ -774,6 +784,11 @@ const I18N = {
     tipPin: "Sempre por cima", tipCompact: "Modo compacto", tipMinimize: "Minimizar", tipClose: "Fechar",
     gPing: "Ping", gLoss: "Perda", gClients: "Clientes", chipVotes: "Votos",
     tabClients: "Clientes", tabNet: "Rede", tabBosses: "Bosses", tabVotes: "Votos", tabTimers: "Timers", tabOptions: "Opções",
+    winTitle: "Janelas do jogo", winWhere: "Organizar em", winAll: "Todos os monitores ({n})", winMon: "Monitor {n} ({res})",
+    winSave: "Salvar posições", winRestore: "Restaurar posições",
+    winTiled: "Janelas organizadas.", winNone: "Nenhuma janela do jogo aberta pelo painel.",
+    winSaved: "Posições de {n} conta(s) salvas — use Restaurar depois de reabrir o jogo.", winRestored: "{n} janela(s) de volta no lugar.",
+    winNothing: "Nada para restaurar: salve as posições primeiro (com as contas abertas pelo painel).",
     btnOpenAll: "Abrir todos", btnTile: "Organizar", btnMinimize: "Minimizar", btnClose: "Fechar",
     btnOpen: "Abrir", btnFocus: "Focar", btnAdd: "Adicionar", btnSave: "Salvar", btnDelete: "Apagar", btnCancel: "Cancelar",
     btnVote: "Votar", btnOn: "Ligar", btnOff: "Desligar", btnCopy: "Copiar", copied: "copiado!",
@@ -889,6 +904,11 @@ const I18N = {
     tipPin: "Always on top", tipCompact: "Compact mode", tipMinimize: "Minimize", tipClose: "Close",
     gPing: "Ping", gLoss: "Loss", gClients: "Clients", chipVotes: "Votes",
     tabClients: "Clients", tabNet: "Network", tabBosses: "Bosses", tabVotes: "Votes", tabTimers: "Timers", tabOptions: "Options",
+    winTitle: "Game windows", winWhere: "Arrange on", winAll: "All monitors ({n})", winMon: "Monitor {n} ({res})",
+    winSave: "Save positions", winRestore: "Restore positions",
+    winTiled: "Windows arranged.", winNone: "No game window opened from the panel.",
+    winSaved: "Positions of {n} account(s) saved — use Restore after reopening the game.", winRestored: "{n} window(s) back in place.",
+    winNothing: "Nothing to restore: save the positions first (with the accounts opened from the panel).",
     btnOpenAll: "Open all", btnTile: "Arrange", btnMinimize: "Minimize", btnClose: "Close",
     btnOpen: "Open", btnFocus: "Focus", btnAdd: "Add", btnSave: "Save", btnDelete: "Delete", btnCancel: "Cancel",
     btnVote: "Vote", btnOn: "Turn on", btnOff: "Turn off", btnCopy: "Copy", copied: "copied!",
@@ -1004,6 +1024,11 @@ const I18N = {
     tipPin: "Immer im Vordergrund", tipCompact: "Kompaktmodus", tipMinimize: "Minimieren", tipClose: "Schließen",
     gPing: "Ping", gLoss: "Verlust", gClients: "Clients", chipVotes: "Votes",
     tabClients: "Clients", tabNet: "Netzwerk", tabBosses: "Bosse", tabVotes: "Votes", tabTimers: "Timer", tabOptions: "Optionen",
+    winTitle: "Spielfenster", winWhere: "Anordnen auf", winAll: "Alle Monitore ({n})", winMon: "Monitor {n} ({res})",
+    winSave: "Positionen speichern", winRestore: "Positionen wiederherstellen",
+    winTiled: "Fenster angeordnet.", winNone: "Kein vom Panel geöffnetes Spielfenster.",
+    winSaved: "Positionen von {n} Konto/Konten gespeichert — nach dem Neustart des Spiels Wiederherstellen nutzen.", winRestored: "{n} Fenster wieder an ihrem Platz.",
+    winNothing: "Nichts wiederherzustellen: zuerst die Positionen speichern (Konten über das Panel geöffnet).",
     btnOpenAll: "Alle öffnen", btnTile: "Anordnen", btnMinimize: "Minimieren", btnClose: "Schließen",
     btnOpen: "Öffnen", btnFocus: "Fokus", btnAdd: "Hinzufügen", btnSave: "Speichern", btnDelete: "Löschen", btnCancel: "Abbrechen",
     btnVote: "Voten", btnOn: "Ein", btnOff: "Aus", btnCopy: "Kopieren", copied: "kopiert!",
@@ -1370,7 +1395,25 @@ function build() {
     }
     if (list.length) api.launch_many(list);
   };
-  $("#bTile").onclick = () => api.tile();
+  const winMsg = text => { $("#winMsg").textContent = text; };
+  const fillMonitors = async () => {
+    const mons = await api.monitor_list();
+    const sel = $("#tileTarget"), keep = sel.value || "all";
+    sel.innerHTML = `<option value="all">${esc(t("winAll", { n: mons.length }))}</option>` +
+      mons.map((m, i) => `<option value="${i}">${esc(t("winMon", { n: i + 1, res: m.res }))}${m.primary ? " ★" : ""}</option>`).join("");
+    sel.value = [...sel.options].some(o => o.value === keep) ? keep : "all";
+  };
+  fillMonitors();
+  $("#tileTarget").onfocus = fillMonitors;
+  $("#bTile").onclick = async () => winMsg(await api.tile($("#tileTarget").value || "all") ? t("winTiled") : t("winNone"));
+  $("#bSaveLayout").onclick = async () => {
+    const n = await api.save_layout();
+    winMsg(n ? t("winSaved", { n }) : t("winNone"));
+  };
+  $("#bRestoreLayout").onclick = async () => {
+    const n = await api.restore_layout();
+    winMsg(n ? t("winRestored", { n }) : t("winNothing"));
+  };
   $("#bMinAll").onclick = () => api.minimize_all();
   $("#bCloseAll").onclick = async () => {
     if (S.running && await confirmDlg(t("confirmCloseAll", { n: S.running }), t("btnClose"))) api.close_all();

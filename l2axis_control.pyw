@@ -258,6 +258,47 @@ def work_area():
     return r.left, r.top, r.right - r.left, r.bottom - r.top
 
 
+class MONITORINFO(ctypes.Structure):
+    _fields_ = [("cbSize", wintypes.DWORD), ("rcMonitor", wintypes.RECT), ("rcWork", wintypes.RECT),
+                ("dwFlags", wintypes.DWORD)]
+
+
+MonitorEnumProc = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HANDLE, wintypes.HDC,
+                                     ctypes.POINTER(wintypes.RECT), wintypes.LPARAM)
+
+
+def monitors():
+    """Work area of every monitor (taskbar excluded), primary first, then left to right."""
+    found = []
+
+    def cb(hmon, _hdc, _rect, _data):
+        info = MONITORINFO()
+        info.cbSize = ctypes.sizeof(info)
+        if user32.GetMonitorInfoW(hmon, ctypes.byref(info)):
+            w = info.rcWork
+            found.append({"x": w.left, "y": w.top, "w": w.right - w.left, "h": w.bottom - w.top,
+                          "primary": bool(info.dwFlags & 1),
+                          "res": f"{info.rcMonitor.right - info.rcMonitor.left}x"
+                                 f"{info.rcMonitor.bottom - info.rcMonitor.top}"})
+        return True
+
+    user32.EnumDisplayMonitors(None, None, MonitorEnumProc(cb), 0)
+    if not found:
+        x, y, w, h = work_area()
+        found = [{"x": x, "y": y, "w": w, "h": h, "primary": True, "res": f"{w}x{h}"}]
+    return sorted(found, key=lambda m: (not m["primary"], m["x"], m["y"]))
+
+
+def grid(area, count):
+    """Split an area into an even grid for `count` windows: (x, y, w, h) each, row by row."""
+    cols = math.ceil(math.sqrt(count))
+    rows = math.ceil(count / cols)
+    if area["w"] < area["h"] and cols > rows:  # portrait monitor: stack instead
+        cols, rows = rows, cols
+    cw, ch = area["w"] // cols, area["h"] // rows
+    return [(area["x"] + (k % cols) * cw, area["y"] + (k // cols) * ch, cw, ch) for k in range(count)]
+
+
 def icmp_ping(ip, timeout_ms=2000):
     """RTT in ms, or None if lost. Native ICMP: never opens a connection to the game server."""
     handle = iphlpapi.IcmpCreateFile()
@@ -2129,20 +2170,57 @@ class Api:
             if pid in self._windows:
                 user32.ShowWindow(self._windows[pid], SW_MINIMIZE)
 
-    def tile(self):
+    def _client_hwnds(self):
+        """Game windows in slot order (slot 1 first), then clients not opened from the panel."""
         bound = [p for p in self._slot_pid if p]
         order = bound + [p for p in list_l2_pids() if p not in bound]
-        hwnds = [self._windows[p] for p in order if p in self._windows]
+        return [self._windows[p] for p in order if p in self._windows]
+
+    def tile(self, target="all"):
+        """target "all": split the clients over every monitor (slot order, primary monitor first)
+        and arrange each monitor in a grid; a number: put them all on that monitor."""
+        hwnds = self._client_hwnds()
         if not hwnds:
-            return
-        x0, y0, w, h = work_area()
-        cols = math.ceil(math.sqrt(len(hwnds)))
-        rows = math.ceil(len(hwnds) / cols)
-        cw, ch = w // cols, h // rows
-        for k, hwnd in enumerate(hwnds):
-            r, c = divmod(k, cols)
-            user32.ShowWindow(hwnd, SW_RESTORE)
-            user32.MoveWindow(hwnd, x0 + c * cw, y0 + r * ch, cw, ch, True)
+            return False
+        mons = monitors()
+        if target != "all":
+            mons = [mons[int(target)]] if 0 <= int(target) < len(mons) else mons[:1]
+        per = math.ceil(len(hwnds) / len(mons))
+        groups = [hwnds[i * per:(i + 1) * per] for i in range(len(mons))]
+        for area, group in zip(mons, groups):
+            for hwnd, (x, y, w, h) in zip(group, grid(area, len(group))):
+                user32.ShowWindow(hwnd, SW_RESTORE)
+                user32.MoveWindow(hwnd, x, y, w, h, True)
+        return True
+
+    def save_layout(self):
+        """Remember where each account's window is (slot by slot), on any monitor."""
+        layout = {}
+        for i, pid in enumerate(self._slot_pid):
+            hwnd = self._windows.get(pid) if pid else None
+            if hwnd and not user32.IsIconic(hwnd):
+                r = wintypes.RECT()
+                user32.GetWindowRect(hwnd, ctypes.byref(r))
+                layout[str(i)] = [r.left, r.top, r.right - r.left, r.bottom - r.top]
+        with self._lock:
+            self._data["layout"] = layout
+            self._save()
+        return len(layout)
+
+    def restore_layout(self):
+        layout = self._data.get("layout") or {}
+        moved = 0
+        for i, pid in enumerate(self._slot_pid):
+            hwnd = self._windows.get(pid) if pid else None
+            rect = layout.get(str(i))
+            if hwnd and rect:
+                user32.ShowWindow(hwnd, SW_RESTORE)
+                user32.MoveWindow(hwnd, *rect, True)
+                moved += 1
+        return moved
+
+    def monitor_list(self):
+        return [{"res": m["res"], "primary": m["primary"]} for m in monitors()]
 
     def rename(self, i, name):
         i = int(i)
