@@ -253,6 +253,37 @@ def terminate_pid(pid):
         kernel32.CloseHandle(h)
 
 
+def process_cpu_seconds(pid):
+    """CPU time (kernel + user, in seconds) a process has used so far, or None."""
+    h = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+    if not h:
+        return None
+    try:
+        times = [wintypes.FILETIME() for _ in range(4)]
+        if not kernel32.GetProcessTimes(h, *[ctypes.byref(x) for x in times]):
+            return None
+        kernel, user = times[2], times[3]
+        return ((kernel.dwHighDateTime << 32 | kernel.dwLowDateTime) +
+                (user.dwHighDateTime << 32 | user.dwLowDateTime)) / 1e7
+    finally:
+        kernel32.CloseHandle(h)
+
+
+def wait_until_idle(pid, calm_seconds=2, threshold=0.3, timeout=90):
+    """Wait until a client stops loading: under `threshold` of one CPU core for `calm_seconds`
+    in a row (a loading client uses a whole core or more; the login screen very little)."""
+    deadline = time.time() + timeout
+    last, calm = process_cpu_seconds(pid), 0
+    while time.time() < deadline and calm < calm_seconds:
+        time.sleep(1)
+        now = process_cpu_seconds(pid)
+        if now is None or last is None:
+            return False  # process gone
+        calm = calm + 1 if now - last < threshold else 0
+        last = now
+    return True
+
+
 def work_area():
     r = wintypes.RECT()
     user32.SystemParametersInfoW(SPI_GETWORKAREA, 0, ctypes.byref(r), 0)
@@ -1872,6 +1903,7 @@ class Api:
         self._window = None
         self._had_window = [False] * len(self._data["slots"])
         self._autologin_slots = set()  # slots opened by the panel that should log in by themselves
+        self._login_lock = threading.Lock()  # one automatic login at a time
         self._ping = PingMonitor(SERVER_IP)
         self._ping.start()
         self._warp = WarpMonitor()
@@ -2003,10 +2035,16 @@ class Api:
                 "auto": bool(acc.get("auto"))}
 
     def _schedule_login(self, i, pid, delay):
+        """Type the login once the client is really on the login screen: wait the configured
+        minimum, then until the client has finished loading. Clients opened together (heavier
+        loading) are logged in one at a time."""
         def work():
             time.sleep(float(delay))
-            if self._slot_pid[i] == pid:
-                self.fill_login(i)
+            wait_until_idle(pid)
+            with self._login_lock:
+                if self._slot_pid[i] == pid:
+                    self.fill_login(i)
+                    time.sleep(1.5)
         threading.Thread(target=work, daemon=True).start()
 
     # -------------------------------------------------- bosses
