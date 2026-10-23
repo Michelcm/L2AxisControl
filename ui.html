@@ -199,6 +199,37 @@
       background: linear-gradient(#8c784e, #3a301f); border: 1px solid #000; cursor: pointer; }
 
   /* clients */
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(205px, 1fr)); gap: 5px; }
+  .cards .panel { margin-bottom: 0; }
+  .slot .row { gap: 3px; }
+  .slot input.name { flex: 1; width: auto; min-width: 0; }
+  .slot .acts { margin-top: 4px; }
+  .slot .acts .launch { flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px; }
+  .slot .rm { width: 14px; height: 14px; color: var(--dim); cursor: pointer; flex: none; }
+  .slot .rm:hover { color: #e45a4a; }
+  .slot .movers { margin-top: 3px; gap: 3px; }
+  .slot .movers .lbl { font-size: 9px; color: var(--dim); margin-right: 2px; }
+  button.b.ico { width: 24px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+  button.b.ico svg, .launch svg { width: 14px; height: 14px; }
+  button.b.mon { padding: 0 5px; display: inline-flex; align-items: center; gap: 3px; font-size: 10px; }
+  button.b.mon svg { width: 14px; height: 14px; }
+  button.b.mon.on { color: var(--gold-hi); box-shadow: inset 0 0 0 1px var(--gold); }
+  .addcard { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 86px;
+             border: 1px dashed #5a4c33; border-radius: 3px; color: var(--dim); cursor: pointer; font-size: 11px; }
+  .addcard svg { width: 22px; height: 22px; }
+  .addcard:hover { color: var(--gold-hi); border-color: var(--gold); background: rgba(201,165,90,.06); }
+  .monrow { display: flex; gap: 8px; align-items: stretch; }
+  .monmap { position: relative; flex: 1; min-height: 70px; }
+  .mon { position: absolute; border: 2px solid #4a4232; border-radius: 3px; background: linear-gradient(#1c1914, #0d0c0a);
+         cursor: pointer; overflow: hidden; padding: 3px 4px; box-sizing: border-box; }
+  .mon:hover { border-color: var(--gold); box-shadow: 0 0 6px rgba(240,207,126,.35); }
+  .mon .n { font: bold 15px Georgia, serif; color: var(--gold); line-height: 15px; }
+  .mon .res { font-size: 8px; color: var(--dim); }
+  .mon .chips { display: flex; flex-wrap: wrap; gap: 2px; margin-top: 2px; }
+  .mon .chip2 { font-size: 8px; padding: 0 3px; border-radius: 2px; background: #2f4d26; color: #c9e3a5; white-space: nowrap; }
+  .mon .stand { position: absolute; left: 50%; bottom: -1px; width: 18px; margin-left: -9px; height: 3px; background: #4a4232; }
+  .montools { display: flex; flex-direction: column; gap: 3px; }
+  .montools button.b.ico { width: 28px; height: 22px; }
   .slot .info { margin-top: 2px; font-size: 10px; color: var(--dim); white-space: nowrap; }
   .slot.on { box-shadow: inset 0 0 0 1px rgba(127,211,107,.35); }
   .warn { color: #b8955a; font-size: 10px; margin-top: 3px; white-space: pre-line; }
@@ -510,23 +541,24 @@
   <div class="body">
     <!-- CLIENTS -->
     <div class="page sel" id="p-cli">
-      <div id="slots"></div>
+      <div class="panel">
+        <div class="osec" data-i18n="monTitle"></div>
+        <div class="monrow">
+          <div class="monmap" id="monMap"></div>
+          <div class="montools">
+            <button class="b ico" id="bMonAll" data-i18n-title="tipAllMon"></button>
+            <button class="b ico" id="bSaveLayout" data-i18n-title="tipSaveLayout"></button>
+            <button class="b ico" id="bRestoreLayout" data-i18n-title="tipRestoreLayout"></button>
+          </div>
+        </div>
+        <div class="small" id="winMsg" style="margin-top:4px;line-height:13px" data-i18n="monHint"></div>
+      </div>
+      <div id="slots" class="cards"></div>
       <div class="small" id="external"></div>
       <div class="btnbar">
         <button class="b gold" id="bLaunchAll" data-i18n="btnOpenAll"></button>
-        <button class="b" id="bTile" data-i18n="btnTile"></button>
         <button class="b" id="bMinAll" data-i18n="btnMinimize"></button>
         <button class="b" id="bCloseAll" data-i18n="btnClose"></button>
-      </div>
-      <div class="panel" style="margin-top:5px">
-        <div class="osec" data-i18n="winTitle"></div>
-        <div class="orow"><span class="lbl small" data-i18n="winWhere"></span>
-          <select class="e" id="tileTarget"></select></div>
-        <div class="ogrid two" style="margin-top:3px">
-          <button class="b" id="bSaveLayout" data-i18n="winSave"></button>
-          <button class="b" id="bRestoreLayout" data-i18n="winRestore"></button>
-        </div>
-        <div class="small" id="winMsg" style="margin-top:3px;line-height:13px"></div>
       </div>
       <div class="warn" id="hwidWarn"></div>
     </div>
@@ -784,6 +816,10 @@ const I18N = {
     tipPin: "Sempre por cima", tipCompact: "Modo compacto", tipMinimize: "Minimizar", tipClose: "Fechar",
     gPing: "Ping", gLoss: "Perda", gClients: "Clientes", chipVotes: "Votos",
     tabClients: "Clientes", tabNet: "Rede", tabBosses: "Bosses", tabVotes: "Votos", tabTimers: "Timers", tabOptions: "Opções",
+    monTitle: "Monitores", monHint: "Clique num monitor para organizar as janelas nele; o ícone de dois monitores espalha por todos. Em cada conta, use ① ② para levar a janela para outro monitor.",
+    tipAllMon: "Espalhar as janelas por todos os monitores", tipSaveLayout: "Salvar a posição de cada janela", tipRestoreLayout: "Restaurar as posições salvas",
+    tipMonClick: "Organizar todas as janelas no monitor {n}", moveTo: "Monitor:", tipMove: "Levar esta janela para o monitor {n}",
+    addAccount: "Nova conta", tipRemove: "Remover esta conta da lista", confirmRemove: "Remover {name} da lista? (O login salvo dela também é apagado.)",
     winTitle: "Janelas do jogo", winWhere: "Organizar em", winAll: "Todos os monitores ({n})", winMon: "Monitor {n} ({res})",
     winSave: "Salvar posições", winRestore: "Restaurar posições",
     winTiled: "Janelas organizadas.", winNone: "Nenhuma janela do jogo aberta pelo painel.",
@@ -904,6 +940,10 @@ const I18N = {
     tipPin: "Always on top", tipCompact: "Compact mode", tipMinimize: "Minimize", tipClose: "Close",
     gPing: "Ping", gLoss: "Loss", gClients: "Clients", chipVotes: "Votes",
     tabClients: "Clients", tabNet: "Network", tabBosses: "Bosses", tabVotes: "Votes", tabTimers: "Timers", tabOptions: "Options",
+    monTitle: "Monitors", monHint: "Click a monitor to arrange the windows on it; the two-monitor icon spreads them over all. On each account, use ① ② to send the window to another monitor.",
+    tipAllMon: "Spread the windows over all monitors", tipSaveLayout: "Save each window's position", tipRestoreLayout: "Restore the saved positions",
+    tipMonClick: "Arrange all windows on monitor {n}", moveTo: "Monitor:", tipMove: "Send this window to monitor {n}",
+    addAccount: "New account", tipRemove: "Remove this account from the list", confirmRemove: "Remove {name} from the list? (Its saved login is deleted too.)",
     winTitle: "Game windows", winWhere: "Arrange on", winAll: "All monitors ({n})", winMon: "Monitor {n} ({res})",
     winSave: "Save positions", winRestore: "Restore positions",
     winTiled: "Windows arranged.", winNone: "No game window opened from the panel.",
@@ -1024,6 +1064,10 @@ const I18N = {
     tipPin: "Immer im Vordergrund", tipCompact: "Kompaktmodus", tipMinimize: "Minimieren", tipClose: "Schließen",
     gPing: "Ping", gLoss: "Verlust", gClients: "Clients", chipVotes: "Votes",
     tabClients: "Clients", tabNet: "Netzwerk", tabBosses: "Bosse", tabVotes: "Votes", tabTimers: "Timer", tabOptions: "Optionen",
+    monTitle: "Monitore", monHint: "Einen Monitor anklicken, um die Fenster dort anzuordnen; das Zwei-Monitor-Symbol verteilt sie auf alle. Bei jedem Konto schickt ① ② das Fenster auf einen anderen Monitor.",
+    tipAllMon: "Fenster auf alle Monitore verteilen", tipSaveLayout: "Position jedes Fensters speichern", tipRestoreLayout: "Gespeicherte Positionen wiederherstellen",
+    tipMonClick: "Alle Fenster auf Monitor {n} anordnen", moveTo: "Monitor:", tipMove: "Dieses Fenster auf Monitor {n} schicken",
+    addAccount: "Neues Konto", tipRemove: "Dieses Konto aus der Liste entfernen", confirmRemove: "{name} aus der Liste entfernen? (Der gespeicherte Login wird auch gelöscht.)",
     winTitle: "Spielfenster", winWhere: "Anordnen auf", winAll: "Alle Monitore ({n})", winMon: "Monitor {n} ({res})",
     winSave: "Positionen speichern", winRestore: "Positionen wiederherstellen",
     winTiled: "Fenster angeordnet.", winNone: "Kein vom Panel geöffnetes Spielfenster.",
@@ -1161,13 +1205,8 @@ function applyI18n() {
   document.querySelectorAll("[data-i18n-ph]").forEach(el => el.placeholder = t(el.dataset.i18nPh));
   document.querySelectorAll("[data-lang]").forEach(b => b.classList.toggle("gold", b.dataset.lang === LANG));
   // dynamically built content
-  document.querySelectorAll(".slot").forEach(d => {
-    d.querySelector('[data-a="launch"]').textContent = t("btnOpen");
-    d.querySelector('[data-a="focus"]').textContent = t("btnFocus");
-    d.querySelector('[data-a="login"]').title = t("tipLogin");
-    d.querySelector('[data-a="minimize"]').title = t("btnMinimize");
-    d.querySelector('[data-a="close"]').title = t("btnClose");
-  });
+  applySlotTexts();
+  if ($("#monMap")) $("#monMap").dataset.sig = "";
   document.querySelectorAll(".vote").forEach(r => {
     const [bv, ba, br] = r.querySelectorAll("button");
     bv.textContent = t("btnVote"); ba.title = t("tipVotedAgo"); br.title = t("tipVoteReset");
@@ -1278,31 +1317,52 @@ $("#bCompact").onclick = () => {
   api.set_option("compact", c);
 };
 
-// ================================================= initial build
-function build() {
-  LANG = S.lang || "pt";
-  Object.assign(bossView, S.bossView || {});
-  const slots = $("#slots");
+// ================================================= icons (stroke = current text colour, so they follow the theme)
+const SVG = body => `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
+const ICON = {
+  play: SVG('<path d="M5 3l8 5-8 5z" fill="currentColor" stroke="none"/>'),
+  focus: SVG('<circle cx="8" cy="8" r="2.4"/><path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z"/>'),
+  key: SVG('<circle cx="5" cy="8" r="2.7"/><path d="M7.7 8H14.2M12.2 8v2.4M14.2 8v1.7"/>'),
+  gear: SVG('<circle cx="8" cy="8" r="2.2"/><path d="M8 1.6v2.1M8 12.3v2.1M1.6 8h2.1M12.3 8h2.1M3.5 3.5l1.5 1.5M11 11l1.5 1.5M3.5 12.5L5 11M11 5l1.5-1.5"/>'),
+  min: SVG('<path d="M3.5 11.5h9"/>'),
+  power: SVG('<path d="M8 2.2v5.6"/><path d="M4.7 4.4a5 5 0 1 0 6.6 0"/>'),
+  monitor: SVG('<rect x="1.5" y="2.5" width="13" height="8.5" rx="1"/><path d="M6 14h4M8 11v3"/>'),
+  monitors: SVG('<rect x=".8" y="3" width="7" height="5.5" rx=".7"/><rect x="8.2" y="3" width="7" height="5.5" rx=".7"/><path d="M3 11h3M10.5 11h3M4.3 8.5V11M11.8 8.5V11"/>'),
+  save: SVG('<path d="M3 2.5h8l2.5 2.5v8.5H2.5V3z"/><path d="M5.5 2.5V6h4.5V2.5M5 13.5V9.5h6v4"/>'),
+  restore: SVG('<path d="M2.8 8a5.2 5.2 0 1 0 1.6-3.8"/><path d="M2.8 2.3v3.2H6"/>'),
+  plus: SVG('<path d="M8 3v10M3 8h10"/>'),
+  x: SVG('<path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/>'),
+};
+
+let builtSlots = -1;
+
+function buildSlots() {
+  const box = $("#slots");
+  box.innerHTML = "";
   S.slots.forEach((s, i) => {
     const d = document.createElement("div");
     d.className = "panel slot";
     d.innerHTML = `
       <div class="row">
         <i class="dot"></i>
-        <input class="e name grow" maxlength="20" spellcheck="false">
-        <button class="b gold" data-a="launch"></button>
-        <button class="b" data-a="focus"></button>
-        <button class="b sq" data-a="login">🔑</button>
-        <button class="b sq" data-a="account">⚙</button>
-        <button class="b sq" data-a="minimize">_</button>
-        <button class="b sq" data-a="close">✕</button>
+        <input class="e name" maxlength="20" spellcheck="false">
+        <span class="rm" data-a="remove">${ICON.x}</span>
       </div>
-      <div class="info"></div>`;
+      <div class="info"></div>
+      <div class="row acts">
+        <button class="b gold launch" data-a="launch">${ICON.play}<span></span></button>
+        <button class="b ico" data-a="focus">${ICON.focus}</button>
+        <button class="b ico" data-a="login">${ICON.key}</button>
+        <button class="b ico" data-a="account">${ICON.gear}</button>
+        <button class="b ico" data-a="minimize">${ICON.min}</button>
+        <button class="b ico" data-a="close">${ICON.power}</button>
+      </div>
+      <div class="row movers"></div>`;
     const inp = d.querySelector("input");
     inp.value = s.name;
     inp.addEventListener("change", async () => { inp.value = await api.rename(i, inp.value); });
     inp.addEventListener("keydown", e => { if (e.key === "Enter") inp.blur(); });
-    d.querySelectorAll("button").forEach(b => b.onclick = async () => {
+    d.querySelectorAll("[data-a]").forEach(b => b.onclick = async () => {
       const a = b.dataset.a;
       if (a === "launch") {
         if (S.running >= S.hwidLimit && !await confirmDlg(t("confirmLimit", { n: S.running, max: S.hwidLimit }), t("btnOpen"))) return;
@@ -1314,10 +1374,81 @@ function build() {
         if (r !== "ok") confirmDlg(t("fillFail", { why: t(r) }), "OK", false);
       } else if (a === "close") {
         if (await confirmDlg(t("confirmClose", { name: S.slots[i].name }), t("btnClose"))) api.close(i);
+      } else if (a === "remove") {
+        if (await confirmDlg(t("confirmRemove", { name: S.slots[i].name }), t("btnDelete"))) { await api.remove_slot(i); loopNow(); }
       } else api[a](i);
     });
-    slots.appendChild(d);
+    box.appendChild(d);
   });
+  const add = document.createElement("div");
+  add.className = "addcard";
+  add.id = "addCard";
+  add.innerHTML = `${ICON.plus}<span>${esc(t("addAccount"))}</span>`;
+  add.onclick = async () => { await api.add_slot(); loopNow(); };
+  box.appendChild(add);
+  builtSlots = S.slots.length;
+  applySlotTexts();
+}
+
+function applySlotTexts() {
+  document.querySelectorAll(".slot").forEach(d => {
+    d.querySelector('[data-a="launch"] span').textContent = t("btnOpen");
+    d.querySelector('[data-a="focus"]').title = t("btnFocus");
+    d.querySelector('[data-a="login"]').title = t("tipLogin");
+    d.querySelector('[data-a="minimize"]').title = t("btnMinimize");
+    d.querySelector('[data-a="close"]').title = t("btnClose");
+    d.querySelector('[data-a="remove"]').title = t("tipRemove");
+  });
+  const add = $("#addCard");
+  if (add) add.querySelector("span").textContent = t("addAccount");
+}
+
+// monitors drawn where they really are (relative positions and sizes)
+function renderMonitors() {
+  const mons = S.monitors || [];
+  const box = $("#monMap");
+  const sig = JSON.stringify([mons, S.slots.map(s => [s.name, s.monitor])]) + box.clientWidth;
+  if (box.dataset.sig === sig) return;
+  box.dataset.sig = sig;
+  if (!mons.length) { box.innerHTML = ""; return; }
+  const minX = Math.min(...mons.map(m => m.x)), minY = Math.min(...mons.map(m => m.y));
+  const maxX = Math.max(...mons.map(m => m.x + m.w)), maxY = Math.max(...mons.map(m => m.y + m.h));
+  const W = box.clientWidth || 300, gap = 6;
+  const k = Math.min((W - gap * (mons.length - 1)) / (maxX - minX), 92 / (maxY - minY));  // at most ~92 px tall
+  box.style.height = Math.max(60, Math.round((maxY - minY) * k) + 6) + "px";
+  const sorted = mons.map((m, i) => ({ ...m, i })).sort((a, b) => a.x - b.x);
+  box.innerHTML = sorted.map((m, order) => {
+    const chips = S.slots.filter(s => s.monitor === m.i).map(s => `<span class="chip2">${esc(s.name)}</span>`).join("");
+    return `<div class="mon" data-mon="${m.i}" title="${esc(t("tipMonClick", { n: m.i + 1 }))}"
+      style="left:${Math.round((m.x - minX) * k + order * gap)}px;top:${Math.round((m.y - minY) * k)}px;width:${Math.round(m.w * k)}px;height:${Math.round(m.h * k)}px">
+      <div class="n">${m.i + 1}${m.primary ? " ★" : ""}</div><div class="res">${esc(m.res)}</div><div class="chips">${chips}</div></div>`;
+  }).join("");
+  box.querySelectorAll("[data-mon]").forEach(el => el.onclick = async () => {
+    $("#winMsg").textContent = await api.tile(el.dataset.mon) ? t("winTiled") : t("winNone");
+    loopNow();
+  });
+}
+
+function renderMovers(d, s, i) {
+  const mons = S.monitors || [];
+  const sig = `${mons.length}|${s.monitor}|${s.window}`;
+  const box = d.querySelector(".movers");
+  if (box.dataset.sig === sig) return;
+  box.dataset.sig = sig;
+  if (!s.window || mons.length < 2) { box.innerHTML = ""; return; }
+  box.innerHTML = `<span class="lbl">${esc(t("moveTo"))}</span>` + mons.map((m, k) =>
+    `<button class="b mon ${s.monitor === k ? "on" : ""}" data-move="${k}" title="${esc(t("tipMove", { n: k + 1 }))}">${ICON.monitor}${k + 1}</button>`).join("");
+  box.querySelectorAll("[data-move]").forEach(b => b.onclick = async () => { await api.move_to_monitor(i, +b.dataset.move); loopNow(); });
+}
+
+// ================================================= initial build
+function build() {
+  LANG = S.lang || "pt";
+  Object.assign(bossView, S.bossView || {});
+  buildSlots();
+  $("#bMonAll").innerHTML = ICON.monitors;
+  $("#bSaveLayout").innerHTML = ICON.save;
+  $("#bRestoreLayout").innerHTML = ICON.restore;
 
   const votes = $("#votes");
   S.votes.forEach(v => {
@@ -1396,16 +1527,7 @@ function build() {
     if (list.length) api.launch_many(list);
   };
   const winMsg = text => { $("#winMsg").textContent = text; };
-  const fillMonitors = async () => {
-    const mons = await api.monitor_list();
-    const sel = $("#tileTarget"), keep = sel.value || "all";
-    sel.innerHTML = `<option value="all">${esc(t("winAll", { n: mons.length }))}</option>` +
-      mons.map((m, i) => `<option value="${i}">${esc(t("winMon", { n: i + 1, res: m.res }))}${m.primary ? " ★" : ""}</option>`).join("");
-    sel.value = [...sel.options].some(o => o.value === keep) ? keep : "all";
-  };
-  fillMonitors();
-  $("#tileTarget").onfocus = fillMonitors;
-  $("#bTile").onclick = async () => winMsg(await api.tile($("#tileTarget").value || "all") ? t("winTiled") : t("winNone"));
+  $("#bMonAll").onclick = async () => { winMsg(await api.tile("all") ? t("winTiled") : t("winNone")); loopNow(); };
   $("#bSaveLayout").onclick = async () => {
     const n = await api.save_layout();
     winMsg(n ? t("winSaved", { n }) : t("winNone"));
@@ -1413,6 +1535,7 @@ function build() {
   $("#bRestoreLayout").onclick = async () => {
     const n = await api.restore_layout();
     winMsg(n ? t("winRestored", { n }) : t("winNothing"));
+    loopNow();
   };
   $("#bMinAll").onclick = () => api.minimize_all();
   $("#bCloseAll").onclick = async () => {
@@ -1551,8 +1674,15 @@ function render() {
   $("#bCompact").classList.toggle("on", S.compact);
 
   // clients
+  if (builtSlots !== S.slots.length) buildSlots();
+  renderMonitors();
+  const add = $("#addCard");
+  if (add) add.style.display = S.slots.length >= S.slotCap ? "none" : "";
   document.querySelectorAll(".slot").forEach((d, i) => {
     const s = S.slots[i];
+    if (!s) return;
+    renderMovers(d, s, i);
+    d.querySelector('[data-a="remove"]').style.visibility = (s.pid || s.pending || S.slots.length <= 1) ? "hidden" : "visible";
     d.querySelector(".dot").className = "dot " + (s.pid ? (s.window ? "g" : "y") : s.pending ? "y" : "");
     d.classList.toggle("on", !!s.pid);
     const autoTag = s.account.auto ? ` (${t("auto")})` : "";
@@ -2172,6 +2302,11 @@ function drawGraph(samples) {
   const grad = g.createLinearGradient(0, 0, 0, H);
   grad.addColorStop(0, "#f0cf7e"); grad.addColorStop(1, "#8c6a2c");
   g.strokeStyle = grad; g.lineWidth = 3; g.stroke();
+}
+
+let loopTimer = null;
+async function loopNow() {
+  try { S = await api.get_state(); render(); } catch (_) {}
 }
 
 async function loop() {

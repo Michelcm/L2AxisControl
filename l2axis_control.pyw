@@ -58,7 +58,8 @@ BOARD_FILE = GAME_DIR / "bd.ini"
 WARP_CLI = Path(r"C:\Program Files\Cloudflare\Cloudflare WARP\warp-cli.exe")
 
 SERVER_IP = "148.251.46.248"
-MAX_SLOTS = 5
+MAX_SLOTS = 5      # default number of account slots for a new install
+SLOT_CAP = 10      # the player can add slots up to this (the server still limits clients per HWID)
 HWID_LIMIT = 4
 VOTE_COOLDOWN = 12 * 3600
 PING_INTERVAL = 2.0
@@ -289,6 +290,17 @@ def monitors():
     return sorted(found, key=lambda m: (not m["primary"], m["x"], m["y"]))
 
 
+def monitor_of(hwnd, mons):
+    """Index of the monitor holding the centre of a window."""
+    r = wintypes.RECT()
+    user32.GetWindowRect(hwnd, ctypes.byref(r))
+    cx, cy = (r.left + r.right) // 2, (r.top + r.bottom) // 2
+    for k, m in enumerate(mons):
+        if m["x"] <= cx < m["x"] + m["w"] and m["y"] - 50 <= cy < m["y"] + m["h"] + 50:
+            return k
+    return min(range(len(mons)), key=lambda k: abs(mons[k]["x"] + mons[k]["w"] // 2 - cx))
+
+
 def grid(area, count):
     """Split an area into an even grid for `count` windows: (x, y, w, h) each, row by row."""
     cols = math.ceil(math.sqrt(count))
@@ -432,7 +444,7 @@ def load_data():
         default.update(json.loads(DATA_FILE.read_text(encoding="utf-8")))
     except (OSError, ValueError):
         pass
-    default["slots"] = (default["slots"] + [f"Account {i + 1}" for i in range(MAX_SLOTS)])[:MAX_SLOTS]
+    default["slots"] = [str(s)[:20] for s in default["slots"]][:SLOT_CAP] or ["Account 1"]
     return default
 
 
@@ -1849,8 +1861,8 @@ class Api:
     def __init__(self):
         self._data = load_data()
         self._lock = threading.RLock()
-        self._slot_pid = [None] * MAX_SLOTS
-        self._slot_start = [None] * MAX_SLOTS
+        self._slot_pid = [None] * len(self._data["slots"])
+        self._slot_start = [None] * len(self._data["slots"])
         self._pending = []  # (slot, launched_at, popen_pid)
         self._known = set()
         self._windows = {}
@@ -1858,7 +1870,7 @@ class Api:
         self._timer_fired = set()
         self._alerts = []
         self._window = None
-        self._had_window = [False] * MAX_SLOTS
+        self._had_window = [False] * len(self._data["slots"])
         self._autologin_slots = set()  # slots opened by the panel that should log in by themselves
         self._ping = PingMonitor(SERVER_IP)
         self._ping.start()
@@ -1914,7 +1926,7 @@ class Api:
 
     def _adopt_running(self):
         for pid in list_l2_pids():
-            free = next((i for i in range(MAX_SLOTS) if not self._slot_pid[i]), None)
+            free = next((i for i in range(len(self._slot_pid)) if not self._slot_pid[i]), None)
             if free is not None:
                 self._slot_pid[free] = pid
                 self._slot_start[free] = time.time()
@@ -1925,7 +1937,7 @@ class Api:
         alive = set(pids)
         self._windows = main_windows_by_pid()
         now = time.time()
-        for i in range(MAX_SLOTS):
+        for i in range(len(self._slot_pid)):
             if self._slot_pid[i] and self._slot_pid[i] not in alive:
                 self._slot_pid[i] = self._slot_start[i] = None
         # l2.exe may relaunch itself: a new process goes to the oldest pending slot
@@ -1944,8 +1956,9 @@ class Api:
                 bound.add(pid)
         self._known = alive
 
+        mons = monitors()
         slots = []
-        for i in range(MAX_SLOTS):
+        for i in range(len(self._slot_pid)):
             pid = self._slot_pid[i]
             hwnd = self._windows.get(pid) if pid else None
             if hwnd and not self._had_window[i] and i in self._autologin_slots:
@@ -1964,6 +1977,7 @@ class Api:
                 "ram": process_memory_mb(pid) if pid else None,
                 "uptime": now - self._slot_start[i] if pid else None,
                 "account": self._account_info(i),
+                "monitor": monitor_of(hwnd, mons) if hwnd and not user32.IsIconic(hwnd) else None,
             })
         external = [p for p in pids if p not in bound]
         return slots, external, len(pids)
@@ -2107,7 +2121,8 @@ class Api:
             bosses = self._boss_list(now)
             alerts, self._alerts = self._alerts, []
             return {
-                "slots": slots, "external": external, "running": running,
+                "slots": slots, "external": external, "running": running, "slotCap": SLOT_CAP,
+                "monitors": [{k: m[k] for k in ("x", "y", "w", "h", "primary", "res")} for m in monitors()],
                 "hwidLimit": HWID_LIMIT, "ping": self._ping.stats(), "pingHistory": PING_HISTORY,
                 "server": SERVER_IP, "warp": self._warp.state, "votes": votes, "timers": timers,
                 "alerts": alerts, "topmost": self._data["topmost"], "compact": self._data["compact"],
@@ -2158,7 +2173,7 @@ class Api:
         threading.Thread(target=ensure, daemon=True).start()
 
     def close_all(self):
-        for i in range(MAX_SLOTS):
+        for i in range(len(self._slot_pid)):
             self.close(i)
         bound = set(self._slot_pid)
         for pid in list_l2_pids():
@@ -2218,6 +2233,61 @@ class Api:
                 user32.MoveWindow(hwnd, *rect, True)
                 moved += 1
         return moved
+
+    def move_to_monitor(self, i, target):
+        """Send one account's window to a monitor: it joins the game windows already there and
+        that monitor is re-arranged in a grid."""
+        hwnd = self._hwnd(int(i))
+        mons = monitors()
+        target = int(target)
+        if not hwnd or not 0 <= target < len(mons):
+            return False
+        others = [h for h in self._client_hwnds() if h != hwnd and not user32.IsIconic(h)
+                  and monitor_of(h, mons) == target]
+        group = others + [hwnd]
+        for h, (x, y, w, hh) in zip(group, grid(mons[target], len(group))):
+            user32.ShowWindow(h, SW_RESTORE)
+            user32.MoveWindow(h, x, y, w, hh, True)
+        return True
+
+    def add_slot(self):
+        with self._lock:
+            if len(self._data["slots"]) >= SLOT_CAP:
+                return False
+            self._data["slots"].append(f"Account {len(self._data['slots']) + 1}")
+            self._slot_pid.append(None)
+            self._slot_start.append(None)
+            self._had_window.append(False)
+            self._save()
+            return True
+
+    def remove_slot(self, i):
+        """Remove an account slot (its client must be closed). Later slots move up, with their
+        saved login and window position."""
+        i = int(i)
+        with self._lock:
+            n = len(self._data["slots"])
+            if n <= 1 or not 0 <= i < n or self._slot_pid[i] or any(q[0] == i for q in self._pending):
+                return False
+
+            def shift(d):
+                out = {}
+                for k, v in (d or {}).items():
+                    if k.isdigit() and int(k) != i:
+                        out[str(int(k) - (int(k) > i))] = v
+                    elif not k.isdigit():
+                        out[k] = v
+                return out
+
+            self._data["slots"].pop(i)
+            self._data["accounts"] = shift(self._data.get("accounts"))
+            self._data["layout"] = shift(self._data.get("layout"))
+            for lst in (self._slot_pid, self._slot_start, self._had_window):
+                lst.pop(i)
+            self._pending = [(s - (s > i), at, pid) for s, at, pid in self._pending]
+            self._autologin_slots = {s - (s > i) for s in self._autologin_slots if s != i}
+            self._save()
+            return True
 
     def monitor_list(self):
         return [{"res": m["res"], "primary": m["primary"]} for m in monitors()]
