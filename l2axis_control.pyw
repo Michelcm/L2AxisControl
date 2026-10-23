@@ -468,7 +468,7 @@ def run_hidden(args, timeout=20):
 def load_data():
     default = {"slots": [f"Account {i + 1}" for i in range(MAX_SLOTS)], "votes": {},
                "timers": [], "topmost": True, "pos": None, "compact": False,
-               "rename_windows": True, "opacity": 1.0, "size": None, "scale": 1.0, "accounts": {}, "login_delay": 15,
+               "rename_windows": True, "to_charselect": True, "opacity": 1.0, "size": None, "scale": 1.0, "accounts": {}, "login_delay": 15,
                "bosses": {}, "lang": "pt",
                "boss_view": {"sort": "respawn", "range": "", "min": "", "max": ""}}
     try:
@@ -2042,9 +2042,17 @@ class Api:
             time.sleep(float(delay))
             wait_until_idle(pid)
             with self._login_lock:
-                if self._slot_pid[i] == pid:
-                    self.fill_login(i)
-                    time.sleep(1.5)
+                if self._slot_pid[i] != pid or self.fill_login(i) != "ok":
+                    return
+                time.sleep(1.5)
+            if self._data.get("to_charselect", True):
+                # the server list comes next, with the server already selected: Enter = Confirm,
+                # and the client stops at character selection
+                time.sleep(2)
+                wait_until_idle(pid, timeout=30)
+                hwnd = self._hwnd(i)
+                if hwnd and self._slot_pid[i] == pid:
+                    post_key(hwnd, VK_RETURN)
         threading.Thread(target=work, daemon=True).start()
 
     # -------------------------------------------------- bosses
@@ -2165,6 +2173,7 @@ class Api:
                 "server": SERVER_IP, "warp": self._warp.state, "votes": votes, "timers": timers,
                 "alerts": alerts, "topmost": self._data["topmost"], "compact": self._data["compact"],
                 "renameWindows": self._data["rename_windows"], "opacity": self._data["opacity"],
+                "toCharselect": self._data.get("to_charselect", True),
                 "scale": self._data.get("scale", 1.0), "char": self._data.get("char") or {},
                 "loginDelay": self._data["login_delay"], "admin": is_admin(), "bosses": bosses,
                 "lang": self._data["lang"], "bossView": self._data["boss_view"],
@@ -2465,6 +2474,8 @@ class Api:
                 threading.Timer(0.3, self._apply_shape).start()
             elif key == "renameWindows":
                 self._data["rename_windows"] = bool(value)
+            elif key == "toCharselect":
+                self._data["to_charselect"] = bool(value)
             elif key == "bossView" and isinstance(value, dict):
                 allowed = {"sort": ("respawn", "lvlAsc", "lvlDesc", "name")}
                 view = {k: str(value.get(k, ""))[:8] for k in ("sort", "range", "min", "max")}
