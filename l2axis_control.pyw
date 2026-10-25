@@ -7,9 +7,11 @@ It never interacts with the game itself (no automated input): it only opens,
 arranges and monitors the windows, measures the network and tracks timers/votes.
 """
 import base64
+import calendar
 import ctypes
 import json
 import math
+import operator
 import re
 import os
 import socket
@@ -19,6 +21,7 @@ import threading
 import time
 import webbrowser
 import winsound
+import zlib
 from collections import deque
 from ctypes import wintypes
 from pathlib import Path
@@ -211,9 +214,98 @@ def process_memory_mb(pid):
         kernel32.CloseHandle(h)
 
 
+GAME_WINDOW_CLASS = "l2UnrealWWindowsViewportWindow"
+
+# Server events, as listed in the server's "Server Features" post (forum.l2axis.com/threads/server-features.259/).
+# "restart": first start N hours after a server restart, then every M hours.
+# "weekly": (weekday 0=Mon, hour, minute) in GMT.
+SERVER_EVENTS = [
+    {"key": "pig", "name": "Super Lucky Pig", "aliases": ["Lucky Pig"], "restart": (1, 15),
+     "drops": "Cloak of Lucky Pig, Earring of Pig, BEAS, BEWS, Golden Treasure Chest, Blessed Olf's Scroll, "
+              "Hats, Neolithics, High Grade Raid Chest"},
+    {"key": "iq", "name": "Ice Queen's Spirit", "restart": (3, 15), "drops": "BEAS, BEWS, Vesper armor parts"},
+    {"key": "aq", "name": "Ant Queen's Spirit", "restart": (6, 17), "drops": "BEAS, BEWS, Vesper armor parts"},
+    {"key": "pk", "name": "Pirate King's Spirit", "restart": (9, 19), "drops": "BEAS, BEWS, Vesper armor parts"},
+    {"key": "zombie", "name": "Zombie Apocalypse", "aliases": ["zombie"], "weekly": [(5, 20, 0), (6, 20, 0)],
+     "drops": "Cloak of Zombie, Zombie Hat, Ring of Zombie, A-S Cry Gems, A-S shot packs, Element Stones, "
+              "Element Crystals, B-S Enchant Scrolls, Olf's Enchant Scrolls, Vesper Noble Stones"},
+    # forum.l2axis.com/threads/new-events-border-blitz-battle-royale-fight-the-fakes.1258/ (server clock GMT+3)
+    {"key": "blitz", "name": "Border Blitz", "daily": [(5, 30), (11, 0), (16, 30), (22, 30)], "tz": 3,
+     "dur": 20, "reg": 30,
+     "drops": "Winners: 1,000 Fame, 10,000 Knight's Epaulettes, 2 Blessed Enchant Weapon S, 4 Blessed Enchant Armor S. "
+              "Losers: 40,000,000 Adena, 1,000 Knight's Epaulettes"},
+    {"key": "royale", "name": "Battle Royale", "daily": [(0, 30), (7, 0), (12, 0), (17, 30)], "tz": 3,
+     "dur": 30, "reg": 30,
+     "drops": "Each round champion: 1,000 Fame. Grand Champion: +2,500 Fame, 1 High Level Raid Chest. "
+              "Others (eligible): 40,000,000 Adena"},
+    {"key": "fakes", "name": "Fight the Fakes", "aliases": ["fake players", "fakes"], "daily": [(2, 30), (9, 30), (14, 0), (21, 0)], "tz": 3,
+     "dur": 30, "reg": 0,
+     "drops": "Per fake: 175 Fame, 25,000,000 Adena, 150 Gold, 300 Silver, 600 Bronze Coins. "
+              "Final duel of the top 2: one random grand prize"},
+    # forum.l2axis.com/threads/new-giant-rats-pvp-zone-event.1074/ (EST)
+    {"key": "rats", "name": "Giant Rats Invasion", "aliases": ["Giant Rats", "rats"], "daily": [(13, 0), (20, 0)], "tz": "us_eastern", "dur": 30, "reg": 30,
+     "drops": "—"},
+    # forum.l2axis.com/threads/treasure-hunt-event.993/ (5 times a day, times not published)
+    {"key": "treasure", "name": "Treasure Hunt", "aliases": ["treasure"], "chat": True,
+     "drops": "Adena, Gold/Silver/Bronze Coins, Medals of Glory (100 Fame)"},
+]
+
+
+def us_eastern_offset(day_utc):
+    """Hours from GMT of US Eastern time on that day: -4 in summer time (2nd Sunday of March to
+    1st Sunday of November), -5 otherwise."""
+    y = time.gmtime(day_utc).tm_year
+
+    def nth_sunday(month, n):
+        first = calendar.timegm((y, month, 1, 0, 0, 0))
+        wd = time.gmtime(first).tm_wday  # Monday = 0
+        return first + ((6 - wd) % 7 + 7 * (n - 1)) * 86400
+
+    return -4 if nth_sunday(3, 2) <= day_utc < nth_sunday(11, 1) else -5
+
+
+def event_times(ev, restart_at, now=None, seen=None):
+    """(last start, next start) in epoch seconds; None when unknown. `seen` = when the event was
+    last seen starting in the announcements (better than the restart time)."""
+    now = now or time.time()
+    if seen and "restart" in ev:
+        every = ev["restart"][1] * 3600
+        n = max(0, int((now - seen) // every))
+        return seen + n * every, seen + (n + 1) * every
+    if ev.get("chat"):
+        return None, None
+    if "restart" in ev:
+        if not restart_at:
+            return None, None
+        first, every = ev["restart"]
+        t = restart_at + first * 3600
+        if now < t:
+            return None, t
+        n = int((now - t) // (every * 3600))
+        last = t + n * every * 3600
+        return last, last + every * 3600
+    starts = []
+    day0 = (int(now) // 86400) * 86400  # midnight GMT today
+    for back in range(-7, 8):
+        d = day0 + back * 86400
+        if "daily" in ev:  # times in the event's own time zone (hours from GMT)
+            tz = us_eastern_offset(d) if ev.get("tz") == "us_eastern" else ev.get("tz", 0)
+            starts += [d + (h - tz) * 3600 + m * 60 for h, m in ev["daily"]]
+            continue
+        wd = time.gmtime(d).tm_wday
+        for w, h, m in ev["weekly"]:
+            if w == wd:
+                starts.append(d + h * 3600 + m * 60)
+    past = [s for s in starts if s <= now]
+    future = [s for s in starts if s > now]
+    return (max(past) if past else None), (min(future) if future else None)
+
+
 def main_windows_by_pid():
-    """pid -> largest visible top-level window of that process."""
+    """pid -> main window of that process: the game viewport when it exists (even minimized),
+    otherwise the largest visible top-level window (the splash while the client loads)."""
     result = {}
+    cls = ctypes.create_unicode_buffer(64)
 
     def cb(hwnd, _):
         if not user32.IsWindowVisible(hwnd) or user32.GetWindow(hwnd, 4):  # GW_OWNER
@@ -222,9 +314,11 @@ def main_windows_by_pid():
         user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
         r = wintypes.RECT()
         user32.GetWindowRect(hwnd, ctypes.byref(r))
-        area = (r.right - r.left) * (r.bottom - r.top)
-        if pid.value not in result or area > result[pid.value][1]:
-            result[pid.value] = (hwnd, area)
+        user32.GetClassNameW(hwnd, cls, 64)
+        # the game window always wins, whatever its size (a minimized window is tiny)
+        score = (cls.value == GAME_WINDOW_CLASS, (r.right - r.left) * (r.bottom - r.top))
+        if pid.value not in result or score > result[pid.value][1]:
+            result[pid.value] = (hwnd, score)
         return True
 
     user32.EnumWindows(EnumWindowsProc(cb), 0)
@@ -269,19 +363,261 @@ def process_cpu_seconds(pid):
         kernel32.CloseHandle(h)
 
 
-def wait_until_idle(pid, calm_seconds=2, threshold=0.3, timeout=90):
-    """Wait until a client stops loading: under `threshold` of one CPU core for `calm_seconds`
-    in a row (a loading client uses a whole core or more; the login screen very little)."""
+def wait_until_idle(pid, calm_seconds=5, threshold=0.3, mem_band=1.5, timeout=90):
+    """Wait until a client stops loading. Both must hold for `calm_seconds` in a row:
+    - CPU under `threshold` of one core (a loading client uses a whole core or more);
+    - memory (working set) within `mem_band` MB: the client keeps loading data with a
+      calm CPU for a while, and only then is the screen ready for typing.
+    Returns False if the process is gone, None on timeout, True when ready."""
     deadline = time.time() + timeout
-    last, calm = process_cpu_seconds(pid), 0
-    while time.time() < deadline and calm < calm_seconds:
+    last, calm, mems = process_cpu_seconds(pid), 0, []
+    while calm < calm_seconds:
+        if time.time() >= deadline:
+            return None
         time.sleep(1)
-        now = process_cpu_seconds(pid)
-        if now is None or last is None:
+        now, mem = process_cpu_seconds(pid), process_memory_mb(pid)
+        if now is None or last is None or mem is None:
             return False  # process gone
-        calm = calm + 1 if now - last < threshold else 0
+        mems = (mems + [mem])[-(calm_seconds + 1):]
+        steady = len(mems) > 1 and max(mems) - min(mems) < mem_band
+        calm = calm + 1 if now - last < threshold and steady else 0
+        if not steady:
+            mems = mems[-1:]
         last = now
     return True
+
+
+# ---------------------------------------------------------------- what each client is doing
+# Read only from what Windows and the client already show: the TCP connections of each process
+# and the client's own log file (system/l2.log for the first client, l2Second.log for the second).
+
+# map square of the world -> region (the town you would respawn in), from the L2J datapack (GPL)
+MAP_TILE_REGION = {
+    "12_24": "Keucereus", "12_25": "Keucereus", "13_24": "Keucereus", "13_25": "Keucereus",
+    "14_22": "Keucereus", "14_23": "Keucereus", "14_24": "Keucereus", "14_25": "Keucereus",
+    "15_10": "Rune", "15_11": "Rune", "15_12": "Rune", "15_23": "Talking Island",
+    "15_24": "Talking Island", "15_25": "Talking Island", "16_10": "Ironcastle Inner Oasis", "16_11": "Rune",
+    "16_12": "Dimensional Rift", "16_19": "Soul Island", "16_20": "Gludin", "16_21": "Gludin",
+    "16_22": "Gludin", "16_23": "Talking Island", "16_24": "Talking Island", "16_25": "Talking Island",
+    "17_10": "Rune", "17_11": "Rune", "17_15": "Fantasy Island", "17_16": "Fantasy Island",
+    "17_19": "Dark Elf Village", "17_20": "Gludin", "17_21": "Gludin", "17_22": "Gludin",
+    "17_23": "Gludin", "17_24": "Talking Island", "17_25": "Talking Island", "18_10": "Dion",
+    "18_14": "Orc Village", "18_15": "Fantasy Island", "18_16": "Fantasy Island", "18_18": "Dark Elf Village",
+    "18_19": "Dark Elf Village", "18_20": "Dark Elf Village", "18_21": "Gludio", "18_22": "Gludin",
+    "18_23": "Gludin", "18_24": "Gludin", "18_25": "Talking Island", "19_10": "Oren",
+    "19_13": "Orc Village", "19_14": "Orc Village", "19_15": "Orc Village", "19_16": "Orc Village",
+    "19_17": "Rune", "19_18": "Dark Elf Village", "19_19": "Dark Elf Village", "19_20": "Neutral Zone",
+    "19_21": "Gludio", "19_22": "Gludio", "19_23": "Gludio", "19_24": "Gludin",
+    "19_25": "Southern Wasteland", "19_26": "Gludio", "20_10": "Hunters Village", "20_13": "Orc Village",
+    "20_14": "Orc Village", "20_15": "Orc Village", "20_16": "Rune", "20_17": "Primeval Island",
+    "20_18": "Dark Elf Village", "20_19": "Elven Village", "20_20": "Elven Village", "20_21": "Dion",
+    "20_22": "Dion", "20_23": "Floran", "20_24": "Giran Harbor", "20_25": "Southern Wasteland",
+    "20_26": "Gludio", "21_14": "Schuttgart", "21_15": "Rune", "21_16": "Rune",
+    "21_17": "Rune", "21_18": "Oren", "21_19": "Elven Village", "21_20": "Elven Village",
+    "21_21": "Dion", "21_22": "Dion", "21_23": "Giran", "21_24": "Giran Harbor",
+    "21_25": "Giran Harbor", "22_13": "Schuttgart", "22_14": "Schuttgart", "22_15": "Rune",
+    "22_16": "Rune", "22_17": "Oren", "22_18": "Oren", "22_19": "Oren",
+    "22_20": "Oren", "22_21": "Hunters Village", "22_22": "Giran", "22_23": "Heine",
+    "22_24": "Heine", "22_25": "Heine", "23_10": "Dwarven Village", "23_11": "Dwarven Village",
+    "23_12": "Dwarven Village", "23_13": "Schuttgart", "23_14": "Schuttgart", "23_15": "Rune",
+    "23_16": "Goddard", "23_17": "Oren", "23_18": "Aden", "23_19": "Hunters Village",
+    "23_20": "Hunters Village", "23_21": "Hunters Village", "23_22": "Giran", "23_23": "Heine",
+    "23_24": "Heine", "23_25": "Heine", "24_10": "Dwarven Village", "24_11": "Dwarven Village",
+    "24_12": "Dwarven Village", "24_14": "Goddard", "24_15": "Goddard", "24_16": "Goddard",
+    "24_17": "Aden", "24_18": "Aden", "24_19": "Aden", "24_20": "Hunters Village",
+    "24_21": "Hunters Village", "24_23": "Heine", "25_10": "Dwarven Village", "25_11": "Dwarven Village",
+    "25_12": "Dwarven Village", "25_14": "Goddard", "25_15": "Goddard", "25_16": "Goddard",
+    "25_17": "Aden", "25_18": "Aden", "25_19": "Aden", "25_20": "Hunters Village",
+    "25_21": "Hunters Village", "26_14": "Goddard",
+}
+GAME_LOGS = ("l2.log", "l2Second.log")
+
+
+def process_created(pid):
+    """When a process was started (epoch seconds), or None."""
+    h = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+    if not h:
+        return None
+    try:
+        t = [wintypes.FILETIME() for _ in range(4)]
+        if not kernel32.GetProcessTimes(h, *[ctypes.byref(x) for x in t]):
+            return None
+        return (t[0].dwHighDateTime << 32 | t[0].dwLowDateTime) / 1e7 - 11644473600
+    finally:
+        kernel32.CloseHandle(h)
+
+
+def tcp_by_pid():
+    """pid -> list of (remote ip, remote port) of its established TCP connections (IPv4)."""
+    iphlp = ctypes.windll.iphlpapi
+    size = wintypes.DWORD(0)
+    iphlp.GetExtendedTcpTable(None, ctypes.byref(size), False, 2, 5, 0)  # AF_INET, TCP_TABLE_OWNER_PID_ALL
+    buf = ctypes.create_string_buffer(size.value + 4096)
+    size = wintypes.DWORD(len(buf))
+    if iphlp.GetExtendedTcpTable(buf, ctypes.byref(size), False, 2, 5, 0):
+        return {}
+    out = {}
+    for k in range(struct.unpack_from("I", buf.raw, 0)[0]):
+        state, _la, _lp, ra, rp, pid = struct.unpack_from("IIIIII", buf.raw, 4 + k * 24)
+        if state == 5:  # ESTABLISHED
+            out.setdefault(pid, []).append((socket.inet_ntoa(struct.pack("I", ra)), socket.ntohs(rp & 0xFFFF)))
+    return out
+
+
+class GameLog:
+    """Follows one client log file and keeps what it says about the session."""
+    _LINE = re.compile(r"\((\d\d):(\d\d):(\d\d)\) \w+: (.*)")
+
+    def __init__(self, path):
+        self.path = path
+        self.pos = 0
+        self.reset()
+
+    def reset(self):
+        self.opened = None      # epoch when the client opened the file (= client start)
+        self.in_world = False
+        self.entered = None     # epoch when the character entered the world
+        self.tile = None
+        self._day0 = None       # midnight of the day the log was opened
+        self._last = 0
+
+    def _when(self, h, m, s):
+        if self._day0 is None:
+            return time.time()
+        secs = h * 3600 + m * 60 + s
+        if secs + 3600 < self._last:  # passed midnight
+            self._day0 += 86400
+        self._last = secs
+        return self._day0 + secs
+
+    def update(self):
+        try:
+            size = self.path.stat().st_size
+        except OSError:
+            return
+        if size < self.pos:  # a new session started over the file
+            self.pos = 0
+            self.reset()
+        if size == self.pos:
+            return
+        try:
+            with open(self.path, "rb") as f:
+                f.seek(self.pos)
+                data = f.read(size - self.pos)
+        except OSError:
+            return
+        data = data[:len(data) - len(data) % 2]
+        end = data.rfind("\n".encode("utf-16-le"))
+        if end < 0:
+            return
+        if end % 2:
+            end -= 1
+        chunk, self.pos = data[:end + 2], self.pos + end + 2
+        for line in chunk.decode("utf-16-le", "replace").lstrip("\ufeff").splitlines():
+            self._line(line)
+
+    def _line(self, line):
+        if "Log file open," in line:
+            m = re.search(r"open, (\d+)/(\d+)/(\d+) (\d+):(\d+):(\d+)", line)
+            if m:
+                mo, d, y, hh, mi, ss = map(int, m.groups())
+                self.reset()
+                self.opened = time.mktime((2000 + y % 100, mo, d, hh, mi, ss, 0, 0, -1))
+                self._day0 = time.mktime((2000 + y % 100, mo, d, 0, 0, 0, 0, 0, -1))
+                self._last = hh * 3600 + mi * 60 + ss
+            return
+        m = self._LINE.match(line)
+        if not m:
+            return
+        text = m.group(4)
+        if text.startswith(("RequestEnterWorldPacket", "LoadMap:", "Teleport from", "Browse: Lobby")):
+            when = self._when(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+            if text.startswith("RequestEnterWorldPacket"):
+                self.in_world, self.entered = True, when
+            elif text.startswith("Browse: Lobby"):  # back to the login screen
+                self.in_world, self.entered, self.tile = False, None, None
+            else:
+                t = re.search(r"(\d+_\d+)(?:\.unr)?\s*$", text.split("?")[0])
+                if t:
+                    self.tile = t.group(1)
+
+
+class ClientWatch:
+    """Per client: connected to the game server or not (and when it dropped), and the log
+    status (in game, region, time online)."""
+
+    def __init__(self):
+        self.logs = [GameLog(GAME_DIR / name) for name in GAME_LOGS]
+        self._had_game = {}   # pid -> it was connected to the game server
+        self._handles = {}    # pid -> process handle, to read the exit code when it ends
+        self._in_world = {}   # pid -> it was in game (last poll)
+        self._lost = {}       # pid -> since when the connection is gone
+        self._created = {}
+
+    def _match_logs(self, pids):
+        """Each log belongs to the client started just before it was opened (one log each)."""
+        pairs = []
+        for pid in pids:
+            made = self._created.get(pid)
+            if made is None:
+                made = self._created[pid] = process_created(pid) or 0
+            for log in self.logs:
+                if log.opened and -5 <= log.opened - made <= 180:
+                    pairs.append((abs(log.opened - made), pid, log))
+        # in order: the first client started takes the first log opened, and so on
+        out, used = {}, set()
+        for pid in sorted({p for _, p, _ in pairs}, key=lambda p: self._created[p]):
+            free = [log for _, q, log in pairs if q == pid and id(log) not in used]
+            if free:
+                log = min(free, key=lambda lg: lg.opened)
+                out[pid] = log
+                used.add(id(log))
+        return out
+
+    def poll(self, pids):
+        """Returns pid -> status, and the pids that just lost the connection to the game."""
+        for log in self.logs:
+            log.update()
+        conns = tcp_by_pid()
+        now, out, dropped = time.time(), {}, []
+        logs = self._match_logs(pids)
+        for pid in pids:
+            game = any(ip == SERVER_IP and port not in (2106,) for ip, port in conns.get(pid, []))
+            if game:
+                self._had_game[pid] = True
+                self._lost.pop(pid, None)
+            elif self._had_game.get(pid):
+                since = self._lost.setdefault(pid, now)
+                if now - since >= 4 and self._had_game[pid] is True:  # 2 polls: not a blip
+                    self._had_game[pid] = "lost"
+                    dropped.append(pid)
+            log = logs.get(pid)
+            st = {"net": "game" if game else ("lost" if self._had_game.get(pid) == "lost" else None)}
+            if log:
+                st["inWorld"] = log.in_world and game
+                st["region"] = MAP_TILE_REGION.get(log.tile) if log.in_world else None
+                st["online"] = now - log.entered if log.in_world and log.entered and game else None
+            out[pid] = st
+        for pid in pids:
+            if pid not in self._handles:
+                self._handles[pid] = kernel32.OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, False, pid)
+            self._in_world[pid] = bool(out[pid].get("inWorld")) or out[pid]["net"] == "game"
+        self.crashed = []
+        for gone in [p for p in list(self._handles) if p not in pids]:
+            h = self._handles.pop(gone)
+            code = wintypes.DWORD(0)
+            ok = h and kernel32.GetExitCodeProcess(h, ctypes.byref(code))
+            if h:
+                kernel32.CloseHandle(h)
+            # it was in game, the connection had not already dropped, and it did not end normally
+            if self._in_world.get(gone) and self._had_game.get(gone) is True and ok and code.value not in (0, 259):
+                self.crashed.append(gone)
+            self._in_world.pop(gone, None)
+        for gone in [p for p in self._had_game if p not in pids]:
+            self._had_game.pop(gone, None)
+            self._lost.pop(gone, None)
+            self._created.pop(gone, None)
+        return out, dropped
 
 
 def work_area():
@@ -423,6 +759,194 @@ def post_text(hwnd, text):
     for ch in text:
         user32.PostMessageW(hwnd, WM_CHAR, ord(ch), 1)
         time.sleep(0.03)
+
+
+# ---------------------------------------------------------------- recognising the client's screens
+# Small grayscale crops (green channel, zlib + base64) of the buttons that mark each screen of
+# the client: "Log In" (login screen), "Confirm" (server list), "Start" (character selection).
+# The client draws them at a fixed pixel size, centred horizontally, whatever the window size.
+SCREEN_ANCHORS = {
+    "login": (186, 17, "eNq1ls1rE0EYxjNrKmh7iC2tYOpqk8luvrO73WyyTVMTaw42NFUrxUIPWqRpMUe9CD3Uk0hVqGJVBMUKIiiUQDzWHvoh2kLR1JVp/hhnN7vpwWxnse4PZiYz777v8yQT3iSXs4Nzk7OQDWFY7+x12RaJXNYWUlMLPkZ1zvgWplL2aGTMuIaan0+jGrqUIdBXXNKdw6ViX8YW0maMIdA8ICEHSKQPJllahrrz5VIybQuyGaMIqMuFd9Wdp/1y/vPvVWU/MIoe7WxPmebKYqmiOQ8ysFISZRKjNYTR611RcHn5EOjOP7w51Vl5kPy06Cop1L7z2hx970vA3Pl02XBenrbgHF8jRq/HUbr2wYhmFBDAc3rvTAc/uQYR3SUqoBEoIMdpcfeYaTJX3Hde5EQSdS3xxbIovn9SQOJ3fAcSKUkwYxgBPA/tOSLCSNWHl2EFNALaUCjT5OjYvOF8fiwqkKhrCemtWzfXO+MIDKt3wBOSODPyCOBZRic57sZaV62VyyugEdCGvm9GWBo0nA9KYY5EvqYoSpXjZr6tTxy9iEBdmwA0I4tO4PcF377siZfnWlZve+4qQA846kPfN8PD84ZznvdAElnte05BuFJpceONWv7fydYwGx7+dXXnYWv75c0fr3Y1p1dxP08QnQu9hvNewZJzbZ1Y2RpXN5lDOYe0A+OEPW0U5fJCtzO8WXfqxsdnaVyaPugzlwznEm/ZeexrYGajG2+EPV+cmMSyfj/j97MGzF9oxyP9oYXnzvojfjI+MWU4T4lkjUGtn48/W3TS5cfnkYO9/2sbkjRwdSvc+al87HYFrcLGBwznA3ELGl6tn9MurHC83QuCwQ5whJQTiURimCgJNwXagsSnomotXDKQaPSWXDJgVcMiukYsxvNq5+z9PwgCrxKRh4z/LXk5ZI8GfiWKUsIKSTKJBP7pwyVjct7DhMLhEOMZ6YvZo/EHU+3MWg=="),
+    "confirm": (71, 16, "eNpzdKQKcKAOsKUOsEQFWXuvn1vsgybYe+l67XVLEkDmxWxe8SkFRiiCXnd0WZgUmfBqNEEB+yuYVYz1JJXsF125MNHc71bPhTNJJqfv3Drud8vE71bX+bpbfRfPZHddPJ2Mqs/ECBnY3ZGQA9GGy+dKiGxu97lTK12/T8X3FgOjxi1G3zul0mp3aqWqb9XKVB9QQdFoZIAMPO4w6IBoy9tyQnrxR8xvMUgbXOXwvsVoAMTetxhkvUAi18GiKBoNVJCB4R1BMG13m0FBxfmy+i0GFcfrjI4g6hYDlAKJgDEesC9PEUiq690SU1GJOKxCrjGJF6LVzNuTlBfNUjTd1EiCa9TVNTTUNDTUIUAtec+NczPlJY3nX7nQy218i0Hd+TqjM4i6xeByi0EDjK8zgjEK0NbWQgEy7IzM/Kpa6nxMzEKayoxaWkCMSsExMtDV1dUHAj1yAUgz2AxDQ0NgxBuTCYCJDASALBMTM3N8wAIPMDc3MzEBmgEAZEAeTA=="),
+    "start": (109, 20, "eNpzd6cjcKUncKIncKAnsKcnsKUnsKInsKQnsKAnMCEa+K27en1vkd8tVMFbJiQAY2KB2fF6Ee7sNttbjMiivqhcAsCQWOBxh1taX1/xxJ1bt4xbLtw8nGDoc6vz/AUQl2gzDIgFxqcWGhgbGHjfYmBkDFFmqTis7H2nREoNxNUn1gw54sHcC1cXmdncYpCTk/cr6b/GAmQKWYO4RAMF4oE0t8aiDVa3GBQU5u+vr77OaAtkgjDxQJFYoAwmLmjcYlA0vSPKqnid0Q7IBGHigRKxwH6Jl6relDnCt1VN9G8ZKrReZ7S/xaBkCOQSbYSSMrFAd+KxGxemivC0XTurUHr5VMd1RodbDMrKIC7RZqgQDZT4WRiZ+JRUBBmZVUSYWAQYVeQYgMIg7qAEADrO2qA="),
+}
+_ANCHORS = {k: (w, h, zlib.decompress(base64.b64decode(d))) for k, (w, h, d) in SCREEN_ANCHORS.items()}
+_ANCHOR_SLACK = 24  # pixels of horizontal play around the centre
+gdi32 = ctypes.windll.gdi32
+
+
+class _BITMAPINFOHEADER(ctypes.Structure):
+    _fields_ = [("biSize", ctypes.c_uint32), ("biWidth", ctypes.c_int32), ("biHeight", ctypes.c_int32),
+                ("biPlanes", ctypes.c_uint16), ("biBitCount", ctypes.c_uint16), ("biCompression", ctypes.c_uint32),
+                ("biSizeImage", ctypes.c_uint32), ("biXPelsPerMeter", ctypes.c_int32),
+                ("biYPelsPerMeter", ctypes.c_int32), ("biClrUsed", ctypes.c_uint32), ("biClrImportant", ctypes.c_uint32)]
+
+
+def capture_band(hwnd, band_w):
+    """Green channel of a vertical band in the middle of a window's client area, read from the
+    window itself (works while other windows cover it; a minimized window has no image).
+    Returns (bytes, x0, width, height) or None."""
+    r = wintypes.RECT()
+    if user32.IsIconic(hwnd) or not user32.GetClientRect(hwnd, ctypes.byref(r)):
+        return None
+    w, h = r.right, r.bottom
+    band_w = min(band_w, w)
+    if band_w <= 0 or h <= 0:
+        return None
+    x0 = w // 2 - band_w // 2
+    src = user32.GetDC(hwnd)
+    if not src:
+        return None
+    mem = gdi32.CreateCompatibleDC(src)
+    bmp = gdi32.CreateCompatibleBitmap(src, band_w, h)
+    old = gdi32.SelectObject(mem, bmp)
+    try:
+        gdi32.BitBlt(mem, 0, 0, band_w, h, src, x0, 0, 0x00CC0020)  # SRCCOPY
+        buf = ctypes.create_string_buffer(band_w * h * 4)
+        bi = _BITMAPINFOHEADER(40, band_w, -h, 1, 32, 0, 0, 0, 0, 0, 0)
+        if not gdi32.GetDIBits(mem, bmp, 0, h, buf, ctypes.byref(bi), 0):
+            return None
+        return buf.raw[1::4], x0, band_w, h
+    finally:
+        gdi32.SelectObject(mem, old)
+        gdi32.DeleteObject(bmp)
+        gdi32.DeleteDC(mem)
+        user32.ReleaseDC(hwnd, src)
+
+
+def find_anchor(hwnd, name, max_mean=8):
+    """Where a screen's button is in the window (client x, y of its centre), or None."""
+    tw, th, tpl = _ANCHORS[name]
+    cap = capture_band(hwnd, tw + 2 * _ANCHOR_SLACK)
+    if not cap:
+        return None
+    band, x0, bw, bh = cap
+    if bw < tw or bh < th:
+        return None
+    rows = [tpl[k * tw:(k + 1) * tw] for k in range(th)]
+    mid = th // 2
+    row_limit, total_limit = max_mean * tw, max_mean * tw * th
+    sub = operator.sub
+    for y in range(bh - th + 1):
+        base = (y + mid) * bw
+        for x in range(bw - tw + 1):
+            # cheap test on the middle row first, then the whole button
+            if sum(map(abs, map(sub, band[base + x:base + x + tw], rows[mid]))) > row_limit:
+                continue
+            total = 0
+            for k in range(th):
+                o = (y + k) * bw + x
+                total += sum(map(abs, map(sub, band[o:o + tw], rows[k])))
+                if total > total_limit:
+                    break
+            else:
+                return x0 + x + tw // 2, y + th // 2
+    return None
+
+
+def wait_for_anchor(hwnd_of, name, alive, timeout, interval=0.8):
+    """Wait until a screen's button shows up. `hwnd_of()` gives the current window, `alive()`
+    says whether to keep waiting. Returns the button position, or None."""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if not alive():
+            return None
+        hwnd = hwnd_of()
+        pos = find_anchor(hwnd, name) if hwnd else None
+        if pos:
+            return pos
+        time.sleep(interval)
+    return None
+
+
+# ---------------------------------------------------------------- CP / HP / MP bars
+# Measured on the status window (top left by default; its position is in system/WindowsInfo.ini).
+# Offsets inside that window: bars from x 20 to 173, middle rows of CP / HP / MP, and the dark
+# lines between the bars (to make sure the window is really there).
+_BAR_X0, _BAR_X1 = 20, 173
+_BAR_ROWS = {"cp": 29, "hp": 43, "mp": 56}
+_BAR_GAPS = (34, 47, 60)
+_status_pos = {"mtime": None, "pos": (0, 0)}
+
+
+def status_window_pos():
+    path = GAME_DIR / "WindowsInfo.ini"
+    try:
+        mtime = path.stat().st_mtime
+    except OSError:
+        return 0, 0
+    if mtime != _status_pos["mtime"]:
+        _status_pos["mtime"] = mtime
+        try:
+            text = path.read_text(encoding="latin-1")
+            sec = re.search(r"\[StatusWnd\]([^\[]*)", text)
+            x = re.search(r"posX=(-?\d+)", sec.group(1)) if sec else None
+            y = re.search(r"posY=(-?\d+)", sec.group(1)) if sec else None
+            _status_pos["pos"] = (int(x.group(1)) if x else 0, int(y.group(1)) if y else 0)
+        except (OSError, AttributeError, ValueError):
+            _status_pos["pos"] = (0, 0)
+    return _status_pos["pos"]
+
+
+def capture_rect(hwnd, x, y, w, h):
+    """BGRX bytes of a rectangle of a window's client area (None when minimized)."""
+    if user32.IsIconic(hwnd):
+        return None
+    src = user32.GetDC(hwnd)
+    if not src:
+        return None
+    mem = gdi32.CreateCompatibleDC(src)
+    bmp = gdi32.CreateCompatibleBitmap(src, w, h)
+    old = gdi32.SelectObject(mem, bmp)
+    try:
+        gdi32.BitBlt(mem, 0, 0, w, h, src, x, y, 0x00CC0020)
+        buf = ctypes.create_string_buffer(w * h * 4)
+        bi = _BITMAPINFOHEADER(40, w, -h, 1, 32, 0, 0, 0, 0, 0, 0)
+        return buf.raw if gdi32.GetDIBits(mem, bmp, 0, h, buf, ctypes.byref(bi), 0) else None
+    finally:
+        gdi32.SelectObject(mem, old)
+        gdi32.DeleteObject(bmp)
+        gdi32.DeleteDC(mem)
+        user32.ReleaseDC(hwnd, src)
+
+
+def read_bars(hwnd):
+    """{"cp", "hp", "mp"} in percent, or None if the status window is not where expected
+    (moved, interface hidden, loading screen...)."""
+    px, py = status_window_pos()
+    w, h = _BAR_X1 + 4, max(_BAR_GAPS) + 2
+    raw = capture_rect(hwnd, px, py, w, h)
+    if not raw:
+        return None
+
+    def px_at(x, y):
+        o = (y * w + x) * 4
+        return raw[o + 2], raw[o + 1], raw[o]  # r, g, b
+
+    # the dark lines between the bars must be there along the whole width
+    for y in _BAR_GAPS:
+        if any(max(px_at(x, y)) > 0x48 for x in range(_BAR_X0, _BAR_X1, 6)):
+            return None
+    out = {}
+    for name, y in _BAR_ROWS.items():
+        last = _BAR_X0 - 1
+        for x in range(_BAR_X0, _BAR_X1):
+            r, g, b = px_at(x, y)
+            filled = (r > b + 50) if name != "mp" else (b > r + 50)
+            if filled:
+                last = x
+        out[name] = round(100 * (last + 1 - _BAR_X0) / (_BAR_X1 - _BAR_X0))
+    return out
+
+
+WM_LBUTTONDOWN, WM_LBUTTONUP, MK_LBUTTON = 0x0201, 0x0202, 0x0001
+
+
+def post_click(hwnd, x, y):
+    lp = (int(y) << 16) | (int(x) & 0xFFFF)
+    user32.PostMessageW(hwnd, WM_LBUTTONDOWN, MK_LBUTTON, lp)
+    time.sleep(0.06)
+    user32.PostMessageW(hwnd, WM_LBUTTONUP, 0, lp)
 
 
 class SHELLEXECUTEINFOW(ctypes.Structure):
@@ -1901,6 +2425,15 @@ class Api:
         self._timer_fired = set()
         self._alerts = []
         self._window = None
+        self._watch = ClientWatch()
+        self._bars, self._bars_at, self._bar_armed = {}, {}, {}
+        self._gone_slot = {}
+        self._last_watch = {}
+        self._event_live = {}           # event key -> {"state", "at", "start"} from the announcements
+        self._announces = deque(maxlen=30)
+        self._chat = ChatReader(self._chat_hwnd, self._on_announcement)
+        self._chat.start()
+        self._flows = LoginFlows(lambda: self._data.get("lang", "pt"))
         self._had_window = [False] * len(self._data["slots"])
         self._autologin_slots = set()  # slots opened by the panel that should log in by themselves
         self._login_lock = threading.Lock()  # one automatic login at a time
@@ -1947,6 +2480,81 @@ class Api:
         tmp.write_text(json.dumps(self._data, indent=2, ensure_ascii=False), encoding="utf-8")
         os.replace(tmp, DATA_FILE)
 
+    def _check_bars(self, watch):
+        """Read CP/HP/MP of the clients in game (window not minimized) and warn once per event:
+        dead, HP low, MP low. The warning re-arms when the bar is back up."""
+        if not self._data.get("bar_alerts", True):
+            return
+        now = time.time()
+        for i, pid in enumerate(self._slot_pid):
+            st = watch.get(pid) if pid else None
+            if not st or not st.get("inWorld"):
+                continue
+            last = self._bars_at.get(pid, 0)
+            if now - last < 1.5:
+                st["bars"] = self._bars.get(pid)
+                continue
+            self._bars_at[pid] = now
+            hwnd = self._windows.get(pid)
+            bars = read_bars(hwnd) if hwnd else None
+            self._bars[pid] = bars
+            st["bars"] = bars
+            if not bars:
+                continue
+            name = self._data["slots"][i]
+            armed = self._bar_armed.setdefault(pid, {"dead": True, "hp": True, "mp": True})
+            if bars["hp"] == 0:
+                if armed["dead"]:
+                    armed["dead"] = False
+                    self._alert("dead", slot=name)
+                    self._flows.set(i, name, "f_dead", "fail")
+            elif bars["hp"] > 5:
+                armed["dead"] = True
+            hp_low = self._data.get("hp_alert", 30)
+            if 0 < bars["hp"] < hp_low and armed["hp"]:
+                armed["hp"] = False
+                self._alert("hpLow", slot=name, pct=bars["hp"])
+            elif bars["hp"] >= min(100, hp_low + 20):
+                armed["hp"] = True
+            if bars["mp"] < 10 and armed["mp"] and bars["hp"] > 0:
+                armed["mp"] = False
+                self._alert("mpLow", slot=name, pct=bars["mp"])
+            elif bars["mp"] >= 30:
+                armed["mp"] = True
+
+    def _chat_hwnd(self):
+        """A client in game whose window is not minimized (any one: announcements are global)."""
+        for pid in self._slot_pid:
+            st = self._last_watch.get(pid) if pid else None
+            hwnd = self._windows.get(pid) if pid else None
+            if st and st.get("inWorld") and hwnd and not user32.IsIconic(hwnd):
+                return hwnd
+        return None
+
+    def _on_announcement(self, text, at):
+        with self._lock:
+            self._announces.append({"t": at, "text": text})
+            # "server shutdown/restart in N minutes": that is the new restart time
+            m = re.search(r"(shut ?down|restart|reboot)\D{0,40}?(\d+)\s*(second|minute|min|sec)", text.lower())
+            if m:
+                self._data["restart_at"] = at + int(m.group(2)) * (1 if m.group(3).startswith("sec") else 60)
+                self._data.pop("event_seen", None)  # the spawn cycle starts over after a restart
+                self._save()
+            res = parse_announcement(text, at)
+            if not res:
+                return
+            key, state, start = res
+            prev = self._event_live.get(key) or {}
+            if state == "info" and prev:
+                return
+            self._event_live[key] = {"state": state, "at": at, "start": start or prev.get("start")}
+            ev = next(e for e in SERVER_EVENTS if e["key"] == key)
+            if state == "started" and "restart" in ev:  # learn when it spawns
+                self._data.setdefault("event_seen", {})[key] = at
+                self._save()
+            if state in ("reg", "started") and prev.get("state") != state and self._data.get("event_alerts", True):
+                self._alert("evReg" if state == "reg" else "evStart", name=ev["name"])
+
     def _alert(self, key, **args):
         """Alerts are sent as a code + parameters; the interface translates them."""
         winsound.MessageBeep(winsound.MB_ICONASTERISK)
@@ -1971,6 +2579,7 @@ class Api:
         now = time.time()
         for i in range(len(self._slot_pid)):
             if self._slot_pid[i] and self._slot_pid[i] not in alive:
+                self._gone_slot[self._slot_pid[i]] = i
                 self._slot_pid[i] = self._slot_start[i] = None
         # l2.exe may relaunch itself: a new process goes to the oldest pending slot
         self._pending = [p for p in self._pending if now - p[1] < 90]
@@ -1989,6 +2598,25 @@ class Api:
         self._known = alive
 
         mons = monitors()
+        watch, dropped = self._watch.poll([p for p in self._slot_pid if p])
+        for pid in self._watch.crashed:
+            k = self._gone_slot.get(pid)
+            if k is not None and k < len(self._data["slots"]):
+                self._alert("crashed", slot=self._data["slots"][k])
+                self._flows.set(k, self._data["slots"][k], "f_crash", "fail")
+        self._gone_slot = {}
+        self._check_bars(watch)
+        self._last_watch = watch
+        # every client in game lost the connection at the same time: the server went down
+        in_game = [p for p in self._slot_pid if p and (self._last_watch.get(p) or {}).get("net") == "game"]
+        if dropped and len(dropped) >= max(1, len(in_game)) and len(dropped) >= 2:
+            self._data["restart_at"] = time.time()
+            self._data.pop("event_seen", None)
+            self._save()
+        for pid in dropped:
+            k = self._slot_pid.index(pid)
+            self._alert("disconnected", slot=self._data["slots"][k])
+            self._flows.set(k, self._data["slots"][k], "f_dc", "fail")
         slots = []
         for i in range(len(self._slot_pid)):
             pid = self._slot_pid[i]
@@ -2010,6 +2638,7 @@ class Api:
                 "uptime": now - self._slot_start[i] if pid else None,
                 "account": self._account_info(i),
                 "monitor": monitor_of(hwnd, mons) if hwnd and not user32.IsIconic(hwnd) else None,
+                **(watch.get(pid) or {}),
             })
         external = [p for p in pids if p not in bound]
         return slots, external, len(pids)
@@ -2032,27 +2661,86 @@ class Api:
     def _account_info(self, i):
         acc = self._data["accounts"].get(str(i)) or {}
         return {"login": acc.get("login", ""), "hasPassword": bool(acc.get("pwd")),
-                "auto": bool(acc.get("auto"))}
+                "auto": bool(acc.get("auto")), "enter": bool(acc.get("enter"))}
 
     def _schedule_login(self, i, pid, delay):
-        """Type the login once the client is really on the login screen: wait the configured
-        minimum, then until the client has finished loading. Clients opened together (heavier
-        loading) are logged in one at a time."""
-        def work():
-            time.sleep(float(delay))
-            wait_until_idle(pid)
-            with self._login_lock:
-                if self._slot_pid[i] != pid or self.fill_login(i) != "ok":
-                    return
-                time.sleep(1.5)
-            if self._data.get("to_charselect", True):
-                # the server list comes next, with the server already selected: Enter = Confirm,
-                # and the client stops at character selection
-                time.sleep(2)
-                wait_until_idle(pid, timeout=30)
-                hwnd = self._hwnd(i)
-                if hwnd and self._slot_pid[i] == pid:
+        """Log in as soon as each screen is really there, by looking at the client's window:
+        type the login when the "Log In" button shows, press Enter when "Confirm" (server list)
+        shows, and, if the account is set to enter the game, Enter again when "Start" shows.
+        Works with the window in the background or covered, for several clients at once.
+        If the login screen is never recognised (another interface skin, say), it falls back to
+        waiting for the client to finish loading."""
+        hwnd_of = lambda: self._hwnd(i)
+        alive = lambda: self._slot_pid[i] == pid
+        name = self._data["slots"][i] if i < len(self._data["slots"]) else f"#{i + 1}"
+        step = lambda key, state="run": self._flows.set(i, name, key, state)
+
+        def press_until_gone(anchor, pos, timeout=40):
+            """Press the button (Enter, then a click on it) until its screen goes away. Checking
+            the screen is cheap, so keep trying instead of giving up after one go."""
+            deadline, tries = time.time() + timeout, 0
+            while time.time() < deadline and alive():
+                hwnd = hwnd_of()
+                if not hwnd:
+                    return False
+                if tries % 2 == 0:
                     post_key(hwnd, VK_RETURN)
+                else:
+                    post_click(hwnd, *pos)
+                tries += 1
+                for _ in range(4):  # ~2 s to react
+                    time.sleep(0.5)
+                    hwnd = hwnd_of()
+                    now = find_anchor(hwnd, anchor) if hwnd else None
+                    if not now:
+                        return True
+                    pos = now
+            return False
+
+        def work():
+            step("wait")
+            if wait_for_anchor(hwnd_of, "login", alive, timeout=max(60, float(delay) + 90)):
+                time.sleep(0.4)
+            else:
+                if not alive():
+                    return step("f_closed", "fail")
+                step("fallback")
+                if wait_until_idle(pid, timeout=60) is False:
+                    return step("f_closed", "fail")
+            if not alive():
+                return step("f_closed", "fail")
+            step("typing")
+            res = self.fill_login(i)
+            if res != "ok":
+                return step("f_closed" if res == "noWindow" else "f_account", "fail")
+            enter = bool((self._data["accounts"].get(str(i)) or {}).get("enter"))
+            if not (enter or self._data.get("to_charselect", True)):
+                return step("done_login", "ok")
+            # server list, with the server already selected: Confirm
+            step("server")
+            pos = wait_for_anchor(hwnd_of, "confirm", alive, timeout=45)
+            if not pos:
+                return step("f_closed" if not alive() else "f_server", "fail")
+            if not press_until_gone("confirm", pos):
+                return step("f_closed" if not alive() else "f_server", "fail")
+            # character selection, with the last character played selected: Start
+            step("charsel")
+            pos = wait_for_anchor(hwnd_of, "start", alive, timeout=90)
+            if not pos:
+                return step("f_closed" if not alive() else "f_charsel", "fail")
+            if not enter:
+                return step("done_sel", "ok")
+            step("start")
+            time.sleep(0.8)
+            if press_until_gone("start", pos):
+                # the client log says when the character is really in the world (first 2 clients)
+                for _ in range(40):
+                    st = self._last_watch.get(pid) or {}
+                    if st.get("inWorld") or "inWorld" not in st:
+                        break
+                    time.sleep(1)
+                return step("done_game", "ok")
+            step("f_closed" if not alive() else "f_start", "fail")
         threading.Thread(target=work, daemon=True).start()
 
     # -------------------------------------------------- bosses
@@ -2174,6 +2862,19 @@ class Api:
                 "alerts": alerts, "topmost": self._data["topmost"], "compact": self._data["compact"],
                 "renameWindows": self._data["rename_windows"], "opacity": self._data["opacity"],
                 "toCharselect": self._data.get("to_charselect", True),
+                "restartAt": self._data.get("restart_at"),
+                "barAlerts": self._data.get("bar_alerts", True),
+                "eventAlerts": self._data.get("event_alerts", True),
+                "events": [dict(zip(("key", "name", "drops", "last", "next", "kind", "dur", "reg"),
+                                    (e["key"], e["name"], e["drops"],
+                                     *event_times(e, self._data.get("restart_at"),
+                                                  seen=self._data.get("event_seen", {}).get(e["key"])),
+                                     "chat" if e.get("chat") else "restart" if "restart" in e else "timed",
+                                     e.get("dur", 120 if "weekly" in e else 30), e.get("reg", 0))))
+                           for e in SERVER_EVENTS],
+                "eventLive": self._event_live,
+                "announces": list(self._announces)[-12:],
+                "chatReading": self._chat.active,
                 "scale": self._data.get("scale", 1.0), "char": self._data.get("char") or {},
                 "loginDelay": self._data["login_delay"], "admin": is_admin(), "bosses": bosses,
                 "lang": self._data["lang"], "bossView": self._data["boss_view"],
@@ -2350,7 +3051,7 @@ class Api:
     def get_account(self, i):
         return self._account_info(int(i))
 
-    def set_account(self, i, login, password, auto):
+    def set_account(self, i, login, password, auto, enter=False):
         """An empty password keeps the current one. The password is never sent back to the interface."""
         key = str(int(i))
         login = (login or "").strip()
@@ -2358,6 +3059,7 @@ class Api:
             acc = self._data["accounts"].get(key, {})
             acc["login"] = login
             acc["auto"] = bool(auto)
+            acc["enter"] = bool(enter)
             if password:
                 acc["pwd"] = dpapi_encrypt(password)
             self._data["accounts"][key] = acc
@@ -2472,6 +3174,12 @@ class Api:
                 w, h = self._size()
                 self._window.resize(w, COMPACT_H if value else h)
                 threading.Timer(0.3, self._apply_shape).start()
+            elif key == "eventAlerts":
+                self._data["event_alerts"] = bool(value)
+            elif key == "barAlerts":
+                self._data["bar_alerts"] = bool(value)
+            elif key == "restartAt":
+                self._data["restart_at"] = float(value) if value else None
             elif key == "renameWindows":
                 self._data["rename_windows"] = bool(value)
             elif key == "toCharselect":
@@ -2499,7 +3207,18 @@ class Api:
         self._window.minimize()
 
     def quit(self):
+        """Close everything: the alerts popup too (a hidden window would keep the program alive)."""
+        try:
+            if self._flows._win:
+                self._flows._win.destroy()
+        except Exception:
+            pass
         self._window.destroy()
+
+        def force():  # whatever is left, end the process (clearing the Alt+B page first)
+            clear_board_file()
+            os._exit(0)
+        threading.Timer(3, force).start()
 
     def _own_hwnd(self):
         me = os.getpid()
@@ -2690,6 +3409,370 @@ def make_server(api, token):
     server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     return server
+
+
+# ---------------------------------------------------------------- login progress popup
+FLOW_TEXT = {
+    "pt": {"title": "L2Axis · Avisos", "wait": "Esperando a tela de login", "typing": "Digitando login",
+           "server": "Confirmando o servidor", "charsel": "Esperando a seleção de personagem",
+           "start": "Entrando no jogo", "done_sel": "Na seleção de personagem", "done_game": "No jogo",
+           "done_login": "Login enviado", "f_closed": "O client foi fechado", "f_account": "Conta sem login/senha salvos",
+           "f_login": "A tela de login não apareceu (janela minimizada?)",
+           "f_server": "O login não passou: confira login e senha", "f_charsel": "A seleção de personagem não apareceu",
+           "f_start": "Não consegui entrar no jogo", "fallback": "Tela não reconhecida, usando o modo antigo",
+           "f_dc": "Caiu: perdeu a conexão com o servidor", "f_dead": "Morreu", "f_crash": "O client fechou sozinho (travou ou caiu)"},
+    "en": {"title": "L2Axis · Alerts", "wait": "Waiting for the login screen", "typing": "Typing the login",
+           "server": "Confirming the server", "charsel": "Waiting for character selection",
+           "start": "Entering the game", "done_sel": "At character selection", "done_game": "In game",
+           "done_login": "Login sent", "f_closed": "The client was closed", "f_account": "No saved login/password",
+           "f_login": "The login screen did not show up (window minimized?)",
+           "f_server": "Login did not go through: check login and password",
+           "f_charsel": "Character selection did not show up", "f_start": "Could not enter the game",
+           "fallback": "Screen not recognised, using the old mode",
+           "f_dc": "Dropped: lost the connection to the server", "f_dead": "Died", "f_crash": "The client closed by itself (crashed or dropped)"},
+    "de": {"title": "L2Axis · Hinweise", "wait": "Warte auf den Login-Bildschirm", "typing": "Login wird eingegeben",
+           "server": "Server wird bestätigt", "charsel": "Warte auf die Charakterauswahl",
+           "start": "Betrete das Spiel", "done_sel": "In der Charakterauswahl", "done_game": "Im Spiel",
+           "done_login": "Login gesendet", "f_closed": "Der Client wurde geschlossen",
+           "f_account": "Kein Login/Passwort gespeichert",
+           "f_login": "Der Login-Bildschirm kam nicht (Fenster minimiert?)",
+           "f_server": "Login fehlgeschlagen: Login und Passwort prüfen",
+           "f_charsel": "Die Charakterauswahl kam nicht", "f_start": "Konnte das Spiel nicht betreten",
+           "fallback": "Bildschirm nicht erkannt, alter Modus",
+           "f_dc": "Getrennt: Verbindung zum Server verloren", "f_dead": "Gestorben", "f_crash": "Der Client hat sich selbst beendet (Absturz oder getrennt)"},
+}
+
+FLOW_HTML = """<!doctype html><html><head><meta charset="utf-8"><style>
+html,body{margin:0;background:#14100c;height:100%;font:13px 'Segoe UI',sans-serif;color:#e8dcc0;overflow:hidden;user-select:none}
+.box{margin:0;border:1px solid #7a6334;background:#14100c;padding:8px 10px;box-sizing:border-box;min-height:100vh}
+.hd{display:flex;align-items:center;gap:8px;color:#d9b45a;font-weight:600;margin-bottom:4px}
+.hd span{flex:1}.x{cursor:pointer;color:#a99;padding:0 4px}.x:hover{color:#fff}
+.r{display:flex;align-items:center;gap:8px;padding:4px 0;border-top:1px solid rgba(255,255,255,.06)}
+.r:first-of-type{border-top:0}.n{font-weight:600;min-width:86px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.m{flex:1;color:#cbbf9f}.d{width:9px;height:9px;border-radius:50%;flex:none}
+.run .d{background:#d9b45a;animation:p 1s infinite}.ok .d{background:#5fbf6a}.fail .d{background:#e05a4a}
+.fail .m{color:#f08a7a}@keyframes p{50%{opacity:.3}}
+</style></head><body><div class="box"><div class="hd"><span id="t"></span><b class="x" onclick="pywebview.api.close()">&#10005;</b></div><div id="l"></div></div>
+<script>function set(s){document.getElementById('t').textContent=s.title;
+document.getElementById('l').innerHTML=s.rows.map(r=>'<div class="r '+r.state+'"><i class="d"></i><span class="n"></span><span class="m"></span></div>').join('');
+[...document.querySelectorAll('.r')].forEach((e,k)=>{e.querySelector('.n').textContent=s.rows[k].name;e.querySelector('.m').textContent=s.rows[k].msg;});
+return Math.ceil(document.getElementById('l').getBoundingClientRect().bottom)+10;}
+</script></body></html>"""
+
+
+# ---------------------------------------------------------------- server announcements from the chat
+# The chat box is read from the window image with the OCR that comes with Windows (through
+# PowerShell, nothing to install). Only the announcement colour (cyan) is kept, so players' chat
+# is ignored. Any one client in game and not minimized is enough: announcements are server-wide.
+OCR_SCRIPT = r"""
+[Console]::OutputEncoding = [Text.Encoding]::UTF8
+Add-Type -AssemblyName System.Runtime.WindowsRuntime
+$null = [Windows.Storage.StorageFile, Windows.Storage, ContentType = WindowsRuntime]
+$null = [Windows.Media.Ocr.OcrEngine, Windows.Foundation, ContentType = WindowsRuntime]
+$null = [Windows.Graphics.Imaging.BitmapDecoder, Windows.Graphics.Imaging, ContentType = WindowsRuntime]
+$asTask = ([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object {
+  $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1' })[0]
+function Await($op, [Type]$t) { $task = $asTask.MakeGenericMethod($t).Invoke($null, @($op)); $task.Wait() | Out-Null; $task.Result }
+$eng = [Windows.Media.Ocr.OcrEngine]::TryCreateFromUserProfileLanguages()
+while ($true) {
+  $path = [Console]::In.ReadLine()
+  if ($path -eq $null) { break }
+  try {
+    $file = Await ([Windows.Storage.StorageFile]::GetFileFromPathAsync($path)) ([Windows.Storage.StorageFile])
+    $stream = Await ($file.OpenAsync([Windows.Storage.FileAccessMode]::Read)) ([Windows.Storage.Streams.IRandomAccessStream])
+    $dec = Await ([Windows.Graphics.Imaging.BitmapDecoder]::CreateAsync($stream)) ([Windows.Graphics.Imaging.BitmapDecoder])
+    $bmp = Await ($dec.GetSoftwareBitmapAsync()) ([Windows.Graphics.Imaging.SoftwareBitmap])
+    $res = Await ($eng.RecognizeAsync($bmp)) ([Windows.Media.Ocr.OcrResult])
+    $stream.Dispose()
+    foreach ($l in $res.Lines) {
+      $x1 = 1e9; $y1 = 1e9; $x2 = 0; $y2 = 0
+      foreach ($w in $l.Words) { $r = $w.BoundingRect
+        $x1 = [Math]::Min($x1, $r.X); $y1 = [Math]::Min($y1, $r.Y)
+        $x2 = [Math]::Max($x2, $r.X + $r.Width); $y2 = [Math]::Max($y2, $r.Y + $r.Height) }
+      "{0} {1} {2} {3}`t{4}" -f [int]$x1, [int]$y1, [int]$x2, [int]$y2, $l.Text
+    }
+  } catch { "ERR`t$_" }
+  "<<END>>"
+}
+"""
+CHAT_W, CHAT_H, CHAT_ZOOM = 520, 420, 3   # bottom-left corner of the client; zoomed for the OCR
+
+
+def _bmp_bytes(raw, w, h):
+    """32-bit top-down BMP file from BGRX pixels."""
+    head = struct.pack("<2sIHHI", b"BM", 54 + len(raw), 0, 0, 54)
+    info = struct.pack("<IiiHHIIiiII", 40, w, -h, 1, 32, 0, len(raw), 2835, 2835, 0, 0)
+    return head + info + raw
+
+
+def capture_chat(hwnd):
+    """(BGRX bytes, width, height) of the chat corner, zoomed CHAT_ZOOM times, or None."""
+    r = wintypes.RECT()
+    if user32.IsIconic(hwnd) or not user32.GetClientRect(hwnd, ctypes.byref(r)) or r.right < 300:
+        return None
+    sw, sh = min(CHAT_W, r.right), min(CHAT_H, r.bottom)
+    w, h = sw * CHAT_ZOOM, sh * CHAT_ZOOM
+    src = user32.GetDC(hwnd)
+    if not src:
+        return None
+    mem = gdi32.CreateCompatibleDC(src)
+    bmp = gdi32.CreateCompatibleBitmap(src, w, h)
+    old = gdi32.SelectObject(mem, bmp)
+    try:
+        gdi32.SetStretchBltMode(mem, 4)  # HALFTONE: smooth zoom, better for the OCR
+        gdi32.StretchBlt(mem, 0, 0, w, h, src, 0, r.bottom - sh, sw, sh, 0x00CC0020)
+        buf = ctypes.create_string_buffer(w * h * 4)
+        bi = _BITMAPINFOHEADER(40, w, -h, 1, 32, 0, 0, 0, 0, 0, 0)
+        if not gdi32.GetDIBits(mem, bmp, 0, h, buf, ctypes.byref(bi), 0):
+            return None
+        return buf.raw, w, h
+    finally:
+        gdi32.SelectObject(mem, old)
+        gdi32.DeleteObject(bmp)
+        gdi32.DeleteDC(mem)
+        user32.ReleaseDC(hwnd, src)
+
+
+def _is_announcement(raw, w, box):
+    """Most coloured pixels of the line are the announcement cyan."""
+    x1, y1, x2, y2 = box
+    cyan = other = 0
+    for y in range(max(0, y1), y2, 2):
+        o = y * w
+        for x in range(max(0, x1), min(w, x2), 3):
+            p = (o + x) * 4
+            b, g, r = raw[p], raw[p + 1], raw[p + 2]
+            if max(r, g, b) < 120:
+                continue  # background
+            if b > 150 and g > 150 and r < 130:
+                cyan += 1
+            elif max(r, g, b) - min(r, g, b) > 40 or min(r, g, b) > 170:
+                other += 1
+    return cyan > 8 and cyan > other * 2
+
+
+class ChatReader(threading.Thread):
+    """Reads the server announcements from the chat every few seconds."""
+    INTERVAL = 4
+
+    def __init__(self, pick_hwnd, on_message):
+        super().__init__(daemon=True)
+        self._pick = pick_hwnd
+        self._on = on_message
+        self._ps = None
+        self._seen = {}   # announcement text -> last time it was on screen
+        self.active = False
+        self._tmp_dir = Path(os.environ.get("TEMP", str(APP_DIR)))
+        self._n = 0
+        self._script = Path(os.environ.get("TEMP", str(APP_DIR))) / "l2axis_ocr.ps1"
+
+    def _ocr(self, path):
+        if self._ps is None or self._ps.poll() is not None:
+            self._script.write_text(OCR_SCRIPT, encoding="utf-8")
+            self._ps = subprocess.Popen(
+                ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(self._script)],
+                stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                creationflags=subprocess.CREATE_NO_WINDOW, encoding="utf-8", errors="replace")
+        self._ps.stdin.write(str(path) + "\n")
+        self._ps.stdin.flush()
+        lines = []
+        while True:
+            line = self._ps.stdout.readline()
+            if not line or line.strip() == "<<END>>":
+                break
+            lines.append(line.rstrip("\n"))
+        return lines
+
+    def read_once(self):
+        hwnd = self._pick()
+        self.active = bool(hwnd)
+        if not hwnd:
+            return []
+        cap = capture_chat(hwnd)
+        if not cap:
+            return []
+        raw, w, h = cap
+        # a new file each time (Windows may still hold the previous one for a moment)
+        self._n = (self._n + 1) % 4
+        tmp = self._tmp_dir / f"l2axis_chat{self._n}.bmp"
+        try:
+            tmp.write_bytes(_bmp_bytes(raw, w, h))
+        except OSError:
+            return []
+        msgs = []
+        for line in self._ocr(tmp):
+            box, _, text = line.partition("\t")
+            if box == "ERR" or not text.strip():
+                continue
+            try:
+                x1, y1, x2, y2 = map(int, box.split())
+            except ValueError:
+                continue
+            if not _is_announcement(raw, w, (x1, y1, x2, y2)):
+                continue
+            # drop a stray letter read from the scroll bar before the message
+            text = re.sub(r"^.{0,3}?(?=\[|Announcements?:)", "", text.strip())
+            # a long announcement wraps: lines that do not start a new message continue the last one
+            if msgs and not re.match(r"^(\[|Announcements?:|[A-Z][\w' ]+:)", text):
+                msgs[-1] = msgs[-1] + " " + text
+            else:
+                msgs.append(text)
+        return msgs
+
+    def run(self):
+        while True:
+            try:
+                now = time.time()
+                for text in self.read_once():
+                    key = re.sub(r"\W+", "", text.lower())
+                    last = self._seen.get(key)
+                    self._seen[key] = now
+                    if last is None or now - last > 20 * 60:  # still on screen = the same message
+                        self._on(text, now)
+                for k in [k for k, t in self._seen.items() if now - t > 3600]:
+                    del self._seen[k]
+            except Exception:
+                log_error("chat reader", traceback.format_exc())
+                time.sleep(10)
+            time.sleep(self.INTERVAL)
+
+
+def parse_announcement(text, at):
+    """What an announcement says about an event: (event key, status, start time or None)."""
+    low = text.lower()
+    key = None
+    for ev in SERVER_EVENTS:
+        names = [ev["name"].lower()] + [a.lower() for a in ev.get("aliases", [])]
+        if any(n in low for n in names):
+            key = ev["key"]
+            break
+    if not key:
+        return None
+    m = re.search(r"registration is open for (\d+) seconds", low)
+    if m:
+        return key, "reg", at + int(m.group(1))
+    m = re.search(r"starts? in (\d+) (minute|second)", low)
+    if m:
+        return key, "reg" if "regist" in low else "soon", at + int(m.group(1)) * (60 if m.group(2) == "minute" else 1)
+    if re.search(r"cancel", low):
+        return key, "cancelled", None
+    if re.search(r"was killed|has been killed|disappeared|has ended|is over|finished|winner|won ", low):
+        return key, "ended", None
+    if re.search(r"has started|have started|begins|began|has begun|spawned|appeared|invade|is on|started", low):
+        return key, "started", at
+    return key, "info", None
+
+
+class LoginFlows:
+    """Progress of the automatic logins, shown in a small always-on-top window that does not
+    take the focus. It hides by itself a few seconds after everything went fine; a failure
+    stays until closed."""
+    W, ROW, HEAD = 360, 27, 44
+
+    def __init__(self, lang_of):
+        self._lang_of = lang_of
+        self._flows = {}  # slot -> {"name", "state", "key", "at"}
+        self._lock = threading.Lock()
+        self._win = None
+        self._shown = False
+        self._dirty = threading.Event()
+        threading.Thread(target=self._loop, daemon=True).start()
+
+    def set(self, slot, name, key, state="run"):
+        with self._lock:
+            self._flows[slot] = {"name": name, "key": key, "state": state, "at": time.time()}
+        self._dirty.set()
+
+    def close(self):
+        with self._lock:
+            # hide everything; a login still running shows up again at its next step
+            self._flows = {}
+        self._dirty.set()
+
+    def _view(self):
+        txt = FLOW_TEXT.get(self._lang_of(), FLOW_TEXT["en"])
+        with self._lock:
+            now = time.time()
+            # finished fine for a few seconds: drop the row
+            self._flows = {k: f for k, f in self._flows.items() if not (f["state"] == "ok" and now - f["at"] > 6)}
+            rows = [{"name": f["name"], "state": f["state"], "msg": txt.get(f["key"], f["key"])}
+                    for _, f in sorted(self._flows.items())]
+        return {"title": txt["title"], "rows": rows}
+
+    def _place(self, n):
+        x, y, w, h = work_area()
+        height = self.HEAD + self.ROW * n
+        return x + w - self.W - 12, y + h - 12 - (height if n else 0), height
+
+    POPUP_TITLE = "L2Axis Alerts"
+
+    def _find_hwnd(self):
+        found = []
+
+        def cb(hwnd, _):
+            pid = wintypes.DWORD()
+            user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+            if pid.value == os.getpid() and window_title(hwnd) == self.POPUP_TITLE:
+                found.append(hwnd)
+            return True
+
+        user32.EnumWindows(EnumWindowsProc(cb), 0)
+        return found[0] if found else None
+
+    def _loop(self):
+        GWL_EXSTYLE, WS_EX_TOOLWINDOW, WS_EX_NOACTIVATE, WS_EX_APPWINDOW = -20, 0x80, 0x08000000, 0x40000
+        SWP_NOACTIVATE, SWP_SHOWWINDOW = 0x0010, 0x0040
+        HWND_TOPMOST = wintypes.HWND(-1)
+        user32.GetWindowLongPtrW.restype = ctypes.c_ssize_t
+        hwnd = None
+        while True:
+            self._dirty.wait(1.0)
+            self._dirty.clear()
+            try:
+                view = self._view()
+                n = len(view["rows"])
+                if not n:
+                    if hwnd and self._shown:
+                        user32.ShowWindow(hwnd, 0)  # SW_HIDE
+                        self._shown = False
+                    continue
+                if not self._win:
+                    before = user32.GetForegroundWindow()
+                    x, y, height = self._place(n)
+                    self._win = webview.create_window(
+                        self.POPUP_TITLE, html=FLOW_HTML, js_api=_FlowApi(self), width=self.W, height=height,
+                        x=x, y=y, frameless=True, easy_drag=True, resizable=False, on_top=True, focus=False,
+                        background_color="#14100c")
+                    self._win.events.loaded.wait(10)
+                    hwnd = self._find_hwnd()
+                    if hwnd:
+                        # never takes the keyboard from the game, and no taskbar button
+                        ex = user32.GetWindowLongPtrW(hwnd, GWL_EXSTYLE)
+                        user32.SetWindowLongPtrW(hwnd, GWL_EXSTYLE,
+                                                 (ex | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE) & ~WS_EX_APPWINDOW)
+                    if before and user32.GetForegroundWindow() != before:
+                        user32.SetForegroundWindow(before)
+                # long messages wrap: size the window to its content (CSS pixels -> screen pixels)
+                css_h = int(self._win.evaluate_js(f"set({json.dumps(view)})") or 0) or (self.HEAD + self.ROW * n)
+                if not hwnd:
+                    hwnd = self._find_hwnd()
+                if hwnd:
+                    scale = (user32.GetDpiForWindow(hwnd) or 96) / 96
+                    w, h = round(self.W * scale), round(css_h * scale)
+                    x, y, _ = self._place(0)
+                    user32.SetWindowPos(hwnd, HWND_TOPMOST, x, y - h, w, h, SWP_NOACTIVATE | SWP_SHOWWINDOW)
+                    self._shown = True
+            except Exception:  # the popup is a convenience: never break the login because of it
+                log_error("login popup", traceback.format_exc())
+                time.sleep(2)
+
+
+class _FlowApi:
+    def __init__(self, flows):
+        self._flows = flows
+
+    def close(self):
+        self._flows.close()
 
 
 def main():

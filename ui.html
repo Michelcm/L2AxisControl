@@ -232,6 +232,13 @@
   .montools button.b.ico { width: 28px; height: 22px; }
   .slot .info { margin-top: 2px; font-size: 10px; color: var(--dim); white-space: nowrap; }
   .slot.on { box-shadow: inset 0 0 0 1px rgba(127,211,107,.35); }
+  .slot.dc { box-shadow: inset 0 0 0 1px rgba(224,90,74,.7); }
+  .slot.dc .info { color: #f08a7a; font-weight: bold; }
+  .slot[draggable="true"] { cursor: grab; }
+  .slot.dragging { opacity: .45; }
+  .mon.drop { border-color: var(--gold-hi); box-shadow: 0 0 10px rgba(240,207,126,.6); background: linear-gradient(#2a2418, #14110c); }
+  .mon .chip2[draggable="true"] { cursor: grab; }
+  .monmap.dragon .mon { border-style: dashed; }
   .warn { color: #b8955a; font-size: 10px; margin-top: 3px; white-space: pre-line; }
 
   /* votes */
@@ -271,6 +278,19 @@
   /* timers */
   .timer { display: flex; align-items: center; gap: 4px; padding: 3px 4px; border-bottom: 1px solid rgba(106,92,62,.18); }
   .timer .t { width: 70px; text-align: right; font-size: 11px; }
+  .ev .when.bad { color: #f08a7a; }
+  .ann { display: flex; gap: 6px; font-size: 10px; padding: 2px 4px; border-bottom: 1px solid rgba(106,92,62,.12); }
+  .ann .at { color: var(--dim); flex: none; width: 34px; }
+  .ann .tx { color: #7fd4e6; }
+  .ev { border-bottom: 1px solid rgba(106,92,62,.18); padding: 3px 4px; cursor: pointer; }
+  .ev .top { display: flex; align-items: center; gap: 6px; }
+  .ev .nm { flex: 1; color: var(--gold-hi); }
+  .ev .when { font-size: 11px; text-align: right; }
+  .ev .when.now { color: #7fd36b; font-weight: bold; }
+  .ev .when.soon { color: #e8c547; }
+  .ev .det { display: none; font-size: 10px; color: var(--dim); margin-top: 3px; line-height: 1.35; }
+  .ev.open .det { display: block; }
+  .ev .det b { color: #cbbf9f; font-weight: normal; }
 
   /* modal dialog in the "System Message" style */
   .modal { position: absolute; inset: 0; background: rgba(0,0,0,.55); display: none;
@@ -532,6 +552,7 @@
     <div class="tab" data-p="boss" data-i18n="tabBosses"></div>
     <div class="tab" data-p="craft" data-i18n="tabCraft"></div>
     <div class="tab" data-p="vote" data-i18n="tabVotes"></div>
+    <div class="tab" data-p="ev" data-i18n="tabEvents"></div>
     <div class="tab" data-p="tmr" data-i18n="tabTimers"></div>
     <div class="tab" data-p="lnk" data-i18n="tabOptions"></div>
   </div>
@@ -692,6 +713,20 @@
       <div class="panel" style="padding:2px" id="votes"></div>
     </div>
 
+    <!-- EVENTS -->
+    <div class="page" id="p-ev">
+      <div class="panel" id="evPanel">
+        <div class="osec" data-i18n="evTitle"></div>
+        <div id="events"></div>
+        <div class="small" style="margin-top:3px" data-i18n="evSource"></div>
+      </div>
+      <div class="panel">
+        <div class="osec" data-i18n="evFeed"></div>
+        <div class="small" id="evChatState" style="margin-bottom:3px"></div>
+        <div id="announces"></div>
+      </div>
+    </div>
+
     <!-- TIMERS -->
     <div class="page" id="p-tmr">
       <div class="panel">
@@ -731,6 +766,8 @@
         <div class="osec" data-i18n="secLogin"></div>
         <label class="chk"><input type="checkbox" id="oRename"><i></i><span data-i18n="optRename"></span></label>
         <label class="chk"><input type="checkbox" id="oCharsel"><i></i><span data-i18n="optCharsel"></span></label>
+        <label class="chk"><input type="checkbox" id="oBars"><i></i><span data-i18n="optBars"></span></label>
+        <label class="chk"><input type="checkbox" id="oEvAlerts"><i></i><span data-i18n="optEvAlerts"></span></label>
         <div class="orow"><span class="lbl small" data-i18n="optDelay"></span>
           <input class="e" id="oDelay" style="width:40px;text-align:center"><span class="small">s</span></div>
 
@@ -755,6 +792,7 @@
         <div class="f"><span>Login</span><input class="e" id="aLogin" maxlength="32" spellcheck="false" autocomplete="off"></div>
         <div class="f"><span data-i18n="accPassword"></span><input class="e" id="aPwd" type="password" maxlength="32" autocomplete="new-password"></div>
         <label class="chk"><input type="checkbox" id="aAuto"><i></i><span data-i18n="accAuto"></span></label>
+        <label class="chk"><input type="checkbox" id="aEnter"><i></i><span data-i18n="accEnter"></span></label>
         <div class="note" data-i18n="accNote"></div>
       </div>
       <div class="row">
@@ -816,8 +854,27 @@ const I18N = {
   pt: {
     tipPin: "Sempre por cima", tipCompact: "Modo compacto", tipMinimize: "Minimizar", tipClose: "Fechar",
     gPing: "Ping", gLoss: "Perda", gClients: "Clientes", chipVotes: "Votos",
-    tabClients: "Clientes", tabNet: "Rede", tabBosses: "Bosses", tabVotes: "Votos", tabTimers: "Timers", tabOptions: "Opções",
-    monTitle: "Monitores", monHint: "Clique num monitor para organizar as janelas nele; o ícone de dois monitores espalha por todos. Em cada conta, use ① ② para levar a janela para outro monitor.",
+    evTitle: "Eventos do servidor", evRestart: "Último restart:", evNow: "agora",
+    evSource: "Clique num evento para ver como participar e as recompensas. Horários dos posts do fórum (no seu fuso) e, ao vivo, dos anúncios lidos no chat.",
+    evDrops: "Drops", evRewards: "Recompensas", evIn: "em {t} ({at})", evSpawned: "nasceu há {t}", evStarted: "começou há {t}",
+    evNeedRestart: "informe o restart", evWaitAnn: "aguardando anúncio", evSoon: "começa em {t}",
+    evCancelled: "cancelado ({at})", evEnded: "terminou há {t}", evFeed: "Últimos anúncios do servidor",
+    evFeedEmpty: "Nenhum anúncio lido ainda.", evChatOn: "Lendo o chat do jogo: os anúncios atualizam os eventos sozinhos.",
+    evChatOff: "Para ler os anúncios, deixe um personagem no jogo com a janela não minimizada.",
+    optEvAlerts: "Avisar quando abrir a inscrição ou começar um evento (lido no chat)",
+    a_evReg: "{name}: inscrições abertas", a_evStart: "{name} começou", evChat: "horário anunciado no chat", evReg: "inscrições abertas · começa em {t}",
+    ev_royale: "PvP individual em 2 rodadas; os campeões das rodadas fazem a final. Inscrição com o Augustus em Giran (abre 30 min antes), mínimo 4 jogadores. 1 personagem por IP/HWID.",
+    ev_fakes: "25 jogadores falsos aparecem num local anunciado no chat; 30 min para caçá-los. Nível mínimo 65; fique online e dentro da área. Os 2 que mais matarem fazem um duelo valendo um prêmio aleatório.",
+    ev_rats: "Ratos gigantes invadem uma zona sorteada (Ancient Evil's Village, Ixion's Nest, Pendragon's Lair, Sea of Spores ou Fafurion's Nest). Aviso no chat 30 min antes dizendo onde. Horários 13:00 e 20:00 EST.",
+    ev_treasure: "Ache baús do tesouro e abra-os; matar outros jogadores também dá prêmio. Acontece 5 vezes por dia (horários não publicados; anunciado no chat).",
+    ev_blitz: "Dois times por 20 min: atacantes quebram o portão, matam 5 raid bosses e plantam a bandeira; defensores vencem se segurarem até o fim. Inscrição com o Augustus em Giran (abre 30 min antes), mínimo 4 jogadores (2 por time). 1 personagem por IP/HWID.",
+    ev_pig: "Um porco especial aparece 1 h depois do restart e depois a cada 15 h; o servidor anuncia no chat. Mate-o para os drops. Earring of Pig: Resist. a Stun +20%, P. Atk. +6%, M. Atk. +6%.",
+    ev_iq: "Raid boss de evento que nasce 3 h depois do restart e depois a cada 15 h.",
+    ev_aq: "Raid boss de evento que nasce 6 h depois do restart e depois a cada 17 h.",
+    ev_pk: "Raid boss de evento que nasce 9 h depois do restart e depois a cada 19 h.",
+    ev_zombie: "Zumbis invadem as cidades todo sábado e domingo às 20:00 GMT (horário mostrado já no seu fuso). Mate os zumbis nas cidades. Ring of Zombie: Precisão, P. Def. +6%, M. Def. +6%.",
+    tabClients: "Clientes", tabNet: "Rede", tabBosses: "Bosses", tabVotes: "Votos", tabTimers: "Timers", tabEvents: "Eventos", tabOptions: "Opções",
+    monTitle: "Monitores", monHint: "Clique num monitor para organizar as janelas nele; o ícone de dois monitores espalha por todos. Para trocar uma janela de monitor, arraste a conta (ou o nome dela no mapa) até o monitor, ou use ① ②.",
     tipAllMon: "Espalhar as janelas por todos os monitores", tipSaveLayout: "Salvar a posição de cada janela", tipRestoreLayout: "Restaurar as posições salvas",
     tipMonClick: "Organizar todas as janelas no monitor {n}", moveTo: "Monitor:", tipMove: "Levar esta janela para o monitor {n}",
     addAccount: "Nova conta", tipRemove: "Remover esta conta da lista", confirmRemove: "Remover {name} da lista? (O login salvo dela também é apagado.)",
@@ -831,6 +888,9 @@ const I18N = {
     btnVote: "Votar", btnOn: "Ligar", btnOff: "Desligar", btnCopy: "Copiar", copied: "copiado!",
     tipLogin: "Preencher login e senha", tipAccount: "Configurar conta", tipVoteReset: "Zerar timer", tipRemove: "Remover",
     stopped: "parado", opening: "abrindo…", runningInfo: "PID {pid} · RAM {ram} · aberto há {up}", auto: "auto",
+    optBars: "Avisar quando um personagem morrer ou ficar com HP/MP baixo (só com a janela do jogo não minimizada)",
+    stInGame: "no jogo", stLoading: "conectado, fora do jogo", stDc: "DESCONECTADO", stOnline: "online {t}",
+    tipDrag: "Arraste para um monitor", dropHere: "Solte num monitor para levar a janela",
     accountTip: "Conta: {login}{auto}", autoLoginTag: " (login automático)",
     external: "{n} cliente(s) fora dos slots: PID {pids}",
     hwidWarn: "O servidor permite até {n} clientes por HWID — o 5º slot deve ser recusado no login.",
@@ -841,6 +901,7 @@ const I18N = {
     fillFail: "Não foi possível preencher:\n{why}",
     noWindow: "o cliente ainda não tem janela", noAccount: "conta não configurada", badPassword: "não consegui abrir a senha salva (salve de novo)",
     accTitle: "Conta — {name}", accPassword: "Senha", accAuto: "Logar automaticamente ao abrir pelo painel",
+    accEnter: "Depois do login, entrar no jogo com o último personagem usado",
     accKeep: "•••••• (salva — deixe vazio p/ manter)", confirmClearAcc: "Apagar login e senha salvos de \"{name}\"?",
     accNote: "A senha fica criptografada pelo Windows (só seu usuário neste PC abre). Atenção: o L2Axis cria conta nova se o login não existir — confira a digitação.",
     netAvg: "Média", netJitter: "Variação", netServer: "Servidor {ip} (Alemanha) · medido a cada 2s · últimos 2 min",
@@ -935,14 +996,33 @@ const I18N = {
     aboutServer: "Game Master do L2Axis · High Five x15",
     aboutThanks: "Painel feito por jogadores para a comunidade L2Axis. Obrigado, {name}, por manter o servidor vivo!",
     linkSite: "Site L2Axis", linkForum: "Fórum", linkNews: "Notícias / Patches", linkDonate: "Doação", linkRules: "Regras",
-    a_launchFail: "Não abriu {slot}: {err}", a_voteReady: "Voto disponível: {name}", a_timerDone: "Timer pronto: {name}",
+    a_launchFail: "Não abriu {slot}: {err}", a_voteReady: "Voto disponível: {name}", a_disconnected: "{slot} caiu: perdeu a conexão com o servidor", a_dead: "{slot} morreu!", a_crashed: "{slot} fechou sozinho (travou ou caiu)", a_hpLow: "{slot}: HP em {pct}%", a_mpLow: "{slot}: MP em {pct}%", a_timerDone: "Timer pronto: {name}",
     a_bossSpawn: "Boss nasceu: {name}",
   },
   en: {
     tipPin: "Always on top", tipCompact: "Compact mode", tipMinimize: "Minimize", tipClose: "Close",
     gPing: "Ping", gLoss: "Loss", gClients: "Clients", chipVotes: "Votes",
-    tabClients: "Clients", tabNet: "Network", tabBosses: "Bosses", tabVotes: "Votes", tabTimers: "Timers", tabOptions: "Options",
-    monTitle: "Monitors", monHint: "Click a monitor to arrange the windows on it; the two-monitor icon spreads them over all. On each account, use ① ② to send the window to another monitor.",
+    evTitle: "Server events", evRestart: "Last restart:", evNow: "now",
+    evSource: "Click an event to see how to take part and the rewards. Times from the forum posts (in your time zone) and, live, from the announcements read in the chat.",
+    evDrops: "Drops", evRewards: "Rewards", evIn: "in {t} ({at})", evSpawned: "spawned {t} ago", evStarted: "started {t} ago",
+    evNeedRestart: "set the restart time", evWaitAnn: "waiting for an announcement", evSoon: "starts in {t}",
+    evCancelled: "cancelled ({at})", evEnded: "ended {t} ago", evFeed: "Latest server announcements",
+    evFeedEmpty: "No announcement read yet.", evChatOn: "Reading the game chat: announcements update the events by themselves.",
+    evChatOff: "To read the announcements, keep a character in game with its window not minimized.",
+    optEvAlerts: "Warn when an event opens registration or starts (read in the chat)",
+    a_evReg: "{name}: registration open", a_evStart: "{name} started", evChat: "time announced in chat", evReg: "registration open · starts in {t}",
+    ev_royale: "Solo PvP in 2 rounds; the round champions meet in the final. Register with Augustus in Giran (opens 30 min before), at least 4 players. 1 character per IP/HWID.",
+    ev_fakes: "25 fake players appear at a location announced in chat; 30 min to hunt them. Minimum level 65; stay online and inside the area. The top 2 killers duel for a random grand prize.",
+    ev_rats: "Giant rats invade a random zone (Ancient Evil's Village, Ixion's Nest, Pendragon's Lair, Sea of Spores or Fafurion's Nest). Chat warns 30 min before, saying where. At 1:00 PM and 8:00 PM EST.",
+    ev_treasure: "Find treasure chests and open them; killing other players also gives rewards. 5 times a day (times not published; announced in chat).",
+    ev_blitz: "Two teams for 20 min: attackers break the gate, kill 5 raid bosses and plant the flag; defenders win by holding until time runs out. Register with Augustus in Giran (opens 30 min before), at least 4 players (2 per team). 1 character per IP/HWID.",
+    ev_pig: "A special pig shows up 1 h after the restart and then every 15 h; the server announces it in chat. Kill it for the drops. Earring of Pig: Stun resistance +20%, P. Atk. +6%, M. Atk. +6%.",
+    ev_iq: "Event raid boss: spawns 3 h after the restart, then every 15 h.",
+    ev_aq: "Event raid boss: spawns 6 h after the restart, then every 17 h.",
+    ev_pk: "Event raid boss: spawns 9 h after the restart, then every 19 h.",
+    ev_zombie: "Zombies invade the towns every Saturday and Sunday at 20:00 GMT (shown in your time zone). Kill the zombies in town. Ring of Zombie: Accuracy, P. Def. +6%, M. Def. +6%.",
+    tabClients: "Clients", tabNet: "Network", tabBosses: "Bosses", tabVotes: "Votes", tabTimers: "Timers", tabEvents: "Events", tabOptions: "Options",
+    monTitle: "Monitors", monHint: "Click a monitor to arrange the windows on it; the two-monitor icon spreads them over all. To move a window, drag its account (or its name on the map) onto a monitor, or use ① ②.",
     tipAllMon: "Spread the windows over all monitors", tipSaveLayout: "Save each window's position", tipRestoreLayout: "Restore the saved positions",
     tipMonClick: "Arrange all windows on monitor {n}", moveTo: "Monitor:", tipMove: "Send this window to monitor {n}",
     addAccount: "New account", tipRemove: "Remove this account from the list", confirmRemove: "Remove {name} from the list? (Its saved login is deleted too.)",
@@ -956,6 +1036,9 @@ const I18N = {
     btnVote: "Vote", btnOn: "Turn on", btnOff: "Turn off", btnCopy: "Copy", copied: "copied!",
     tipLogin: "Fill in login and password", tipAccount: "Account settings", tipVoteReset: "Reset timer", tipRemove: "Remove",
     stopped: "stopped", opening: "opening…", runningInfo: "PID {pid} · RAM {ram} · up {up}", auto: "auto",
+    optBars: "Warn when a character dies or runs low on HP/MP (only while its game window is not minimized)",
+    stInGame: "in game", stLoading: "connected, not in game", stDc: "DISCONNECTED", stOnline: "online {t}",
+    tipDrag: "Drag onto a monitor", dropHere: "Drop on a monitor to move the window",
     accountTip: "Account: {login}{auto}", autoLoginTag: " (auto login)",
     external: "{n} client(s) outside the slots: PID {pids}",
     hwidWarn: "The server allows up to {n} clients per HWID — the 5th slot will likely be refused at login.",
@@ -966,6 +1049,7 @@ const I18N = {
     fillFail: "Could not fill in:\n{why}",
     noWindow: "the client has no window yet", noAccount: "account not configured", badPassword: "could not read the saved password (save it again)",
     accTitle: "Account — {name}", accPassword: "Password", accAuto: "Log in automatically when opened from the panel",
+    accEnter: "After logging in, enter the game with the last character played",
     accKeep: "•••••• (saved — leave empty to keep)", confirmClearAcc: "Delete the saved login and password of \"{name}\"?",
     accNote: "The password is encrypted by Windows (only your user on this PC can read it). Note: L2Axis creates a new account if the login doesn't exist — double-check the spelling.",
     netAvg: "Average", netJitter: "Jitter", netServer: "Server {ip} (Germany) · measured every 2s · last 2 min",
@@ -1060,14 +1144,33 @@ const I18N = {
     aboutServer: "L2Axis Game Master · High Five x15",
     aboutThanks: "A panel made by players for the L2Axis community. Thank you, {name}, for keeping the server alive!",
     linkSite: "L2Axis website", linkForum: "Forum", linkNews: "News / Patches", linkDonate: "Donate", linkRules: "Rules",
-    a_launchFail: "Could not open {slot}: {err}", a_voteReady: "Vote available: {name}", a_timerDone: "Timer done: {name}",
+    a_launchFail: "Could not open {slot}: {err}", a_voteReady: "Vote available: {name}", a_disconnected: "{slot} dropped: lost the connection to the server", a_dead: "{slot} died!", a_crashed: "{slot} closed by itself (crashed or dropped)", a_hpLow: "{slot}: HP at {pct}%", a_mpLow: "{slot}: MP at {pct}%", a_timerDone: "Timer done: {name}",
     a_bossSpawn: "Boss spawned: {name}",
   },
   de: {
     tipPin: "Immer im Vordergrund", tipCompact: "Kompaktmodus", tipMinimize: "Minimieren", tipClose: "Schließen",
     gPing: "Ping", gLoss: "Verlust", gClients: "Clients", chipVotes: "Votes",
-    tabClients: "Clients", tabNet: "Netzwerk", tabBosses: "Bosse", tabVotes: "Votes", tabTimers: "Timer", tabOptions: "Optionen",
-    monTitle: "Monitore", monHint: "Einen Monitor anklicken, um die Fenster dort anzuordnen; das Zwei-Monitor-Symbol verteilt sie auf alle. Bei jedem Konto schickt ① ② das Fenster auf einen anderen Monitor.",
+    evTitle: "Server-Events", evRestart: "Letzter Restart:", evNow: "jetzt",
+    evSource: "Klick auf ein Event zeigt Teilnahme und Belohnungen. Zeiten aus den Forum-Posts (deine Zeitzone) und live aus den im Chat gelesenen Ankündigungen.",
+    evDrops: "Drops", evRewards: "Belohnungen", evIn: "in {t} ({at})", evSpawned: "vor {t} erschienen", evStarted: "vor {t} begonnen",
+    evNeedRestart: "Restart-Zeit eintragen", evWaitAnn: "warte auf Ankündigung", evSoon: "beginnt in {t}",
+    evCancelled: "abgesagt ({at})", evEnded: "vor {t} beendet", evFeed: "Letzte Server-Ankündigungen",
+    evFeedEmpty: "Noch keine Ankündigung gelesen.", evChatOn: "Lese den Spiel-Chat: Ankündigungen aktualisieren die Events selbst.",
+    evChatOff: "Um Ankündigungen zu lesen, einen Charakter im Spiel lassen (Fenster nicht minimiert).",
+    optEvAlerts: "Warnen, wenn ein Event die Anmeldung öffnet oder beginnt (aus dem Chat)",
+    a_evReg: "{name}: Anmeldung offen", a_evStart: "{name} hat begonnen", evChat: "Zeit wird im Chat angekündigt", evReg: "Anmeldung offen · beginnt in {t}",
+    ev_royale: "Solo-PvP in 2 Runden; die Rundensieger treffen sich im Finale. Anmeldung bei Augustus in Giran (öffnet 30 Min. vorher), mindestens 4 Spieler. 1 Charakter pro IP/HWID.",
+    ev_fakes: "25 falsche Spieler erscheinen an einem im Chat angekündigten Ort; 30 Min. Jagdzeit. Mindestlevel 65; online und im Gebiet bleiben. Die 2 besten Jäger duellieren sich um einen zufälligen Hauptpreis.",
+    ev_rats: "Riesenratten überfallen eine zufällige Zone (Ancient Evil's Village, Ixion's Nest, Pendragon's Lair, Sea of Spores oder Fafurion's Nest). Chat-Warnung 30 Min. vorher mit dem Ort. Um 13:00 und 20:00 EST.",
+    ev_treasure: "Schatztruhen finden und öffnen; Spieler töten gibt auch Belohnungen. 5-mal täglich (Zeiten nicht veröffentlicht; im Chat angekündigt).",
+    ev_blitz: "Zwei Teams, 20 Min.: Angreifer brechen das Tor, töten 5 Raidbosse und setzen die Flagge; Verteidiger gewinnen, wenn sie bis zum Ende halten. Anmeldung bei Augustus in Giran (öffnet 30 Min. vorher), mindestens 4 Spieler (2 pro Team). 1 Charakter pro IP/HWID.",
+    ev_pig: "Ein besonderes Schwein erscheint 1 h nach dem Restart, dann alle 15 h; der Server kündigt es im Chat an. Töte es für die Drops. Earring of Pig: Betäubungsresistenz +20%, P. Atk. +6%, M. Atk. +6%.",
+    ev_iq: "Event-Raidboss: erscheint 3 h nach dem Restart, dann alle 15 h.",
+    ev_aq: "Event-Raidboss: erscheint 6 h nach dem Restart, dann alle 17 h.",
+    ev_pk: "Event-Raidboss: erscheint 9 h nach dem Restart, dann alle 19 h.",
+    ev_zombie: "Zombies überfallen jeden Samstag und Sonntag um 20:00 GMT die Städte (in deiner Zeitzone angezeigt). Töte die Zombies in der Stadt. Ring of Zombie: Genauigkeit, P. Def. +6%, M. Def. +6%.",
+    tabClients: "Clients", tabNet: "Netzwerk", tabBosses: "Bosse", tabVotes: "Votes", tabTimers: "Timer", tabEvents: "Events", tabOptions: "Optionen",
+    monTitle: "Monitore", monHint: "Klick auf einen Monitor ordnet die Fenster darauf an; das Zwei-Monitor-Symbol verteilt sie auf alle. Um ein Fenster zu verschieben, zieh das Konto (oder seinen Namen auf der Karte) auf einen Monitor, oder nutze ① ②.",
     tipAllMon: "Fenster auf alle Monitore verteilen", tipSaveLayout: "Position jedes Fensters speichern", tipRestoreLayout: "Gespeicherte Positionen wiederherstellen",
     tipMonClick: "Alle Fenster auf Monitor {n} anordnen", moveTo: "Monitor:", tipMove: "Dieses Fenster auf Monitor {n} schicken",
     addAccount: "Neues Konto", tipRemove: "Dieses Konto aus der Liste entfernen", confirmRemove: "{name} aus der Liste entfernen? (Der gespeicherte Login wird auch gelöscht.)",
@@ -1081,6 +1184,9 @@ const I18N = {
     btnVote: "Voten", btnOn: "Ein", btnOff: "Aus", btnCopy: "Kopieren", copied: "kopiert!",
     tipLogin: "Login und Passwort eintragen", tipAccount: "Konto einrichten", tipVoteReset: "Timer zurücksetzen", tipRemove: "Entfernen",
     stopped: "gestoppt", opening: "startet…", runningInfo: "PID {pid} · RAM {ram} · läuft seit {up}", auto: "auto",
+    optBars: "Warnen, wenn ein Charakter stirbt oder wenig HP/MP hat (nur wenn das Spielfenster nicht minimiert ist)",
+    stInGame: "im Spiel", stLoading: "verbunden, nicht im Spiel", stDc: "GETRENNT", stOnline: "online {t}",
+    tipDrag: "Auf einen Monitor ziehen", dropHere: "Auf einen Monitor ziehen, um das Fenster zu verschieben",
     accountTip: "Konto: {login}{auto}", autoLoginTag: " (Auto-Login)",
     external: "{n} Client(s) außerhalb der Slots: PID {pids}",
     hwidWarn: "Der Server erlaubt bis zu {n} Clients pro HWID — der 5. Slot wird beim Login wahrscheinlich abgelehnt.",
@@ -1091,6 +1197,7 @@ const I18N = {
     fillFail: "Eintragen nicht möglich:\n{why}",
     noWindow: "der Client hat noch kein Fenster", noAccount: "Konto nicht eingerichtet", badPassword: "gespeichertes Passwort nicht lesbar (bitte neu speichern)",
     accTitle: "Konto — {name}", accPassword: "Passwort", accAuto: "Automatisch einloggen, wenn über das Panel geöffnet",
+    accEnter: "Nach dem Login mit dem zuletzt gespielten Charakter ins Spiel gehen",
     accKeep: "•••••• (gespeichert — leer lassen zum Behalten)", confirmClearAcc: "Gespeicherten Login und Passwort von \"{name}\" löschen?",
     accNote: "Das Passwort wird von Windows verschlüsselt (nur dein Benutzer auf diesem PC kann es lesen). Achtung: L2Axis legt ein neues Konto an, wenn der Login nicht existiert — Schreibweise prüfen.",
     netAvg: "Schnitt", netJitter: "Jitter", netServer: "Server {ip} (Deutschland) · alle 2s gemessen · letzte 2 Min.",
@@ -1185,7 +1292,7 @@ const I18N = {
     aboutServer: "Game Master von L2Axis · High Five x15",
     aboutThanks: "Ein Panel von Spielern für die L2Axis-Community. Danke, {name}, dass du den Server am Leben hältst!",
     linkSite: "L2Axis-Website", linkForum: "Forum", linkNews: "News / Patches", linkDonate: "Spenden", linkRules: "Regeln",
-    a_launchFail: "{slot} konnte nicht geöffnet werden: {err}", a_voteReady: "Vote verfügbar: {name}", a_timerDone: "Timer fertig: {name}",
+    a_launchFail: "{slot} konnte nicht geöffnet werden: {err}", a_voteReady: "Vote verfügbar: {name}", a_disconnected: "{slot} getrennt: Verbindung zum Server verloren", a_dead: "{slot} ist gestorben!", a_crashed: "{slot} hat sich selbst beendet (Absturz oder getrennt)", a_hpLow: "{slot}: HP bei {pct}%", a_mpLow: "{slot}: MP bei {pct}%", a_timerDone: "Timer fertig: {name}",
     a_bossSpawn: "Boss gespawnt: {name}",
   },
 };
@@ -1289,6 +1396,7 @@ async function accountDlg(i) {
   $("#aPwd").value = "";
   $("#aPwd").placeholder = acc.hasPassword ? t("accKeep") : "";
   $("#aAuto").checked = acc.auto;
+  $("#aEnter").checked = acc.enter;
   $("#accModal").classList.add("show");
   $("#aLogin").focus();
   const close = () => { $("#accModal").classList.remove("show"); $("#aPwd").value = ""; };
@@ -1301,7 +1409,7 @@ async function accountDlg(i) {
     const login = $("#aLogin").value.trim();
     if (!login) { $("#aLogin").focus(); return; }
     if (!acc.hasPassword && !$("#aPwd").value) { $("#aPwd").focus(); return; }
-    await api.set_account(i, login, $("#aPwd").value, $("#aAuto").checked);
+    await api.set_account(i, login, $("#aPwd").value, $("#aAuto").checked, $("#aEnter").checked);
     close();
   };
 }
@@ -1362,6 +1470,12 @@ function buildSlots() {
         <button class="b ico" data-a="close">${ICON.power}</button>
       </div>
       <div class="row movers"></div>`;
+    d.ondragstart = e => {
+      if (e.target !== d) return;
+      d.classList.add("dragging");
+      startDrag(e, i);
+    };
+    d.ondragend = endDrag;
     const inp = d.querySelector("input");
     inp.value = s.name;
     inp.addEventListener("change", async () => { inp.value = await api.rename(i, inp.value); });
@@ -1422,15 +1536,50 @@ function renderMonitors() {
   box.style.height = Math.max(60, Math.round((maxY - minY) * k) + 6) + "px";
   const sorted = mons.map((m, i) => ({ ...m, i })).sort((a, b) => a.x - b.x);
   box.innerHTML = sorted.map((m, order) => {
-    const chips = S.slots.filter(s => s.monitor === m.i).map(s => `<span class="chip2">${esc(s.name)}</span>`).join("");
+    const chips = S.slots.map((s, i) => [s, i]).filter(([s]) => s.monitor === m.i)
+      .map(([s, i]) => `<span class="chip2" draggable="true" data-slot="${i}" title="${esc(t("tipDrag"))}">${esc(s.name)}</span>`).join("");
     return `<div class="mon" data-mon="${m.i}" title="${esc(t("tipMonClick", { n: m.i + 1 }))}"
       style="left:${Math.round((m.x - minX) * k + order * gap)}px;top:${Math.round((m.y - minY) * k)}px;width:${Math.round(m.w * k)}px;height:${Math.round(m.h * k)}px">
       <div class="n">${m.i + 1}${m.primary ? " ★" : ""}</div><div class="res">${esc(m.res)}</div><div class="chips">${chips}</div></div>`;
   }).join("");
-  box.querySelectorAll("[data-mon]").forEach(el => el.onclick = async () => {
-    $("#winMsg").textContent = await api.tile(el.dataset.mon) ? t("winTiled") : t("winNone");
-    loopNow();
+  box.querySelectorAll("[data-mon]").forEach(el => {
+    el.onclick = async () => {
+      $("#winMsg").textContent = await api.tile(el.dataset.mon) ? t("winTiled") : t("winNone");
+      loopNow();
+    };
+    el.ondragover = e => { if (dragSlot != null) { e.preventDefault(); el.classList.add("drop"); } };
+    el.ondragleave = () => el.classList.remove("drop");
+    el.ondrop = async e => {
+      e.preventDefault();
+      el.classList.remove("drop");
+      const i = dragSlot;
+      endDrag();
+      if (i == null) return;
+      await api.move_to_monitor(i, +el.dataset.mon);
+      loopNow();
+    };
   });
+  box.querySelectorAll(".chip2[data-slot]").forEach(c => {
+    c.onclick = e => e.stopPropagation();
+    c.ondragstart = e => startDrag(e, +c.dataset.slot);
+    c.ondragend = endDrag;
+  });
+}
+
+// drag a client (its card, or its chip on the monitor map) onto a monitor
+let dragSlot = null;
+function startDrag(e, i) {
+  dragSlot = i;
+  e.dataTransfer.effectAllowed = "move";
+  e.dataTransfer.setData("text/plain", String(i));
+  $("#monMap").classList.add("dragon");
+  $("#winMsg").textContent = t("dropHere");
+}
+function endDrag() {
+  dragSlot = null;
+  document.querySelectorAll(".slot.dragging").forEach(x => x.classList.remove("dragging"));
+  document.querySelectorAll(".mon.drop").forEach(x => x.classList.remove("drop"));
+  $("#monMap").classList.remove("dragon");
 }
 
 function renderMovers(d, s, i) {
@@ -1494,6 +1643,10 @@ function build() {
   $("#oRename").onchange = e => api.set_option("renameWindows", e.target.checked);
   $("#oCharsel").checked = S.toCharselect;
   $("#oCharsel").onchange = e => api.set_option("toCharselect", e.target.checked);
+  $("#oBars").checked = S.barAlerts;
+  $("#oBars").onchange = e => api.set_option("barAlerts", e.target.checked);
+  $("#oEvAlerts").checked = S.eventAlerts;
+  $("#oEvAlerts").onchange = e => api.set_option("eventAlerts", e.target.checked);
   $("#oDelay").value = S.loginDelay;
   $("#oDelay").onchange = async e => { e.target.value = await api.set_login_delay(e.target.value || 15); };
   // the whole window fades (layered window); the page itself stays opaque
@@ -1646,7 +1799,10 @@ function build() {
   // ?view=... opens a given screen directly (used to generate screenshots)
   const view = new URLSearchParams(location.search).get("view");
   if (view === "about") $("#gmBadge").click();
-  else if (view) document.querySelector(`.tab[data-p="${view.split(":")[0]}"]`)?.click();
+  else if (view) {
+    document.querySelector(`.tab[data-p="${view.split(":")[0]}"]`)?.click();
+    if (view.startsWith("ev:")) evOpen.add(view.slice(3));  // screenshots: open one event
+  }
   if (view && view.startsWith("boss:")) openBoss = view.split(":")[1];
 }
 
@@ -1689,11 +1845,20 @@ function render() {
     if (!s) return;
     renderMovers(d, s, i);
     d.querySelector('[data-a="remove"]').style.visibility = (s.pid || s.pending || S.slots.length <= 1) ? "hidden" : "visible";
-    d.querySelector(".dot").className = "dot " + (s.pid ? (s.window ? "g" : "y") : s.pending ? "y" : "");
+    d.querySelector(".dot").className = "dot " + (s.net === "lost" ? "r" : s.pid ? (s.window ? "g" : "y") : s.pending ? "y" : "");
+    d.classList.toggle("dc", s.net === "lost");
+    d.draggable = !!s.window;
+    d.title = s.window ? t("tipDrag") : "";
     d.classList.toggle("on", !!s.pid);
     const autoTag = s.account.auto ? ` (${t("auto")})` : "";
+    const run = s.pid ? t("runningInfo", { pid: s.pid, ram: s.ram ? fmtNum(Math.round(s.ram)) + " MB" : "—", up: fmt(s.uptime) }) : "";
+    const status = !s.pid ? null : s.net === "lost" ? "⚠ " + t("stDc")
+      : s.inWorld ? [s.bars ? (s.bars.hp === 0 ? "☠" : `HP ${s.bars.hp}% MP ${s.bars.mp}%`) : t("stInGame"), s.region,
+                     s.online != null ? t("stOnline", { t: fmt(s.online) }) : null].filter(Boolean).join(" · ")
+      : s.net === "game" ? t("stLoading") : null;
+    d.querySelector(".info").title = run;
     d.querySelector(".info").textContent = s.pid
-      ? t("runningInfo", { pid: s.pid, ram: s.ram ? fmtNum(Math.round(s.ram)) + " MB" : "—", up: fmt(s.uptime) })
+      ? (status || run)
       : s.pending ? t("opening") : (s.account.login ? `${t("stopped")} · 🔑 ${s.account.login}${autoTag}` : t("stopped"));
     const inp = d.querySelector("input");
     if (document.activeElement !== inp && inp.value !== s.name) inp.value = s.name;
@@ -1736,6 +1901,73 @@ function render() {
 
   renderBosses();
   renderTimers();
+  renderEvents();
+}
+
+// server events: live status from the announcements read in the chat, else the schedule
+const evOpen = new Set();
+function evStatus(e, now) {
+  const live = (S.eventLive || {})[e.key];
+  const since = e.last != null ? now - e.last : null;
+  const left = e.next != null ? e.next - now : null;
+  const clock = ts => new Date(ts * 1000).toLocaleTimeString(LOCALES[LANG], { hour: "2-digit", minute: "2-digit" });
+  if (live && now - live.at < 3 * 3600) {
+    const ago = now - live.at;
+    if (live.state === "cancelled" && ago < 3600) return { txt: t("evCancelled", { at: clock(live.at) }), cls: "bad", rank: 5e8 };
+    if (live.state === "ended" && ago < 3600) return { txt: t("evEnded", { t: fmt(ago) }), cls: "", rank: 5e8 };
+    if (live.state === "reg" || live.state === "soon") {
+      // the schedule is exact; the announcement may have been read late
+      const st = left != null && left > 0 && left < 45 * 60 ? e.next : live.start;
+      if (st && st > now) return { txt: t(live.state === "reg" ? "evReg" : "evSoon", { t: fmt(st - now) }), cls: "now", rank: -1e8 + (st - now) };
+      if (st && now - st < e.dur * 60) return { txt: t("evStarted", { t: fmt(now - st) }), cls: "now", rank: -1e9 };
+    }
+    if (live.state === "started" && ago < e.dur * 60)
+      return { txt: t(e.kind === "restart" ? "evSpawned" : "evStarted", { t: fmt(ago) }), cls: "now", rank: -1e9 };
+  }
+  if (since != null && since < e.dur * 60) return { txt: t(e.kind === "restart" ? "evSpawned" : "evStarted", { t: fmt(since) }), cls: "now", rank: -1e9 };
+  if (left != null && e.reg && left <= e.reg * 60) return { txt: t("evReg", { t: fmt(left) }), cls: "now", rank: -1e8 + left };
+  if (e.next != null) {
+    const at = new Date(e.next * 1000).toLocaleString(LOCALES[LANG], { weekday: left > 86400 ? "short" : undefined, hour: "2-digit", minute: "2-digit" });
+    return { txt: t("evIn", { t: fmt(left), at }), cls: left < 3600 ? "soon" : "", rank: left };
+  }
+  return { txt: t(e.kind === "chat" ? "evChat" : "evWaitAnn"), cls: "", rank: 1e12 };
+}
+
+function renderEvents() {
+  const box = $("#events");
+  if (!box || !S.events) return;
+  const now = Date.now() / 1000;
+  const sts = Object.fromEntries(S.events.map(e => [e.key, evStatus(e, now)]));
+  const evs = [...S.events].sort((a, b) => sts[a.key].rank - sts[b.key].rank);
+  const sig = evs.map(e => e.key).join(",") + LANG;
+  if (box.dataset.sig !== sig) {
+    box.dataset.sig = sig;
+    box.innerHTML = evs.map(e => `<div class="ev" data-ev="${e.key}"><div class="top"><span class="nm"></span><span class="when"></span></div>
+      <div class="det"><div class="how"></div><div><b>${esc(t("evRewards"))}:</b> <span class="drops"></span></div></div></div>`).join("");
+    S.events.forEach(e => {
+      const el = box.querySelector(`[data-ev="${e.key}"]`);
+      el.querySelector(".nm").textContent = e.name;
+      el.querySelector(".how").textContent = t("ev_" + e.key);
+      el.querySelector(".drops").textContent = e.drops;
+      el.classList.toggle("open", evOpen.has(e.key));
+      el.onclick = () => { evOpen.has(e.key) ? evOpen.delete(e.key) : evOpen.add(e.key); el.classList.toggle("open"); };
+    });
+  }
+  S.events.forEach(e => {
+    const w = box.querySelector(`[data-ev="${e.key}"] .when`);
+    w.textContent = sts[e.key].txt;
+    w.className = "when " + sts[e.key].cls;
+  });
+  // latest announcements read in the chat
+  $("#evChatState").textContent = S.chatReading ? t("evChatOn") : t("evChatOff");
+  const anns = (S.announces || []).slice().reverse();
+  const asig = anns.map(a => a.t).join(",");
+  const ab = $("#announces");
+  if (ab.dataset.sig !== asig) {
+    ab.dataset.sig = asig;
+    ab.innerHTML = anns.length ? anns.map(a => `<div class="ann"><span class="at">${esc(new Date(a.t * 1000).toLocaleTimeString(LOCALES[LANG], { hour: "2-digit", minute: "2-digit" }))}</span><span class="tx">${esc(a.text)}</span></div>`).join("")
+      : `<div class="small" style="padding:4px">${esc(t("evFeedEmpty"))}</div>`;
+  }
 }
 
 function renderTimers() {
