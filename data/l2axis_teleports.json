@@ -2,11 +2,11 @@
 "source": "Destinations of the L2Axis community board teleport (Alt+B), as shown in game",
 "points": [
 {
-"id": 1,
-"name": "Forsaken Plains",
-"x": 168289,
-"y": 38036,
-"z": -4096
+"id": 58,
+"name": "Abandoned Camp",
+"x": -56742,
+"y": 140569,
+"z": -2625
 },
 {
 "id": 2,
@@ -16,6 +16,55 @@
 "z": -3424
 },
 {
+"id": 162,
+"name": "Ancient Evil's Village",
+"x": 20552,
+"y": 250328,
+"z": -2004
+},
+{
+"id": 87,
+"name": "Anomic Foundry",
+"x": 26584,
+"y": 248360,
+"z": -2896
+},
+{
+"id": 55,
+"name": "Antharas Lair",
+"x": 131355,
+"y": 114451,
+"z": -3718
+},
+{
+"id": 85,
+"name": "Battered Lands",
+"x": 248,
+"y": 235096,
+"z": -3292
+},
+{
+"id": 117,
+"name": "Beast Farm",
+"x": 52270,
+"y": -81456,
+"z": -2767
+},
+{
+"id": 26,
+"name": "Bee Hive",
+"x": 34168,
+"y": 187464,
+"z": -3096
+},
+{
+"id": 89,
+"name": "Beleth's Mutated Elpy",
+"x": -4156,
+"y": 255301,
+"z": -3139
+},
+{
 "id": 3,
 "name": "Blazing Swamp",
 "x": 146828,
@@ -23,67 +72,25 @@
 "z": -4455
 },
 {
-"id": 4,
-"name": "Fields of Massacre",
-"x": 183536,
-"y": -14906,
-"z": -2776
+"id": 51,
+"name": "Breka's Stronghold",
+"x": 85896,
+"y": 131576,
+"z": -3697
 },
 {
-"id": 5,
-"name": "Silent Valley",
-"x": 170747,
-"y": 55794,
-"z": -5264
+"id": 123,
+"name": "Brigand Stronghold",
+"x": 126272,
+"y": -159336,
+"z": -1232
 },
 {
-"id": 6,
-"name": "Cemetery",
-"x": 172136,
-"y": 20325,
-"z": -3326
-},
-{
-"id": 7,
-"name": "The Forbidden Gateway",
-"x": 188488,
-"y": 20616,
-"z": -3680
-},
-{
-"id": 8,
-"name": "Seal of Shilen",
-"x": 184504,
-"y": 19720,
-"z": -3168
-},
-{
-"id": 11,
-"name": "Frintezza (Instance)",
-"x": 181378,
-"y": -80718,
-"z": -2730
-},
-{
-"id": 12,
-"name": "Freya (Instance)",
-"x": 103464,
-"y": -124456,
-"z": -2768
-},
-{
-"id": 13,
-"name": "Ancient Evil's Village",
-"x": 20552,
-"y": 250328,
-"z": -2004
-},
-{
-"id": 14,
-"name": "Catacomb: Branded",
-"x": 46542,
-"y": 170305,
-"z": -4979
+"id": 86,
+"name": "Caravan Encampment",
+"x": -4156,
+"y": 255301,
+"z": -3139
 },
 {
 "id": 15,
@@ -93,11 +100,18 @@
 "z": -8163
 },
 {
-"id": 16,
-"name": "Catacomb: Witch",
-"x": 140690,
-"y": 79679,
-"z": -5429
+"id": 14,
+"name": "Catacomb: Branded",
+"x": 46542,
+"y": 170305,
+"z": -4979
+},
+{
+"id": 18,
+"name": "Catacomb: Dark Omens",
+"x": -19176,
+"y": 13504,
+"z": -4899
 },
 {
 "id": 17,
@@ -107,11 +121,25 @@
 "z": -9585
 },
 {
-"id": 18,
-"name": "Catacomb: Dark Omens",
-"x": -19176,
-"y": 13504,
-"z": -4899
+"id": 16,
+"name": "Catacomb: Witch",
+"x": 140690,
+"y": 79679,
+"z": -5429
+},
+{
+"id": 6,
+"name": "Cemetery",
+"x": 172136,
+"y": 20325,
+"z": -3326
+},
+{
+"id": 80,
+"name": "Chromatic Highlands",
+"x": 152392,
+"y": 151288,
+"z": -3480
 },
 {
 "id": 20,
@@ -128,60 +156,18 @@
 "z": -3439
 },
 {
-"id": 22,
-"name": "Plains of Dion",
-"x": 685,
-"y": 179174,
-"z": -3728
+"id": 121,
+"name": "Crypts of Disgrace",
+"x": 47692,
+"y": -115745,
+"z": -3744
 },
 {
-"id": 23,
-"name": "Partisan's Hideaway",
-"x": 50394,
-"y": 121802,
-"z": -2410
-},
-{
-"id": 24,
-"name": "Execution Grounds",
-"x": 51055,
-"y": 141959,
-"z": -2869
-},
-{
-"id": 25,
-"name": "Floran Village",
-"x": 17144,
-"y": 170156,
-"z": -3504
-},
-{
-"id": 26,
-"name": "Bee Hive",
-"x": 34168,
-"y": 187464,
-"z": -3096
-},
-{
-"id": 49,
-"name": "Tanor Canyon",
-"x": 56184,
-"y": 162824,
-"z": -2768
-},
-{
-"id": 50,
-"name": "Devil's Isle",
-"x": 43384,
-"y": 206952,
-"z": -3752
-},
-{
-"id": 51,
-"name": "Breka's Stronghold",
-"x": 85896,
-"y": 131576,
-"z": -3697
+"id": 116,
+"name": "Cursed Village",
+"x": 59425,
+"y": -47753,
+"z": -2562
 },
 {
 "id": 52,
@@ -191,11 +177,18 @@
 "z": -3804
 },
 {
-"id": 53,
-"name": "Hardin's Private Academy",
-"x": 105996,
-"y": 109742,
-"z": -3208
+"id": 126,
+"name": "Den of Evil",
+"x": 76860,
+"y": -125169,
+"z": -3414
+},
+{
+"id": 50,
+"name": "Devil's Isle",
+"x": 43384,
+"y": 206952,
+"z": -3752
 },
 {
 "id": 54,
@@ -205,25 +198,11 @@
 "z": -3704
 },
 {
-"id": 55,
-"name": "Antharas Lair",
-"x": 131355,
-"y": 114451,
-"z": -3718
-},
-{
-"id": 57,
-"name": "Windy Hill",
-"x": -88581,
-"y": 83473,
-"z": -2896
-},
-{
-"id": 58,
-"name": "Abandoned Camp",
-"x": -56742,
-"y": 140569,
-"z": -2625
+"id": 24,
+"name": "Execution Grounds",
+"x": 51055,
+"y": 141959,
+"z": -2869
 },
 {
 "id": 59,
@@ -231,111 +210,6 @@
 "x": -66931,
 "y": 120296,
 "z": -3651
-},
-{
-"id": 60,
-"name": "Forgotten Temple",
-"x": -53838,
-"y": 179285,
-"z": -4640
-},
-{
-"id": 61,
-"name": "Orc Barracks",
-"x": -90562,
-"y": 108182,
-"z": -3546
-},
-{
-"id": 63,
-"name": "Ruins of Agony",
-"x": -56235,
-"y": 106668,
-"z": -3773
-},
-{
-"id": 64,
-"name": "Wasteland",
-"x": -23403,
-"y": 186599,
-"z": -4317
-},
-{
-"id": 65,
-"name": "The Ant Nest",
-"x": -9959,
-"y": 176184,
-"z": -4176
-},
-{
-"id": 66,
-"name": "Windawood Manor",
-"x": -28300,
-"y": 155178,
-"z": -3520
-},
-{
-"id": 67,
-"name": "Gludio Airship",
-"x": -149365,
-"y": 255309,
-"z": -80
-},
-{
-"id": 69,
-"name": "Varka Silenos Outpost",
-"x": 108275,
-"y": -53785,
-"z": -2524
-},
-{
-"id": 70,
-"name": "Pilgrims Temple",
-"x": 168505,
-"y": -86606,
-"z": -2992
-},
-{
-"id": 71,
-"name": "Wall of Argos",
-"x": 176886,
-"y": -50812,
-"z": -3394
-},
-{
-"id": 72,
-"name": "Imperial Tomb",
-"x": 188191,
-"y": -74959,
-"z": -2738
-},
-{
-"id": 73,
-"name": "Forge of the Gods",
-"x": 169018,
-"y": -116303,
-"z": -2432
-},
-{
-"id": 74,
-"name": "Monastery of Silence",
-"x": 107944,
-"y": -87728,
-"z": -2917
-},
-{
-"id": 75,
-"name": "Hot Springs",
-"x": 149616,
-"y": -112428,
-"z": -2065
-},
-{
-"id": 77,
-"name": "Garden of Eva",
-"x": 82744,
-"y": 241720,
-"z": -6712
 },
 {
 "id": 78,
@@ -352,158 +226,18 @@
 "z": -3656
 },
 {
-"id": 80,
-"name": "Chromatic Highlands",
-"x": 152392,
-"y": 151288,
-"z": -3480
+"id": 4,
+"name": "Fields of Massacre",
+"x": 183536,
+"y": -14906,
+"z": -2776
 },
 {
-"id": 81,
-"name": "Isle of Prayer",
-"x": 147816,
-"y": 193368,
-"z": -3600
-},
-{
-"id": 83,
-"name": "Steel Citadel",
-"x": 16296,
-"y": 283672,
-"z": -9704
-},
-{
-"id": 84,
-"name": "Battered Lands",
-"x": 248,
-"y": 235096,
-"z": -3292
-},
-{
-"id": 85,
-"name": "Caravan Encampment",
-"x": -4156,
-"y": 255301,
-"z": -3139
-},
-{
-"id": 86,
-"name": "Beleth's Mutated Elpy",
-"x": -4156,
-"y": 255301,
-"z": -3139
-},
-{
-"id": 87,
-"name": "Tower of Infinity",
-"x": 26584,
-"y": 248360,
-"z": -2896
-},
-{
-"id": 89,
-"name": "Anomic Foundry",
-"x": 26584,
-"y": 248360,
-"z": -2896
-},
-{
-"id": 93,
-"name": "South Enchanted Valley",
-"x": 124899,
-"y": 61995,
-"z": -3915
-},
-{
-"id": 94,
-"name": "Hardin's Private Academy",
-"x": 105751,
-"y": 113370,
-"z": -3199
-},
-{
-"id": 95,
-"name": "The Forest of Mirrors",
-"x": 142114,
-"y": 81338,
-"z": -3000
-},
-{
-"id": 97,
-"name": "Necropolis: Pilgrims",
-"x": 45249,
-"y": 123548,
-"z": -5411
-},
-{
-"id": 98,
-"name": "Necropolis: Worship",
-"x": 111552,
-"y": 174014,
-"z": -5440
-},
-{
-"id": 99,
-"name": "Necropolis: Patriot's",
-"x": -21423,
-"y": 77375,
-"z": -5171
-},
-{
-"id": 100,
-"name": "Necropolis: Devotion",
-"x": -51942,
-"y": 79096,
-"z": -4739
-},
-{
-"id": 101,
-"name": "Necropolis: Martyrdom",
-"x": 118576,
-"y": 132800,
-"z": -4832
-},
-{
-"id": 102,
-"name": "Necropolis: Saint's",
-"x": 83357,
-"y": 209207,
-"z": -5437
-},
-{
-"id": 103,
-"name": "Necropolis: Disciple's",
-"x": 172600,
-"y": -17599,
-"z": -4899
-},
-{
-"id": 105,
-"name": "Timak Outpost",
-"x": 67036,
-"y": 68779,
-"z": -3680
-},
-{
-"id": 106,
-"name": "Plains of the Lizardmen",
-"x": 87252,
-"y": 85514,
-"z": -3056
-},
-{
-"id": 107,
-"name": "Ivory Tower",
-"x": 85332,
-"y": 16186,
-"z": -3673
-},
-{
-"id": 108,
-"name": "Sea of Spores",
-"x": 62425,
-"y": 30856,
-"z": -3779
+"id": 25,
+"name": "Floran Village",
+"x": 17144,
+"y": 170156,
+"z": -3504
 },
 {
 "id": 109,
@@ -513,27 +247,6 @@
 "z": -3920
 },
 {
-"id": 110,
-"name": "Outlaw Forest",
-"x": 91609,
-"y": -12195,
-"z": -2440
-},
-{
-"id": 111,
-"name": "Sel Mahum Grounds",
-"x": 87373,
-"y": 61449,
-"z": -3664
-},
-{
-"id": 113,
-"name": "Swamp of Screams",
-"x": 93078,
-"y": -58289,
-"z": -2854
-},
-{
 "id": 114,
 "name": "Forest of the Dead",
 "x": 52063,
@@ -541,46 +254,39 @@
 "z": -3166
 },
 {
-"id": 115,
-"name": "Valley of Saints",
-"x": 67992,
-"y": -72012,
-"z": -3748
+"id": 73,
+"name": "Forge of the Gods",
+"x": 169018,
+"y": -116303,
+"z": -2432
 },
 {
-"id": 116,
-"name": "Cursed Village",
-"x": 59425,
-"y": -47753,
-"z": -2562
+"id": 60,
+"name": "Forgotten Temple",
+"x": -53838,
+"y": 179285,
+"z": -4640
 },
 {
-"id": 117,
-"name": "Beast Farm",
-"x": 52270,
-"y": -81456,
-"z": -2767
+"id": 1,
+"name": "Forsaken Plains",
+"x": 168289,
+"y": 38036,
+"z": -4096
 },
 {
-"id": 118,
-"name": "Stakato Nest",
-"x": 88040,
-"y": -45000,
-"z": -2144
+"id": 13,
+"name": "Freya (Instance)",
+"x": 103464,
+"y": -124456,
+"z": -2768
 },
 {
-"id": 119,
-"name": "Virgil",
-"x": 33064,
-"y": -48216,
-"z": 1782
-},
-{
-"id": 121,
-"name": "Crypts of Disgrace",
-"x": 47692,
-"y": -115745,
-"z": -3744
+"id": 12,
+"name": "Frintezza (Instance)",
+"x": 181378,
+"y": -80718,
+"z": -2730
 },
 {
 "id": 122,
@@ -590,11 +296,39 @@
 "z": -3628
 },
 {
-"id": 123,
-"name": "Brigand Stronghold",
-"x": 126272,
-"y": -159336,
-"z": -1232
+"id": 77,
+"name": "Garden of Eva",
+"x": 82744,
+"y": 241720,
+"z": -6712
+},
+{
+"id": 67,
+"name": "Gludio Airship",
+"x": -149365,
+"y": 255309,
+"z": -80
+},
+{
+"id": 94,
+"name": "Hardin's Private Academy",
+"x": 105751,
+"y": 113370,
+"z": -3199
+},
+{
+"id": 83,
+"name": "Hellbound Entrance",
+"x": -11736,
+"y": 236248,
+"z": -3293
+},
+{
+"id": 75,
+"name": "Hot Springs",
+"x": 149616,
+"y": -112428,
+"z": -2065
 },
 {
 "id": 124,
@@ -604,18 +338,109 @@
 "z": -865
 },
 {
-"id": 125,
-"name": "Valley of the Lords",
-"x": 23006,
-"y": -126115,
-"z": -870
+"id": 72,
+"name": "Imperial Tomb",
+"x": 188191,
+"y": -74959,
+"z": -2738
 },
 {
-"id": 126,
-"name": "Den of Evil",
-"x": 76860,
-"y": -125169,
-"z": -3414
+"id": 81,
+"name": "Isle of Prayer",
+"x": 147816,
+"y": 193368,
+"z": -3600
+},
+{
+"id": 107,
+"name": "Ivory Tower",
+"x": 85332,
+"y": 16186,
+"z": -3673
+},
+{
+"id": 172,
+"name": "Ixion's Nest",
+"x": -175528,
+"y": 154488,
+"z": 2712
+},
+{
+"id": 74,
+"name": "Monastery of Silence",
+"x": 107944,
+"y": -87728,
+"z": -2917
+},
+{
+"id": 100,
+"name": "Necropolis: Devotion",
+"x": -51942,
+"y": 79096,
+"z": -4739
+},
+{
+"id": 103,
+"name": "Necropolis: Disciple's",
+"x": 172600,
+"y": -17599,
+"z": -4899
+},
+{
+"id": 101,
+"name": "Necropolis: Martyrdom",
+"x": 118576,
+"y": 132800,
+"z": -4832
+},
+{
+"id": 99,
+"name": "Necropolis: Patriot's",
+"x": -21423,
+"y": 77375,
+"z": -5171
+},
+{
+"id": 97,
+"name": "Necropolis: Pilgrims",
+"x": 45249,
+"y": 123548,
+"z": -5411
+},
+{
+"id": 102,
+"name": "Necropolis: Saint's",
+"x": 83357,
+"y": 209207,
+"z": -5437
+},
+{
+"id": 98,
+"name": "Necropolis: Worship",
+"x": 111552,
+"y": 174014,
+"z": -5440
+},
+{
+"id": 61,
+"name": "Orc Barracks",
+"x": -90562,
+"y": 108182,
+"z": -3546
+},
+{
+"id": 110,
+"name": "Outlaw Forest",
+"x": 91609,
+"y": -12195,
+"z": -2440
+},
+{
+"id": 23,
+"name": "Partisan's Hideaway",
+"x": 50394,
+"y": 121802,
+"z": -2410
 },
 {
 "id": 127,
@@ -623,6 +448,160 @@
 "x": 88275,
 "y": -125690,
 "z": -3815
+},
+{
+"id": 171,
+"name": "Pendragon's Lair",
+"x": 144296,
+"y": 146664,
+"z": -12032
+},
+{
+"id": 70,
+"name": "Pilgrims Temple",
+"x": 168505,
+"y": -86606,
+"z": -2992
+},
+{
+"id": 22,
+"name": "Plains of Dion",
+"x": 685,
+"y": 179174,
+"z": -3728
+},
+{
+"id": 106,
+"name": "Plains of the Lizardmen",
+"x": 87252,
+"y": 85514,
+"z": -3056
+},
+{
+"id": 63,
+"name": "Ruins of Agony",
+"x": -56235,
+"y": 106668,
+"z": -3773
+},
+{
+"id": 108,
+"name": "Sea of Spores",
+"x": 62425,
+"y": 30856,
+"z": -3779
+},
+{
+"id": 8,
+"name": "Seal of Shilen",
+"x": 184504,
+"y": 19720,
+"z": -3168
+},
+{
+"id": 111,
+"name": "Sel Mahum Grounds",
+"x": 87373,
+"y": 61449,
+"z": -3664
+},
+{
+"id": 5,
+"name": "Silent Valley",
+"x": 170747,
+"y": 55794,
+"z": -5264
+},
+{
+"id": 93,
+"name": "South Enchanted Valley",
+"x": 124899,
+"y": 61995,
+"z": -3915
+},
+{
+"id": 118,
+"name": "Stakato Nest",
+"x": 88040,
+"y": -45000,
+"z": -2144
+},
+{
+"id": 84,
+"name": "Steel Citadel",
+"x": 16296,
+"y": 283672,
+"z": -9704
+},
+{
+"id": 113,
+"name": "Swamp of Screams",
+"x": 93078,
+"y": -58289,
+"z": -2854
+},
+{
+"id": 49,
+"name": "Tanor Canyon",
+"x": 56184,
+"y": 162824,
+"z": -2768
+},
+{
+"id": 65,
+"name": "The Ant Nest",
+"x": -9959,
+"y": 176184,
+"z": -4176
+},
+{
+"id": 7,
+"name": "The Forbidden Gateway",
+"x": 188488,
+"y": 20616,
+"z": -3680
+},
+{
+"id": 95,
+"name": "The Forest of Mirrors",
+"x": 142114,
+"y": 81338,
+"z": -3000
+},
+{
+"id": 105,
+"name": "Timak Outpost",
+"x": 67036,
+"y": 68779,
+"z": -3680
+},
+{
+"id": 88,
+"name": "Tower of Infinity",
+"x": 26584,
+"y": 248360,
+"z": -2896
+},
+{
+"id": 137,
+"name": "Tower of Insolence 10th Floor",
+"x": 118250,
+"y": 15858,
+"z": 5897
+},
+{
+"id": 138,
+"name": "Tower of Insolence 11th Floor",
+"x": 115824,
+"y": 17242,
+"z": 6760
+},
+{
+"id": 139,
+"name": "Tower of Insolence 12th Floor",
+"x": 113288,
+"y": 14692,
+"z": 7997
 },
 {
 "id": 129,
@@ -681,39 +660,67 @@
 "z": 4977
 },
 {
-"id": 137,
-"name": "Tower of Insolence 10th Floor",
-"x": 118250,
-"y": 15858,
-"z": 5897
+"id": 115,
+"name": "Valley of Saints",
+"x": 67992,
+"y": -72012,
+"z": -3748
 },
 {
-"id": 138,
-"name": "Tower of Insolence 11th Floor",
-"x": 115824,
-"y": 17242,
-"z": 6760
+"id": 125,
+"name": "Valley of the Lords",
+"x": 23006,
+"y": -126115,
+"z": -870
 },
 {
-"id": 139,
-"name": "Tower of Insolence 12th Floor",
-"x": 113288,
-"y": 14692,
-"z": 7997
+"id": 69,
+"name": "Varka Silenos Outpost",
+"x": 108275,
+"y": -53785,
+"z": -2524
 },
 {
-"id": 162,
-"name": "Ixion's Nest",
-"x": -175528,
-"y": 154488,
-"z": 2712
+"id": 119,
+"name": "Virgil",
+"x": 33064,
+"y": -48216,
+"z": 1782
 },
 {
-"id": 172,
-"name": "Pendragon's Lair",
-"x": 144296,
-"y": 146664,
-"z": -12032
+"id": 71,
+"name": "Wall of Argos",
+"x": 176886,
+"y": -50812,
+"z": -3394
+},
+{
+"id": 64,
+"name": "Wasteland",
+"x": -23403,
+"y": 186599,
+"z": -4317
+},
+{
+"id": 66,
+"name": "Windawood Manor",
+"x": -28300,
+"y": 155178,
+"z": -3520
+},
+{
+"id": 57,
+"name": "Windy Hill",
+"x": -88581,
+"y": 83473,
+"z": -2896
+},
+{
+"id": 11,
+"name": "Zaken (Instance)",
+"x": 52232,
+"y": 218792,
+"z": -3224
 }
 ]
 }

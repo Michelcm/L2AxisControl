@@ -2840,10 +2840,10 @@ class Api:
     def _on_board_teleports(self, pts):
         """Teleport page opened in Alt+B: remember its destinations (they feed the routes)."""
         with self._lock:
-            saved = {p["id"]: p for p in self._data.get("board_points", [])}
+            saved = {p["name"].lower(): p for p in self._data.get("board_points", [])}
             for p in pts:
-                saved[p["id"]] = p
-            self._data["board_points"] = sorted(saved.values(), key=lambda p: p["id"])
+                saved[p["name"].lower()] = p
+            self._data["board_points"] = sorted(saved.values(), key=lambda p: p["name"])
             self._board_points = load_board_teleports(self._data["board_points"])
             self._save()
 
@@ -3638,7 +3638,7 @@ def _load_map_db():
 
 # ---------------------------------------------------------------- Alt+B teleports and tower floors
 BOARD_TP_FILE = APP_DIR / "data" / "l2axis_teleports.json"
-DEBUG_BOARD = True  # keep a local copy of the Alt+B teleport pages (to check the parser)
+DEBUG_BOARD = False  # keep a local copy of the Alt+B teleport pages (to check the parser)
 # big regions without one name in the client's area list (label shown when zoomed out)
 MAP_REGIONS = [("Hellbound", 8000, 246000), ("Gracia · Seeds", -180000, 222000), ("Primeval Isle", 8480, -16000),
                ("Isle of Souls", -120000, 52000), ("Fantasy Isle", -60000, -50000)]
@@ -3658,7 +3658,8 @@ def tower_floor(x, y, z):
 
 
 def parse_board_teleports(text):
-    """Destinations of an Alt+B teleport page: each row is a button, the name, then x / y / z."""
+    """Destinations of an Alt+B teleport page. Each row is: the name (sometimes after "Point:",
+    sometimes with " - Lvl. 76+"), then x / y / z, then its button."""
     import html as _html
 
     def words(fragment):
@@ -3670,19 +3671,31 @@ def parse_board_teleports(text):
         return out
 
     found = []
-    ms = list(re.finditer(r'<button[^>]*?action="bypass[^"]*_bbsteleport;id;(\d+)"[^>]*>', text))
-    for k, m in enumerate(ms):
-        end = ms[k + 1].start() if k + 1 < len(ms) else m.end() + 800
-        after = words(text[m.end():end])
-        coords = {}
-        for i, w in enumerate(after):
-            if w in ("x:", "y:", "z:") and i + 1 < len(after) and w[0] not in coords:
+    ms = list(re.finditer(r'<button[^>]*?action="bypass[^"]*_bbsteleport;(id|page);([^"]+)"[^>]*>', text))
+    prev_end = 0
+    for m in ms:
+        before = words(text[prev_end:m.start()])
+        prev_end = m.end()
+        if m.group(1) != "id":
+            continue
+        coords, xi = {}, None
+        for i, w in enumerate(before):
+            if w in ("x:", "y:", "z:") and i + 1 < len(before):
                 try:
-                    coords[w[0]] = int(after[i + 1])
+                    coords[w[0]] = int(before[i + 1])
+                    xi = i if w == "x:" else xi
                 except ValueError:
                     pass
-        name = after[1] if after[:1] == ["Point:"] and len(after) > 1 else (after[0] if after and not after[0].isupper() else None)
-        if not name or len(coords) < 3 or name.startswith("<"):
+        if len(coords) < 3 or xi is None or xi == 0:
+            continue
+        k = xi - 1
+        while k > 0 and re.match(r"^(Lvl\.|Level|\d+\+?$)", before[k]):  # "Name - Lvl. 76+"
+            k -= 1
+        name = before[k]
+        if name == "Point:" or "____" in name:
+            continue
+        name = re.sub(r"\s+-\s+Lvl\..*$", "", re.sub(r"^Point:\s*", "", name)).strip()
+        if not name or name.startswith("<"):
             continue
         low = name.lower()
         if low in NECROPOLIS:
@@ -3691,7 +3704,7 @@ def parse_board_teleports(text):
             name = f"Catacomb: {name}"
         elif re.match(r"^\d+(st|nd|rd|th) floor$", low) and tower_floor(coords["x"], coords["y"], coords["z"]):
             name = f"Tower of Insolence {name}"
-        found.append({"id": int(m.group(1)), "name": name, **coords})
+        found.append({"id": int(m.group(2)), "name": name, **coords})
     return found
 
 
@@ -3700,12 +3713,12 @@ def load_board_teleports(saved):
     pts = {}
     try:
         for p in json.loads(BOARD_TP_FILE.read_text(encoding="utf-8")).get("points", []):
-            pts[p["id"]] = p
+            pts[p["name"].lower()] = p
     except (OSError, ValueError):
         pass
     for p in saved or []:
-        pts[p["id"]] = p
-    return sorted(pts.values(), key=lambda p: p["id"])
+        pts[p["name"].lower()] = p
+    return sorted(pts.values(), key=lambda p: p["name"])
 
 
 def load_hunting_zones():
