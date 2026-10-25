@@ -317,13 +317,14 @@
   .spd button.b { padding: 0 4px; height: 16px; font-size: 10px; }
   /* map markers */
   .bpin, .spot, .tpt { position: absolute; cursor: pointer; transform: translate(-50%, -50%); line-height: 0; }
-  .bpin svg, .spot svg, .tpt svg, .lg .ic svg, .acct svg { display: block; filter: drop-shadow(0 0 1px #000) drop-shadow(0 1px 1px #000); }
+  .bpin svg, .spot svg, .tpt svg, .lg .ic svg, .acct svg { display: block; filter: drop-shadow(0 0 1px #000) drop-shadow(0 0 1px #000) drop-shadow(0 1px 2px #000); }
   .bpin svg { width: 16px; height: 16px; }
   .bpin.epic svg { width: 21px; height: 21px; }
   .bpin.alive svg, .ic.alive svg { fill: #7fd36b; }
   .bpin.maybe svg, .ic.maybe svg { fill: #e8c547; }
-  .bpin.dead svg, .ic.dead svg { fill: #6e655a; opacity: .85; }
-  .bpin.epic.dead svg { fill: #8a6d4a; }
+  .bpin.dead svg, .ic.dead svg { fill: #c9c0b0; }
+  .bpin.dead .h { fill: #3a342b; }
+  .bpin.epic.dead svg { fill: #d8b98a; }
   .bpin .h, .ic .h { fill: #1b1a17; }
   .bpin.maybe { animation: pinpulse 1.4s ease-in-out infinite; }
   @keyframes pinpulse { 50% { filter: drop-shadow(0 0 5px #e8c547); } }
@@ -348,6 +349,12 @@
   .acct svg { width: 11px; height: 11px; fill: #9fe38a; }
   .maplegend { position: absolute; left: 4px; bottom: 4px; background: rgba(10,9,7,.82); border: 1px solid #4a4232;
                border-radius: 3px; padding: 3px 6px; font-size: 10px; color: #e8dcc0; }
+  .mapfilter { position: absolute; left: 50%; top: 4px; transform: translateX(-50%); z-index: 6; display: flex; align-items: center;
+               gap: 6px; background: rgba(10,9,7,.85); border: 1px solid var(--gold); border-radius: 3px; padding: 2px 6px;
+               font-size: 10px; color: var(--gold-hi); white-space: nowrap; }
+  .mapfilter button.b { height: 16px; padding: 0 6px; font-size: 10px; }
+  .bpin.faded { opacity: .55; transform: translate(-50%, -50%) scale(.75); }
+  .bpin.faded .bl { display: none !important; }
   .maplegend .lgh { cursor: pointer; color: var(--gold-hi); font-weight: bold; line-height: 15px; }
   .maplegend .lgb { display: none; }
   .maplegend.open .lgb { display: block; }
@@ -656,6 +663,7 @@
     <div class="sidemap">
       <div class="mapview" id="mapView">
         <div class="maploading small" id="mapLoading"></div>
+        <div class="mapfilter" id="mapFilter" style="display:none"><span></span><button class="b" id="mapFilterClear"></button></div>
         <img id="mapImg" alt="" draggable="false">
         <svg id="mapSvg"></svg>
         <div id="mapPins"></div>
@@ -1053,6 +1061,7 @@ const I18N = {
     spYieldTip: "Média de itens por spoil (chance × quantidade média)", spCount: "{n} pontos de spawn",
     spPick: "Clique num ponto verde para ver o caminho.", spHMob: "Mob", spHLv: "Nv", spHArea: "Área", spHChance: "Chance", spHQty: "Qtd", spHAvg: "Média", sideSpoil: "Mapa — spoil",
     spNote: "Chances oficiais do High Five (datapack L2J); o L2Axis tem spoil x15. A última coluna é a média de itens por spoil. 🗺 mostra onde o mob nasce e o caminho.",
+    mapFiltered: "Filtro da lista: {shown} de {n} em destaque", mapFilterClear: "Mostrar todos",
     lgTitle: "Legenda", lgAlive: "Boss vivo", lgDead: "Boss morto (tempo até nascer)", lgMaybe: "Talvez já nasceu", lgEpic: "Épico (coroa)",
     lgTp: "Teleporte do Alt+B", lgNames: "Nomes das áreas", lgAcc: "Região da sua conta", lgSpoil: "Onde o mob nasce",
     sideTitle: "Mapa dos bosses", tipSide: "Abrir/fechar o mapa ao lado", tipSideClose: "Fechar o mapa",
@@ -1220,6 +1229,7 @@ const I18N = {
     spYieldTip: "Average items per spoil (chance × average amount)", spCount: "{n} spawn points",
     spPick: "Click a green spot to see the way.", spHMob: "Monster", spHLv: "Lv", spHArea: "Area", spHChance: "Chance", spHQty: "Qty", spHAvg: "Avg", sideSpoil: "Map — spoil",
     spNote: "Official High Five chances (L2J datapack); L2Axis has spoil x15. The last column is the average items per spoil. 🗺 shows where the monster spawns and the way there.",
+    mapFiltered: "List filter: {shown} of {n} highlighted", mapFilterClear: "Show all",
     lgTitle: "Legend", lgAlive: "Boss alive", lgDead: "Boss dead (time to respawn)", lgMaybe: "Maybe spawned", lgEpic: "Epic (crown)",
     lgTp: "Alt+B teleport", lgNames: "Area names", lgAcc: "Your account's area", lgSpoil: "Where the monster spawns",
     sideTitle: "Bosses map", tipSide: "Open/close the map on the side", tipSideClose: "Close the map",
@@ -1387,6 +1397,7 @@ const I18N = {
     spYieldTip: "Durchschnittliche Items pro Spoil (Chance × durchschnittliche Menge)", spCount: "{n} Spawnpunkte",
     spPick: "Klick auf einen grünen Punkt zeigt den Weg.", spHMob: "Monster", spHLv: "Lv", spHArea: "Gebiet", spHChance: "Chance", spHQty: "Menge", spHAvg: "Ø", sideSpoil: "Karte — Spoil",
     spNote: "Offizielle High-Five-Chancen (L2J-Datapack); L2Axis hat Spoil x15. Letzte Spalte = durchschnittliche Items pro Spoil. 🗺 zeigt, wo das Monster spawnt, und den Weg.",
+    mapFiltered: "Listenfilter: {shown} von {n} hervorgehoben", mapFilterClear: "Alle zeigen",
     lgTitle: "Legende", lgAlive: "Boss lebt", lgDead: "Boss tot (Zeit bis Respawn)", lgMaybe: "Vielleicht erschienen", lgEpic: "Episch (Krone)",
     lgTp: "Alt+B-Teleport", lgNames: "Gebietsnamen", lgAcc: "Gebiet deines Kontos", lgSpoil: "Wo das Monster spawnt",
     sideTitle: "Bosskarte", tipSide: "Karte daneben öffnen/schließen", tipSideClose: "Karte schließen",
@@ -2570,7 +2581,15 @@ function renderBossMap(list) {
   if (sideMode === "spoil") return renderSpoilMap();
   const box = $("#mapPins");
   const accts = (S.slots || []).filter(s => s.tile);
-  const sig = LANG + "|" + mapSel + "|" + list.map(b => b.id + bossStatus(b).cls + (b.remaining > 0 ? "d" : "")).join(",") + "|" + accts.map(s => s.name + s.tile).join(",");
+  const all = S.bosses || [];
+  const inList = new Set(list.map(b => b.id));
+  const filtered = list.length < all.length;
+  const sig = LANG + "|" + mapSel + "|" + all.map(b => b.id + bossStatus(b).cls + (b.remaining > 0 ? "d" : "") + (inList.has(b.id) ? "" : "f")).join(",") + "|" + accts.map(s => s.name + s.tile).join(",");
+  const fb = $("#mapFilter");
+  fb.style.display = filtered ? "" : "none";
+  if (filtered) {
+    fb.querySelector("span").textContent = t("mapFiltered", { shown: list.length, n: all.length });
+  }
   if (box.dataset.sig !== sig) {
     box.dataset.sig = sig;
     let html = mapLabelsHtml();
@@ -2580,10 +2599,11 @@ function renderBossMap(list) {
       const [tx, ty] = s.tile.split("_").map(Number);
       html += `<div class="acct" data-x="${(tx - 20) * 32768}" data-y="${(ty - 18) * 32768}"><span>${MAPICON.char}${esc(s.name)}</span></div>`;
     });
-    list.filter(b => b.x != null && (b.x || b.y)).forEach(b => {
+    all.filter(b => b.x != null && (b.x || b.y)).forEach(b => {
       const st = bossStatus(b);
       const cls = st.cls === "alive" ? "alive" : st.cls === "soon" && !(b.remaining > 0) ? "maybe" : "dead";
-      html += `<div class="bpin ${cls} ${b.type === "epic" ? "epic" : ""} ${mapSel === b.id ? "sel" : ""}" data-layer="${cls === "dead" ? "dead" : "alive"}"
+      const faded = filtered && !inList.has(b.id) && mapSel !== b.id;
+      html += `<div class="bpin ${cls} ${b.type === "epic" ? "epic" : ""} ${mapSel === b.id ? "sel" : ""} ${faded ? "faded" : ""}" data-layer="${cls === "dead" ? "dead" : "alive"}"
         data-x="${b.x}" data-y="${b.y}" data-pin="${esc(b.id)}" title="${esc(b.name + (b.level ? " · " + b.level : "") + " · " + st.txt)}">
         ${b.type === "epic" ? MAPICON.crown : MAPICON.skull}${cls === "maybe" ? '<i class="q">?</i>' : ""}
         <span class="bl">${esc(b.name)}${b.level ? ` <em>${esc(b.level)}</em>` : ""}</span>
@@ -2600,8 +2620,8 @@ function renderBossMap(list) {
     });
   }
   box.querySelectorAll("[data-bt]").forEach(el => {
-    const b = list.find(x => x.id === el.dataset.bt);
-    el.textContent = b && b.remaining > 0 ? fmt(b.remaining) : "";
+    const b = all.find(x => x.id === el.dataset.bt);
+    el.textContent = b && b.remaining > 0 && !el.parentElement.classList.contains("faded") ? fmt(b.remaining) : "";
   });
   layoutMap();
   renderSideList(list);
@@ -2678,7 +2698,23 @@ function renderRoute() {
     e.target.textContent = t("copied");
   };
 }
+function clearBossFilters() {
+  bossFilter = "all";
+  document.querySelectorAll("[data-bf]").forEach(x => x.classList.toggle("on", x.dataset.bf === "all"));
+  $("#bSearch").value = "";
+  Object.assign(bossView, { range: "", min: "", max: "" });
+  $("#bRange").value = "";
+  $("#bLvMin").value = ""; $("#bLvMax").value = "";
+  $("#bRange").dispatchEvent(new Event("change"));  // the tab's own handler hides the min/max boxes
+  if (typeof saveBossView === "function") saveBossView();
+  $("#bosses").dataset.sig = "";
+  $("#mapPins").dataset.sig = "";
+  renderBosses();
+}
+
 function initBossMap() {
+  $("#mapFilterClear").textContent = t("mapFilterClear");
+  $("#mapFilterClear").onclick = clearBossFilters;
   document.querySelectorAll("[data-bm]").forEach(x => x.onclick = () =>
     setBossMode(bossMode === "map" && sideMode === "boss" ? "list" : "map"));
   $("#bSide").onclick = () => setBossMode(bossMode === "map" ? "list" : "map");
