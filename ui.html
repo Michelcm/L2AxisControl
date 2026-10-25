@@ -829,6 +829,12 @@
           <option value="best" data-i18n="spSortBest"></option>
           <option value="name" data-i18n="spSortName"></option>
           <option value="level" data-i18n="spSortLevel"></option>
+          <option value="grade" data-i18n="spSortGrade"></option>
+        </select>
+        <select class="e" id="spGroup">
+          <option value="cat" data-i18n="spGroupCat"></option>
+          <option value="grade" data-i18n="spGroupGrade"></option>
+          <option value="none" data-i18n="spGroupNone"></option>
         </select>
       </div>
       <div class="spcats" id="spCats"></div>
@@ -1075,7 +1081,7 @@ const I18N = {
     ev_aq: "Raid boss de evento que nasce 6 h depois do restart e depois a cada 17 h.",
     ev_pk: "Raid boss de evento que nasce 9 h depois do restart e depois a cada 19 h.",
     ev_zombie: "Zumbis invadem as cidades todo sábado e domingo às 20:00 GMT (horário mostrado já no seu fuso). Mate os zumbis nas cidades. Ring of Zombie: Precisão, P. Def. +6%, M. Def. +6%.",
-    spMobLv: "Nível do mob", spSortBest: "Melhor média", spSortName: "Nome", spSortLevel: "Nível do mob",
+    spMobLv: "Nível do mob", spSortBest: "Melhor média", spSortName: "Nome", spSortLevel: "Nível do mob", spSortGrade: "Grau (maior primeiro)", spGroupCat: "Agrupar: categoria", spGroupGrade: "Agrupar: grau", spGroupNone: "Sem grupos",
     spAllGrades: "Todos os graus", spNoGrade: "Sem grau",
     spc_material: "Materiais", spc_craft: "Intermediários", spc_part: "Peças de equipamento", spc_recipe: "Receitas",
     spc_enchant: "Enchant", spc_gear: "Equipamento", spc_dye: "Tinturas", spc_other: "Outros",
@@ -1248,7 +1254,7 @@ const I18N = {
     ev_aq: "Event raid boss: spawns 6 h after the restart, then every 17 h.",
     ev_pk: "Event raid boss: spawns 9 h after the restart, then every 19 h.",
     ev_zombie: "Zombies invade the towns every Saturday and Sunday at 20:00 GMT (shown in your time zone). Kill the zombies in town. Ring of Zombie: Accuracy, P. Def. +6%, M. Def. +6%.",
-    spMobLv: "Monster level", spSortBest: "Best average", spSortName: "Name", spSortLevel: "Monster level",
+    spMobLv: "Monster level", spSortBest: "Best average", spSortName: "Name", spSortLevel: "Monster level", spSortGrade: "Grade (highest first)", spGroupCat: "Group: category", spGroupGrade: "Group: grade", spGroupNone: "No groups",
     spAllGrades: "All grades", spNoGrade: "No grade",
     spc_material: "Materials", spc_craft: "Intermediates", spc_part: "Gear parts", spc_recipe: "Recipes",
     spc_enchant: "Enchant", spc_gear: "Gear", spc_dye: "Dyes", spc_other: "Other",
@@ -1421,7 +1427,7 @@ const I18N = {
     ev_aq: "Event-Raidboss: erscheint 6 h nach dem Restart, dann alle 17 h.",
     ev_pk: "Event-Raidboss: erscheint 9 h nach dem Restart, dann alle 19 h.",
     ev_zombie: "Zombies überfallen jeden Samstag und Sonntag um 20:00 GMT die Städte (in deiner Zeitzone angezeigt). Töte die Zombies in der Stadt. Ring of Zombie: Genauigkeit, P. Def. +6%, M. Def. +6%.",
-    spMobLv: "Monsterlevel", spSortBest: "Bester Schnitt", spSortName: "Name", spSortLevel: "Monsterlevel",
+    spMobLv: "Monsterlevel", spSortBest: "Bester Schnitt", spSortName: "Name", spSortLevel: "Monsterlevel", spSortGrade: "Grade (höchste zuerst)", spGroupCat: "Gruppe: Kategorie", spGroupGrade: "Gruppe: Grade", spGroupNone: "Keine Gruppen",
     spAllGrades: "Alle Grades", spNoGrade: "Ohne Grade",
     spc_material: "Materialien", spc_craft: "Zwischenprodukte", spc_part: "Ausrüstungsteile", spc_recipe: "Rezepte",
     spc_enchant: "Enchant", spc_gear: "Ausrüstung", spc_dye: "Färbemittel", spc_other: "Andere",
@@ -2082,7 +2088,7 @@ function build() {
     document.querySelector(`.tab[data-p="${view.split(":")[0].replace(/cat$/, "")}"]`)?.click();
     if (view.startsWith("ev:")) evOpen.add(view.slice(3));  // screenshots: open one event
     if (view.startsWith("boss:map")) { mapSel = view.split(":")[2] || null; if (view.endsWith(":legend")) mapLayers._legend = true; setBossMode("map", true); }
-    if (view.startsWith("spoilcat:")) { const [, c, g, mode, q] = view.split(":"); spCat = c || ""; spGrade = g || ""; if (mode) { spMode = mode; document.querySelectorAll("[data-spm]").forEach(x => x.classList.toggle("on", x.dataset.spm === mode)); } if (q) $("#spQ").value = q; }  // screenshots
+    if (view.startsWith("spoilcat:")) { const [, c, g, mode, q, so] = view.split(":"); if (so) $("#spSort").value = so; if (view.split(":")[6]) $("#spGroup").value = view.split(":")[6]; spCat = c || ""; spGrade = g || ""; if (mode) { spMode = mode; document.querySelectorAll("[data-spm]").forEach(x => x.classList.toggle("on", x.dataset.spm === mode)); } if (q) $("#spQ").value = q; }  // screenshots
     if (view.startsWith("spoil:")) {  // screenshots: spoil:<search>[:<item id to open>[:map:<mob id>]]
       const [, q, item, , mob] = view.split(":");
       $("#spQ").value = q || ""; spOpen = item || null;
@@ -2300,7 +2306,8 @@ function spLevelOk(lv) {
 function spArea(m) { return m.floor ? t("dFloor", { zone: m.area, floor: m.floor }) : (m.area || "—"); }
 const SP_CATS = ["material", "craft", "part", "recipe", "enchant", "gear", "dye", "other"];
 const SP_GRADES = ["—", "D", "C", "B", "A", "S", "S80", "S84"];
-let spCat = "", spGrade = "", spCollapsed = new Set(["material", "craft", "part", "recipe", "enchant", "gear", "dye", "other"]);
+let spCat = "", spGrade = "", spCollapsed = new Set(["material", "craft", "part", "recipe", "enchant", "gear", "dye", "other",
+                                                      "g0", "g1", "g2", "g3", "g4", "g5", "g6", "g7"]);
 const spCatOf = it => it.cat || spKindOf(it.kind);
 function spGradeBadge(it) {
   if (it.grade == null) return `<span class="gb none"></span>`;
@@ -2334,9 +2341,10 @@ async function renderSpoil() {
   if (!$("#p-spoil").classList.contains("sel")) return;
   await loadSpoil();
   spChips();
-  const q = $("#spQ").value.trim().toLowerCase(), sort = $("#spSort").value;
+  const q = $("#spQ").value.trim().toLowerCase(), sort = $("#spSort").value, group = $("#spGroup").value;
+  $("#spGroup").style.display = spMode === "item" ? "" : "none";  // the monster list has no groups
   const box = $("#spList");
-  const sig = [LANG, spMode, q, spCat, spGrade, sort, $("#spMin").value, $("#spMax").value, spOpen, [...spCollapsed].join()].join("|");
+  const sig = [LANG, spMode, q, spCat, spGrade, sort, group, $("#spMin").value, $("#spMax").value, spOpen, [...spCollapsed].join()].join("|");
   if (box.dataset.sig === sig) return;
   box.dataset.sig = sig;
   const mobs = SPOIL.mobs, items = SPOIL.items;
@@ -2359,7 +2367,8 @@ async function renderSpoil() {
         return { iid, it: items[iid], srcs, best, bestChance: Math.max(...srcs.map(s => s[1])), lo: Math.min(...lvls), hi: Math.max(...lvls) };
       });
     const sorter = { name: (a, b) => a.it.name.localeCompare(b.it.name), best: (a, b) => b.best - a.best || a.it.name.localeCompare(b.it.name),
-                     level: (a, b) => a.lo - b.lo || a.it.name.localeCompare(b.it.name) }[sort] || ((a, b) => b.best - a.best);
+                     level: (a, b) => a.lo - b.lo || a.it.name.localeCompare(b.it.name),
+                     grade: (a, b) => (b.it.grade ?? -1) - (a.it.grade ?? -1) || b.best - a.best || a.it.name.localeCompare(b.it.name) }[sort] || ((a, b) => b.best - a.best);
     rows.sort(sorter);
     $("#spInfo").textContent = t("spInfoItems", { n: rows.length });
     const rowHtml = r => {
@@ -2381,15 +2390,19 @@ async function renderSpoil() {
       }
       return row;
     };
-    if (spCat || q) {
-      html = rows.map(rowHtml).join("");  // one category or a search: a flat list
+    // groups (closed until clicked); a search, or a filter that leaves one group, is a flat list
+    const groups = q ? null
+      : group === "cat" && !spCat ? SP_CATS.map(c => [c, t("spc_" + c), r => spCatOf(r.it) === c])
+      : group === "grade" && spGrade === "" ? SP_GRADES.map((g, k) => ["g" + k, g === "—" ? t("spNoGrade") : g, r => (r.it.grade ?? 0) === k]).reverse()
+      : null;
+    if (!groups) {
+      html = rows.map(rowHtml).join("");
     } else {
-      // everything: one group per category, closed until clicked
-      html = SP_CATS.map(c => {
-        const g = rows.filter(r => spCatOf(r.it) === c);
+      html = groups.map(([key, label, inGroup]) => {
+        const g = rows.filter(inGroup);
         if (!g.length) return "";
-        const closed = spCollapsed.has(c);
-        return `<div class="spgrp" data-spgrp="${c}">${esc(t("spc_" + c))}<span class="cnt">${g.length}</span><span class="arr">${closed ? "▸" : "▾"}</span></div>` +
+        const closed = spCollapsed.has(key);
+        return `<div class="spgrp" data-spgrp="${key}">${esc(label)}<span class="cnt">${g.length}</span><span class="arr">${closed ? "▸" : "▾"}</span></div>` +
           (closed ? "" : g.map(rowHtml).join(""));
       }).join("");
     }
@@ -2397,8 +2410,13 @@ async function renderSpoil() {
     // monsters (or an area) -> what they give
     const list = Object.entries(mobs).filter(([, m]) => spLevelOk(m.level) &&
       (!q || m.name.toLowerCase().includes(q) || (m.area || "").toLowerCase().includes(q)) &&
-      (!spCat || m.spoil.some(([iid]) => itemOk(iid))))
-      .sort((a, b) => a[1].level - b[1].level || a[1].name.localeCompare(b[1].name));
+      (!spCat || m.spoil.some(([iid]) => itemOk(iid))));
+    const mobBest = m => Math.max(0, ...m.spoil.filter(([iid]) => itemOk(iid)).map(([, c, lo, hi]) => spYield(c, lo, hi)));
+    const mobGrade = m => Math.max(0, ...m.spoil.filter(([iid]) => itemOk(iid)).map(([iid]) => (items[iid] || {}).grade ?? 0));
+    const byLevel = (a, b) => a[1].level - b[1].level || a[1].name.localeCompare(b[1].name);
+    list.sort({ name: (a, b) => a[1].name.localeCompare(b[1].name),
+                best: (a, b) => mobBest(b[1]) - mobBest(a[1]) || byLevel(a, b),
+                grade: (a, b) => mobGrade(b[1]) - mobGrade(a[1]) || mobBest(b[1]) - mobBest(a[1]) || byLevel(a, b) }[sort] || byLevel);
     $("#spInfo").textContent = t("spInfoMobs", { n: list.length });
     html = list.map(([mid, m]) => {
       // a preview of its best spoils (icons), so the list says something without opening each row
@@ -2501,6 +2519,7 @@ function renderSpoilMap() {
 function initSpoil() {
   ["#spQ", "#spMin", "#spMax"].forEach(id => $(id).oninput = () => renderSpoil());
   $("#spSort").onchange = () => renderSpoil();
+  $("#spGroup").onchange = () => renderSpoil();
   document.querySelectorAll("[data-spm]").forEach(b => b.onclick = () => {
     spMode = b.dataset.spm; spOpen = null;
     document.querySelectorAll("[data-spm]").forEach(x => x.classList.toggle("on", x === b));
