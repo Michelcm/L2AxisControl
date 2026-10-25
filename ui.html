@@ -548,6 +548,7 @@
   #bRoute ol { margin: 2px 0 2px 18px; padding: 0; font-size: 11px; }
   #bRoute li { margin: 2px 0; }
   #bRoute .rs { display: flex; align-items: center; gap: 4px; margin-top: 3px; }
+  #bRoute .rs.inner { flex-wrap: wrap; }
   .boss { display: flex; align-items: center; gap: 4px; padding: 2px 4px; border-bottom: 1px solid rgba(106,92,62,.18); }
   .boss .fav { width: 14px; cursor: pointer; color: var(--fav-off); text-align: center; }
   .boss .fav.on { color: var(--gold-hi); }
@@ -1362,6 +1363,7 @@ const I18N = {
     optRename: "Nome da conta no título da janela do jogo", optDelay: "Espera máxima pela tela de login, se ela não for reconhecida", secAlerts: "Avisos",
     connLost: "Sem resposta do painel. Tentando de novo…", aTabs: "Seções", aLvMin: "Nível mínimo", aLvMax: "Nível máximo", aSort: "Ordenar", aGroup: "Agrupar", aRace: "Raça", aClass: "Classe", aKind: "Tipo de item", aSlot: "Slot do acessório", aSrc: "Origem", aRate: "Chance de sucesso", aAccName: "Nome da conta", aFav: "Só favoritos", aZoomIn: "Aproximar", aZoomOut: "Afastar", aZoomFit: "Mapa inteiro",
     accListTitle: "Contas", accCount: "{open} de {n} abertas", btnSpread: "Espalhar", btnSavePos: "Salvar posições", btnRestorePos: "Restaurar", btnMinAll: "Minimizar todos", btnCloseAll: "Fechar todos", tipFocus: "Trazer a janela do jogo para a frente", tipMinGame: "Minimizar o jogo", tipCloseGame: "Fechar o jogo", stLobby: "aberto, no login ou na seleção", noLogin: "sem login salvo", loginIs: "login {login}",
+    rInside: "O teleporte já te deixa dentro de {zone}; os mobs ficam nas salas (veja o mapa interno)", rEnter: "Fale com o Gatekeeper Ziggurat na entrada para entrar em {zone}", dInside: "Dentro de {zone}", btnInnerMap: "Mapa interno", btnInnerPart: "Andar {n}", tipInnerMap: "Abre no navegador o mapa de dentro de {zone}", innerSrc: "mapa do site l2j.ru",
     optScale: "Tamanho do texto", tipResize: "Arraste para redimensionar",
     secWindow: "Janela", secLogin: "Login automático", secLinks: "Links do L2Axis", secFolders: "Pastas",
     optTop: "Sempre por cima dos outros programas", optAbout: "Sobre o painel e créditos",
@@ -1537,6 +1539,7 @@ const I18N = {
     optRename: "Account name in the game window title", optDelay: "Longest wait for the login screen, if it is not recognised", secAlerts: "Alerts",
     connLost: "The panel is not responding. Retrying…", aTabs: "Sections", aLvMin: "Minimum level", aLvMax: "Maximum level", aSort: "Sort", aGroup: "Group", aRace: "Race", aClass: "Class", aKind: "Item type", aSlot: "Accessory slot", aSrc: "Source", aRate: "Success chance", aAccName: "Account name", aFav: "Favourites only", aZoomIn: "Zoom in", aZoomOut: "Zoom out", aZoomFit: "Whole map",
     accListTitle: "Accounts", accCount: "{open} of {n} open", btnSpread: "Spread", btnSavePos: "Save positions", btnRestorePos: "Restore", btnMinAll: "Minimize all", btnCloseAll: "Close all", tipFocus: "Bring the game window to the front", tipMinGame: "Minimize the game", tipCloseGame: "Close the game", stLobby: "open, at login or character select", noLogin: "no saved login", loginIs: "login {login}",
+    rInside: "The teleport drops you inside {zone}; the monsters are in its rooms (see the interior map)", rEnter: "Talk to the Gatekeeper Ziggurat at the entrance to go into {zone}", dInside: "Inside {zone}", btnInnerMap: "Interior map", btnInnerPart: "Floor {n}", tipInnerMap: "Opens the map of the inside of {zone} in the browser", innerSrc: "map from l2j.ru",
     optScale: "Text size", tipResize: "Drag to resize",
     secWindow: "Window", secLogin: "Auto login", secLinks: "L2Axis links", secFolders: "Folders",
     optTop: "Always on top of other programs", optAbout: "About the panel & credits",
@@ -1712,6 +1715,7 @@ const I18N = {
     optRename: "Kontoname im Titel des Spielfensters", optDelay: "Höchste Wartezeit auf den Login-Bildschirm, falls er nicht erkannt wird", secAlerts: "Hinweise",
     connLost: "Das Panel antwortet nicht. Neuer Versuch…", aTabs: "Bereiche", aLvMin: "Mindestlevel", aLvMax: "Höchstlevel", aSort: "Sortieren", aGroup: "Gruppieren", aRace: "Rasse", aClass: "Klasse", aKind: "Itemtyp", aSlot: "Accessoire-Slot", aSrc: "Herkunft", aRate: "Erfolgschance", aAccName: "Kontoname", aFav: "Nur Favoriten", aZoomIn: "Vergrößern", aZoomOut: "Verkleinern", aZoomFit: "Ganze Karte",
     accListTitle: "Konten", accCount: "{open} von {n} offen", btnSpread: "Verteilen", btnSavePos: "Positionen speichern", btnRestorePos: "Wiederherstellen", btnMinAll: "Alle minimieren", btnCloseAll: "Alle schließen", tipFocus: "Spielfenster nach vorne holen", tipMinGame: "Spiel minimieren", tipCloseGame: "Spiel schließen", stLobby: "offen, im Login oder in der Charakterauswahl", noLogin: "kein gespeicherter Login", loginIs: "Login {login}",
+    rInside: "Der Teleport bringt dich direkt in {zone}; die Monster sind in den Räumen (siehe Innenkarte)", rEnter: "Sprich mit dem Gatekeeper Ziggurat am Eingang, um nach {zone} zu gelangen", dInside: "In {zone}", btnInnerMap: "Innenkarte", btnInnerPart: "Etage {n}", tipInnerMap: "Öffnet die Karte des Inneren von {zone} im Browser", innerSrc: "Karte von l2j.ru",
     optScale: "Textgröße", tipResize: "Ziehen, um die Größe zu ändern",
     secWindow: "Fenster", secLogin: "Auto-Login", secLinks: "L2Axis-Links", secFolders: "Ordner",
     optTop: "Immer über anderen Programmen", optAbout: "Über das Panel & Credits",
@@ -2908,6 +2912,8 @@ function setBossMode(mode, focus, spoil) {
       setTimeout(() => {
         if (!mapT) fitMap();
         if (focus && mapSel) centerOnBoss(mapSel);
+        // a spoil spot asked for before the map was ready: go there now
+        if (sideMode === "spoil" && spoilMap && spoilMap.spot) centerOnPoint(spoilMap.spot);
         if (mapSel) loadRoute();
         renderBosses();
       }, 60);
@@ -2983,7 +2989,7 @@ function layoutMap() {
   if (mapRoute && mapRoute.startXY) {
     let [px, py] = P(mapRoute.startXY.x, mapRoute.startXY.y);
     svg += `<circle cx="${px}" cy="${py}" r="5" style="fill:var(--good)" stroke="#000"/>`;
-    mapRoute.steps.forEach(st => {
+    mapRoute.steps.filter(st => st.x != null).forEach(st => {
       const [nx, ny] = P(st.x, st.y);
       svg += st.kind !== "run"
         ? `<line x1="${px}" y1="${py}" x2="${nx}" y2="${ny}" style="stroke:var(--announce)" stroke-width="2" stroke-dasharray="5 4"/><circle cx="${nx}" cy="${ny}" r="4" style="fill:var(--announce)" stroke="#000"/>`
@@ -3162,9 +3168,15 @@ function renderRoute() {
   if (box.dataset.sig === sig) return;
   box.dataset.sig = sig;
   let html = `<div class="rh"><b>${esc(b.name)}${b.level ? " · " + esc(b.level) : ""}</b><span class="st ${st.cls}">${esc(st.txt)}</span></div>`;
-  if (b.zone) html += `<div class="small">${esc(b.floor ? t("dFloor", { zone: b.zone, floor: b.floor }) : t("dZoneNear", { zone: b.zone }))}</div>`;
+  const inner = mapRoute && mapRoute.inner;
+  if (inner && inner.inside) html += `<div class="small">${esc(t("dInside", { zone: inner.zone }))}</div>`;
+  else if (b.zone) html += `<div class="small">${esc(b.floor ? t("dFloor", { zone: b.zone, floor: b.floor }) : t("dZoneNear", { zone: b.zone }))}</div>`;
   if (mapRoute) {
-    html += "<ol>" + mapRoute.steps.map(s => s.kind === "board"
+    html += "<ol>" + mapRoute.steps.map(s => s.kind === "enter"
+      ? `<li>${esc(t("rEnter", { zone: s.zone }))}</li>`
+      : s.kind === "inside"
+      ? `<li>${esc(t("rInside", { zone: s.zone }))}</li>`
+      : s.kind === "board"
       ? `<li>${esc(t("rBoard", { to: s.to }))}</li>`
       : s.kind === "tp"
       ? `<li>${esc(t("rTp", { from: s.from, to: s.to, price: fmtNum(s.price) }))}</li>`
@@ -3172,6 +3184,14 @@ function renderRoute() {
           ? " " + esc(s.floors > 0 ? t("rUp", { n: s.floors, floor: s.floor }) : s.floors < 0 ? t("rDown", { n: -s.floors, floor: s.floor }) : t("rSame", { floor: s.floor }))
           : ""}</li>`).join("") + "</ol>";
     html += `<div class="small">${esc(t("rNote"))}</div>`;
+  }
+  // the inside of the dungeon, drawn by l2j.ru: opened in the browser
+  if (inner) {
+    const tip = esc(t("tipInnerMap", { zone: inner.zone }));
+    html += `<div class="rs inner"><button class="b" data-inner="0" title="${tip}">${esc(t("btnInnerMap"))}</button>` +
+      (inner.maps > 1 ? Array.from({ length: inner.maps - 1 }, (_, k) =>
+        `<button class="b" data-inner="${k + 1}" title="${tip}">${esc(t("btnInnerPart", { n: k + 2 }))}</button>`).join("") : "") +
+      `<span class="small">${esc(t("innerSrc"))}</span></div>`;
   }
   const towns = Object.keys(MAPI.towns || {}).sort();
   html += `<div class="rs"><span class="small">${esc(t("rFrom"))}</span><select class="e" id="rStart">
@@ -3181,6 +3201,7 @@ function renderRoute() {
     <label class="chk"><input type="checkbox" id="rBoardTp" ${!mapRoute || mapRoute.boardTp ? "checked" : ""}><i></i><span>${esc(t("rBoardOpt"))}</span></label>`;
   box.innerHTML = html;
   $("#rStart").onchange = e => { mapStart = e.target.value; loadRoute(); };
+  box.querySelectorAll("[data-inner]").forEach(el => el.onclick = () => api.open_inner_map(inner.zone, +el.dataset.inner));
   $("#rBoardTp").onchange = e => loadRoute(e.target.checked);
   box.querySelector("[data-copy]").onclick = async e => {
     try { await navigator.clipboard.writeText(e.target.dataset.copy); } catch (_) {}

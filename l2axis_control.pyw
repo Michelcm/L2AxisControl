@@ -2843,9 +2843,36 @@ class Api:
         if board_tp is not None:
             self._data["board_tp"] = bool(board_tp)
             self._save()
-        return {**boss_route(self._map_db, start or "Giran", float(x), float(y), self._data.get("board_tp", True),
-                             self._board_points, None if z is None else float(z), zone),
-                "boardTp": self._data.get("board_tp", True)}
+        x, y = float(x), float(y)
+        z = None if z is None else float(z)
+        dungeon = ss_dungeon_at(x, y, z) or next((n for n in SS_DUNGEONS if _map_key(n) == _map_key(zone)), None)
+        board_tp = self._data.get("board_tp", True)
+        inside_tp = dungeon and board_tp and next(
+            (p for p in self._board_points if ss_dungeon_at(p["x"], p["y"], p.get("z")) == dungeon), None)
+        if inside_tp:
+            # the server's Alt+B board drops the player inside the dungeon: nothing else to do
+            towns = self._map_db.get("towns", {})
+            start = start if start in towns else "Giran"
+            ex, ey, _ez = SS_DUNGEONS[dungeon][0]  # drawn at the entrance: the inside is not under it
+            route = {"start": start, "startXY": towns.get(start), "walk": 0, "time": 0, "price": 0,
+                     "steps": [{"kind": "board", "from": start, "to": inside_tp["name"], "price": 0, "x": ex, "y": ey},
+                               {"kind": "inside", "zone": dungeon}]}
+        else:
+            if dungeon:  # walk to the entrance; a Gatekeeper Ziggurat there takes the player in
+                (x, y, z), zone = map(float, SS_DUNGEONS[dungeon][0]), dungeon
+            route = boss_route(self._map_db, start or "Giran", x, y, board_tp, self._board_points, z, zone)
+            if dungeon:
+                route["steps"].append({"kind": "enter", "zone": dungeon})
+        inner = inner_map_name(dungeon or zone)
+        return {**route, "boardTp": self._data.get("board_tp", True),
+                "inner": {"zone": inner, "maps": len(INNER_MAPS[inner]), "inside": bool(dungeon)} if inner else None}
+
+    def open_inner_map(self, zone, part=0):
+        """Open the map of the inside of a dungeon in the browser (only the fixed list above)."""
+        name = inner_map_name(zone)
+        if name:
+            files = INNER_MAPS[name]
+            webbrowser.open(INNER_MAP_BASE + files[max(0, min(len(files) - 1, int(part)))])
 
     def events_viewed(self):
         """The Events tab is on screen: keep reading the announcements."""
@@ -2861,10 +2888,36 @@ class Api:
                         fl = tower_floor(sp[0], sp[1], sp[2])
                         if fl:
                             m["floor"] = fl
+                    self._move_spots_to_entrances(m)
                 self._classify_spoil_items()
             except (OSError, ValueError):
                 self._spoil = {"mobs": {}, "items": {}}
         return self._spoil
+
+    @staticmethod
+    def _move_spots_to_entrances(m):
+        """Spawns inside a Seven Signs dungeon: the area is that dungeon and the spot is its entrance
+        (the inside is far from it, often under another region, and only reachable from there)."""
+        spots, inside = [], None
+        for sp in m.get("spots", []):
+            name = ss_dungeon_at(sp[0], sp[1], sp[2])
+            if not name:
+                spots.append(sp)
+                continue
+            inside = inside or name
+            ex, ey, ez = SS_DUNGEONS[name][0]
+            same = next((o for o in spots if o[:3] == [ex, ey, ez]), None)
+            if same:
+                same[3] += sp[3]
+            else:
+                spots.append([ex, ey, ez, sp[3]])
+        if inside:
+            spots.sort(key=lambda o: -o[3])
+            m["spots"] = spots
+            first = ss_dungeon_at(*spots[0][:3]) or next((n for n, (e, _i) in SS_DUNGEONS.items() if list(e) == spots[0][:3]), None)
+            if first:
+                m["area"] = first
+                m["inside"] = True
 
     def _classify_spoil_items(self):
         """Category and grade of each spoil item, from the recipes of the player's client:
@@ -3746,6 +3799,78 @@ def tower_floor(x, y, z):
     if z is None or math.hypot(x - TOI["x"], y - TOI["y"]) > TOI["r"]:
         return None
     return min(TOI["floors"], key=lambda f: abs(f[1] - z))[0]
+
+
+# Seven Signs catacombs and necropolises. The inside is not under the entrance: it is somewhere else
+# and deeper (three catacombs are in a layer far south of the map). A player walks to the entrance
+# and a Gatekeeper Ziggurat takes them in.
+#   name (as in the client): entrance (client HuntingZone-e.dat), a point inside (datapack random_spawn_loc.sql)
+SS_DUNGEONS = {
+    "Necropolis of Sacrifice": ((-41184, 206752, -3357), (-41350, 209876, -5087)),
+    "Necropolis of Devotion": ((-56064, 78720, -3011), (-52172, 78884, -4741)),
+    "The Patriot's Necropolis": ((-25472, 77728, -3446), (-21657, 77164, -5173)),
+    "The Pilgrim's Necropolis": ((45600, 126944, -3686), (45029, 123802, -5413)),
+    "The Saint's Necropolis": ((79296, 209584, -3709), (83175, 208998, -5439)),
+    "Necropolis of Worship": ((107514, 174329, -3704), (111337, 173804, -5439)),
+    "Necropolis of Martyrdom": ((114496, 132416, -3101), (118343, 132578, -4831)),
+    "The Disciple's Necropolis": ((168560, -17968, -3174), (172373, -17833, -4901)),
+    "Catacomb of Dark Omens": ((-22480, 13872, -3174), (-19360, 13278, -4901)),
+    "Catacomb of the Heretic": ((39232, 143568, -3651), (-53131, -250502, -7909)),
+    "Catacomb of the Branded": ((43200, 170688, -3251), (46303, 170091, -4981)),
+    "Catacomb of the Apostate": ((74672, 78032, -3398), (-20485, -251008, -8165)),
+    "Catacomb of the Forbidden Path": ((110912, 84912, -4816), (12669, -248698, -9581)),
+    "Catacomb of the Witch": ((136672, 79328, -3702), (140519, 79464, -5429)),
+}
+SS_REACH = 16000      # an inside spreads about this far from its reference point
+SS_DEPTH = 800        # and stays this close to its height (the ground above is much higher)
+
+
+def ss_dungeon_at(x, y, z):
+    """Name of the Seven Signs dungeon a point is inside, else None."""
+    if z is None:
+        return None
+    best = None
+    for name, (_entrance, (ix, iy, iz)) in SS_DUNGEONS.items():
+        d = math.hypot(x - ix, y - iy)
+        if d <= SS_REACH and abs(z - iz) <= SS_DEPTH and (best is None or d < best[0]):
+            best = (d, name)
+    return best[1] if best else None
+
+
+# Maps of the inside of dungeons, drawn by the L2J.RU database (https://l2j.ru/highfive/index.php?p=10).
+# Only opened in the browser when the player asks; nothing is copied into the panel.
+INNER_MAP_BASE = "https://l2j.ru/highfive/img/maps/"
+INNER_MAPS = {
+    "Necropolis of Sacrifice": ["catas/necropolis_of_sacrifice.jpg"],
+    "Necropolis of Devotion": ["catas/necropolis_of_devotion.jpg"],
+    "The Patriot's Necropolis": ["catas/patriots_necropolis.jpg"],
+    "The Pilgrim's Necropolis": ["catas/pilgrims_necropolis.jpg"],
+    "The Saint's Necropolis": ["catas/saints_necropolis.jpg"],
+    "Necropolis of Worship": ["catas/necropolis_of_worship.jpg"],
+    "Necropolis of Martyrdom": ["catas/necropolis_of_martyrdom.jpg"],
+    "Catacomb of Dark Omens": ["catas/catacomb_of_dark_omens.jpg"],
+    "Catacomb of the Heretic": ["catas/catacomb_of_the_heretic.jpg"],
+    "Catacomb of the Branded": ["catas/catacomb_of_the_branded.jpg"],
+    "Catacomb of the Apostate": ["catas/catacomb_of_the_apostate.jpg"],
+    "Catacomb of the Forbidden Path": ["catas/catacomb_of_the_forbidden_path.jpg"],
+    "Catacomb of the Witch": ["catas/catacomb_of_the_witch.jpg"],
+    "Monastery of Silence": ["dungeons/dungeon_map_silence1.jpg", "dungeons/dungeon_map_silence2.jpg",
+                             "dungeons/dungeon_map_silence3.jpg"],
+    "Elven Ruins": ["dungeons/elven_ruins.jpg"],
+    "Elven Fortress": ["dungeons/elven_fortress.jpg"],
+    "School of Dark Arts": ["dungeons/school_of_dark_arts.jpg"],
+    "Cave of Trials": ["dungeons/cave_of_trials.jpg"],
+    "Abandoned Coal Mines": ["dungeons/abandoned_coal_mines.jpg"],
+    "Nornil's Cave": ["dungeons/nornils_cave.jpg"],
+    "Nornil's Garden": ["dungeons/nornils_garden.jpg"],
+}
+_map_key = lambda name: re.sub(r"[^a-z]", "", (name or "").lower().replace("the ", "", 1))
+
+
+def inner_map_name(zone):
+    """The INNER_MAPS entry for a zone name as the client or the datapack writes it, else None."""
+    key = _map_key(zone)
+    return next((n for n in INNER_MAPS if _map_key(n) == key), None) if key else None
 
 
 def parse_board_teleports(text):

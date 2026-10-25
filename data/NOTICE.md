@@ -9,7 +9,12 @@ Drop and spoil chances, NPC names and levels, spawn locations and NPC exchange l
 The Gatekeeper teleports in `map_db.json` (from `sql/teleport.sql`) and the map regions used by the panel come from the same datapack.
 
 These files are therefore distributed under the GPL-3.0, separately from the panel's own code (MIT).
-Area names come from the nearest hunting zone in the player's game client.
+Area names come from the nearest hunting zone in the player's game client. Spawns inside the Seven Signs
+catacombs and necropolises are recognised from one point inside each of them (`sql/random_spawn_loc.sql`
+in the same datapack) and shown at the dungeon's entrance.
+
+Interior maps of dungeons are **not** included: the "Interior map" button opens them in the browser
+from the L2J.RU database (https://l2j.ru/highfive/index.php?p=10), whose authors drew them.
 
 These are the official High Five values. L2Axis may use its own rates and drop lists, so the panel
 shows them as a guide, not a guarantee.
