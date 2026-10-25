@@ -207,6 +207,21 @@ rápida de bosses à esquerda (com busca própria) e o mapa à direita:
 Na primeira vez o painel monta o mapa a partir dos arquivos do seu jogo (uns 30 segundos). As distâncias são em linha
 reta: o caminho real pode ser um pouco maior.
 
+### Spoil
+
+![Aba Spoil](img/spoil.png)
+
+A aba **Spoil** é para quem faz spoil (Bounty Hunter / Fortune Seeker):
+
+- **Por item:** digite o item que você quer (ex.: *Asofe*, *Mithril Ore*, uma receita). Clique nele para ver todos os mobs
+  que dão esse item, com nível, área, chance, quantidade e a **média por spoil** (os melhores primeiro).
+- **Por mob / área:** digite um mob ou uma área (ex.: *Hardin*) para ver o que cada mob dali dá.
+- **Nível min / max** deixa só os mobs que você consegue farmar. *Materiais / Receitas* filtra a lista.
+- **🗺** abre o mapa lateral com os pontos de spawn (◆ verde) de todos os mobs que dão aquele item, e o caminho mais
+  rápido até o escolhido. Clique em outro ponto ou em outro mob à esquerda para trocar.
+
+As chances são as oficiais do High Five; o L2Axis tem spoil x15, então use para comparar os mobs entre si.
+
 ## 10. Atualizar para uma versão nova
 
 1. Feche o painel (✕).

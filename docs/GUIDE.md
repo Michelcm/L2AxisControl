@@ -205,6 +205,21 @@ the left (with its own search) and the map on the right:
 The first time, the panel builds the map from your game files (about 30 seconds). Distances are in a straight line:
 the real path can be a bit longer.
 
+### Spoil
+
+![Spoil tab](img/spoil.png)
+
+The **Spoil** tab is for spoilers (Bounty Hunters / Fortune Seekers):
+
+- **By item:** type the item you want (e.g. *Asofe*, *Mithril Ore*, a recipe). Click it to see every monster that gives
+  it, with level, area, chance, amount and the **average per spoil** (best first).
+- **By monster / area:** type a monster or an area (e.g. *Hardin*) to see what each monster there gives.
+- **Level min / max** keeps only the monsters you can farm. *Materials / Recipes* narrows the list.
+- **🗺** opens the side map with the spawn spots (green ◆) of every monster that gives that item, and the fastest way
+  to the chosen one. Click another spot or another monster on the left to change.
+
+The chances are the official High Five ones; L2Axis has spoil x15, so treat them as a comparison between monsters.
+
 ## 10. Updating to a new version
 
 1. Close the panel (✕).

@@ -2436,6 +2436,7 @@ class Api:
         self._worldmap = WorldMap()
         self._map_db = _load_map_db()
         self._zones = None
+        self._spoil = None
         self._board_points = load_board_teleports(self._data.get("board_points"))
         self._side_open, self._side_shift = False, 0
         self._bars, self._bars_at, self._bar_armed = {}, {}, {}
@@ -2777,15 +2778,33 @@ class Api:
         b = self._boss_db.get(str(boss_id)) or {}
         if not b.get("x") and not b.get("y"):
             return None
+        return self.route_to(b["x"], b["y"], b.get("z"), b.get("zone"), start, board_tp)
+
+    def route_to(self, x, y, z=None, zone=None, start=None, board_tp=None):
+        """Fastest way to any point (a boss, a spoil spot)."""
         if not start:
             regions = [(self._last_watch.get(p) or {}).get("region") for p in self._slot_pid if p]
             start = next((r for r in regions if r in self._map_db.get("towns", {})), None)
         if board_tp is not None:
             self._data["board_tp"] = bool(board_tp)
             self._save()
-        return {**boss_route(self._map_db, start or "Giran", b["x"], b["y"], self._data.get("board_tp", True),
-                             self._board_points, b.get("z"), b.get("zone")),
+        return {**boss_route(self._map_db, start or "Giran", float(x), float(y), self._data.get("board_tp", True),
+                             self._board_points, None if z is None else float(z), zone),
                 "boardTp": self._data.get("board_tp", True)}
+
+    def spoil_db(self):
+        """Monsters that can be spoiled, what they give and where they spawn (data/spoil_db.json)."""
+        if self._spoil is None:
+            try:
+                self._spoil = json.loads((APP_DIR / "data" / "spoil_db.json").read_text(encoding="utf-8"))
+                for m in self._spoil.get("mobs", {}).values():
+                    for sp in m.get("spots", []):
+                        fl = tower_floor(sp[0], sp[1], sp[2])
+                        if fl:
+                            m["floor"] = fl
+            except (OSError, ValueError):
+                self._spoil = {"mobs": {}, "items": {}}
+        return self._spoil
 
     def map_info(self):
         if not self._worldmap.ready:

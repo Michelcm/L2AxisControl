@@ -298,6 +298,26 @@
   .tpt + .tlbl { }
   .tlbl { position: absolute; font-size: 9px; color: #9fe3f0; text-shadow: 0 0 2px #000, 0 0 3px #000; pointer-events: none; white-space: nowrap; transform: translate(6px, -50%); }
   #bRoute { max-height: 150px; overflow-y: auto; }
+  .sprow { display: flex; align-items: center; gap: 3px; margin-bottom: 4px; }
+  .sprow .grow { flex: 1; }
+  .sprow input.lv { width: 34px; text-align: center; }
+  .spi { display: flex; align-items: center; gap: 5px; padding: 2px 4px; cursor: pointer; border-bottom: 1px solid rgba(106,92,62,.18); }
+  .spi:hover { background: rgba(201,165,90,.06); }
+  .spi.open { background: rgba(201,165,90,.1); }
+  .spi .n { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .spi .k { font-size: 9px; color: var(--dim); }
+  .spi .c { font-size: 10px; color: var(--dim); }
+  .spd { padding: 2px 4px 5px 22px; border-bottom: 1px solid rgba(106,92,62,.18); background: rgba(0,0,0,.2); }
+  .spd table { width: 100%; border-collapse: collapse; font-size: 10px; }
+  .spd td { padding: 1px 3px; border-bottom: 1px solid rgba(106,92,62,.1); white-space: nowrap; }
+  .spd td.a { color: var(--dim); max-width: 140px; overflow: hidden; text-overflow: ellipsis; }
+  .spd td.r { text-align: right; }
+  .spd td.g { color: var(--gold-hi); text-align: right; }
+  .spd button.b { padding: 0 4px; height: 16px; font-size: 10px; }
+  .spot { position: absolute; width: 11px; height: 11px; margin: -6px 0 0 -6px; border-radius: 2px; transform: rotate(45deg);
+          background: #7fd36b; border: 1px solid #000; cursor: pointer; box-shadow: 0 0 3px rgba(0,0,0,.9); }
+  .spot.other { background: #4f7d43; width: 8px; height: 8px; margin: -4px 0 0 -4px; }
+  .spot.sel { outline: 2px solid #fff; z-index: 3; }
   .mapview { position: relative; height: 380px; overflow: hidden; border: 1px solid #4a4232; border-radius: 3px;
              background: #3d4a4f; cursor: grab; user-select: none; }
   .mapview.drag { cursor: grabbing; }
@@ -633,6 +653,7 @@
     <div class="tab" data-p="net" data-i18n="tabNet"></div>
     <div class="tab" data-p="boss" data-i18n="tabBosses"></div>
     <div class="tab" data-p="craft" data-i18n="tabCraft"></div>
+    <div class="tab" data-p="spoil" data-i18n="tabSpoil"></div>
     <div class="tab" data-p="vote" data-i18n="tabVotes"></div>
     <div class="tab" data-p="ev" data-i18n="tabEvents"></div>
     <div class="tab" data-p="tmr" data-i18n="tabTimers"></div>
@@ -726,6 +747,29 @@
         <span class="small" id="bInfo"></span>
       </div>
       <div class="panel" style="padding:2px" id="bosses"></div>
+    </div>
+
+    <!-- SPOIL -->
+    <div class="page" id="p-spoil">
+      <div class="sprow">
+        <input class="e grow" id="spQ" data-i18n-ph="spQ" spellcheck="false">
+        <select class="e" id="spKind">
+          <option value="" data-i18n="spAll"></option>
+          <option value="material" data-i18n="spMat"></option>
+          <option value="recipe" data-i18n="spRec"></option>
+          <option value="other" data-i18n="spOther"></option>
+        </select>
+        <span class="small" data-i18n="lvlLbl"></span>
+        <input class="e lv" id="spMin" maxlength="2" placeholder="min">
+        <input class="e lv" id="spMax" maxlength="2" placeholder="max">
+      </div>
+      <div class="bmode">
+        <button class="b on" data-spm="item" data-i18n="spByItem"></button>
+        <button class="b" data-spm="mob" data-i18n="spByMob"></button>
+        <span class="small" id="spInfo"></span>
+      </div>
+      <div class="panel" style="padding:2px" id="spList"></div>
+      <div class="small" style="margin-top:3px" data-i18n="spNote"></div>
     </div>
 
     <!-- CRAFT -->
@@ -961,6 +1005,12 @@ const I18N = {
     ev_aq: "Raid boss de evento que nasce 6 h depois do restart e depois a cada 17 h.",
     ev_pk: "Raid boss de evento que nasce 9 h depois do restart e depois a cada 19 h.",
     ev_zombie: "Zumbis invadem as cidades todo sábado e domingo às 20:00 GMT (horário mostrado já no seu fuso). Mate os zumbis nas cidades. Ring of Zombie: Precisão, P. Def. +6%, M. Def. +6%.",
+    tabSpoil: "Spoil", spQ: "Item, mob ou área…", spAll: "Tudo", spMat: "Materiais", spRec: "Receitas", spOther: "Outros",
+    spByItem: "Por item", spByMob: "Por mob / área", spInfoItems: "{n} itens", spInfoMobs: "{n} mobs", spMobs: "{n} mobs",
+    spk_material: "material", spk_recipe: "receita", spk_other: "outro", spNone: "Nada encontrado.",
+    spYieldTip: "Média de itens por spoil (chance × quantidade média)", spCount: "{n} pontos de spawn",
+    spPick: "Clique num ponto verde para ver o caminho.", spHMob: "Mob", spHLv: "Nv", spHArea: "Área", spHChance: "Chance", spHQty: "Qtd", spHAvg: "Média", sideSpoil: "Mapa — spoil",
+    spNote: "Chances oficiais do High Five (datapack L2J); o L2Axis tem spoil x15. A última coluna é a média de itens por spoil. 🗺 mostra onde o mob nasce e o caminho.",
     sideTitle: "Mapa dos bosses", tipSide: "Abrir/fechar o mapa ao lado", tipSideClose: "Fechar o mapa",
     rUp: "e subir {n} andar(es) até o {floor}º andar", rDown: "e descer {n} andar(es) até o {floor}º andar", rSame: "no {floor}º andar",
     dFloor: "{zone} · {floor}º andar",
@@ -1120,6 +1170,12 @@ const I18N = {
     ev_aq: "Event raid boss: spawns 6 h after the restart, then every 17 h.",
     ev_pk: "Event raid boss: spawns 9 h after the restart, then every 19 h.",
     ev_zombie: "Zombies invade the towns every Saturday and Sunday at 20:00 GMT (shown in your time zone). Kill the zombies in town. Ring of Zombie: Accuracy, P. Def. +6%, M. Def. +6%.",
+    tabSpoil: "Spoil", spQ: "Item, monster or area…", spAll: "All", spMat: "Materials", spRec: "Recipes", spOther: "Other",
+    spByItem: "By item", spByMob: "By monster / area", spInfoItems: "{n} items", spInfoMobs: "{n} monsters", spMobs: "{n} monsters",
+    spk_material: "material", spk_recipe: "recipe", spk_other: "other", spNone: "Nothing found.",
+    spYieldTip: "Average items per spoil (chance × average amount)", spCount: "{n} spawn points",
+    spPick: "Click a green spot to see the way.", spHMob: "Monster", spHLv: "Lv", spHArea: "Area", spHChance: "Chance", spHQty: "Qty", spHAvg: "Avg", sideSpoil: "Map — spoil",
+    spNote: "Official High Five chances (L2J datapack); L2Axis has spoil x15. The last column is the average items per spoil. 🗺 shows where the monster spawns and the way there.",
     sideTitle: "Bosses map", tipSide: "Open/close the map on the side", tipSideClose: "Close the map",
     rUp: "and go up {n} floor(s) to floor {floor}", rDown: "and go down {n} floor(s) to floor {floor}", rSame: "on floor {floor}",
     dFloor: "{zone} · floor {floor}",
@@ -1279,6 +1335,12 @@ const I18N = {
     ev_aq: "Event-Raidboss: erscheint 6 h nach dem Restart, dann alle 17 h.",
     ev_pk: "Event-Raidboss: erscheint 9 h nach dem Restart, dann alle 19 h.",
     ev_zombie: "Zombies überfallen jeden Samstag und Sonntag um 20:00 GMT die Städte (in deiner Zeitzone angezeigt). Töte die Zombies in der Stadt. Ring of Zombie: Genauigkeit, P. Def. +6%, M. Def. +6%.",
+    tabSpoil: "Spoil", spQ: "Item, Monster oder Gebiet…", spAll: "Alle", spMat: "Materialien", spRec: "Rezepte", spOther: "Andere",
+    spByItem: "Nach Item", spByMob: "Nach Monster / Gebiet", spInfoItems: "{n} Items", spInfoMobs: "{n} Monster", spMobs: "{n} Monster",
+    spk_material: "Material", spk_recipe: "Rezept", spk_other: "anderes", spNone: "Nichts gefunden.",
+    spYieldTip: "Durchschnittliche Items pro Spoil (Chance × durchschnittliche Menge)", spCount: "{n} Spawnpunkte",
+    spPick: "Klick auf einen grünen Punkt zeigt den Weg.", spHMob: "Monster", spHLv: "Lv", spHArea: "Gebiet", spHChance: "Chance", spHQty: "Menge", spHAvg: "Ø", sideSpoil: "Karte — Spoil",
+    spNote: "Offizielle High-Five-Chancen (L2J-Datapack); L2Axis hat Spoil x15. Letzte Spalte = durchschnittliche Items pro Spoil. 🗺 zeigt, wo das Monster spawnt, und den Weg.",
     sideTitle: "Bosskarte", tipSide: "Karte daneben öffnen/schließen", tipSideClose: "Karte schließen",
     rUp: "und {n} Etage(n) hoch bis Etage {floor}", rDown: "und {n} Etage(n) runter bis Etage {floor}", rSame: "auf Etage {floor}",
     dFloor: "{zone} · Etage {floor}",
@@ -1719,6 +1781,7 @@ function renderMovers(d, s, i) {
 function build() {
   LANG = S.lang || "pt";
   initBossMap();
+  initSpoil();
   Object.assign(bossView, S.bossView || {});
   buildSlots();
   $("#bMonAll").innerHTML = ICON.monitors;
@@ -1925,6 +1988,11 @@ function build() {
     document.querySelector(`.tab[data-p="${view.split(":")[0]}"]`)?.click();
     if (view.startsWith("ev:")) evOpen.add(view.slice(3));  // screenshots: open one event
     if (view.startsWith("boss:map")) { mapSel = view.split(":")[2] || null; setBossMode("map", true); }
+    if (view.startsWith("spoil:")) {  // screenshots: spoil:<search>[:<item id to open>[:map:<mob id>]]
+      const [, q, item, , mob] = view.split(":");
+      $("#spQ").value = q || ""; spOpen = item || null;
+      if (mob) loadSpoil().then(() => openSpoilMap(item, mob));
+    }
   }
   if (view && view.startsWith("boss:")) openBoss = view.split(":")[1];
 }
@@ -2025,6 +2093,7 @@ function render() {
   renderBosses();
   renderTimers();
   renderEvents();
+  renderSpoil();
 }
 
 // server events: live status from the announcements read in the chat, else the schedule
@@ -2118,9 +2187,176 @@ function renderTimers() {
   });
 }
 
+// ================================================= spoil
+let SPOIL = null, spMode = "item", spOpen = null;
+async function loadSpoil() {
+  if (!SPOIL) SPOIL = await api.spoil_db();
+  return SPOIL;
+}
+const spKindOf = k => k === "material" ? "material" : k === "recipe" ? "recipe" : "other";
+// average items per spoil = chance x average amount
+const spYield = (chance, lo, hi) => chance / 100 * (lo + hi) / 2;
+function spLevelOk(lv) {
+  const lo = parseInt($("#spMin").value), hi = parseInt($("#spMax").value);
+  return (isNaN(lo) || lv >= lo) && (isNaN(hi) || lv <= hi);
+}
+function spArea(m) { return m.floor ? t("dFloor", { zone: m.area, floor: m.floor }) : (m.area || "—"); }
+async function renderSpoil() {
+  if (!$("#p-spoil").classList.contains("sel")) return;
+  await loadSpoil();
+  const q = $("#spQ").value.trim().toLowerCase(), kind = $("#spKind").value;
+  const box = $("#spList");
+  const sig = [LANG, spMode, q, kind, $("#spMin").value, $("#spMax").value, spOpen].join("|");
+  if (box.dataset.sig === sig) return;
+  box.dataset.sig = sig;
+  const mobs = SPOIL.mobs, items = SPOIL.items;
+  let html = "";
+  if (spMode === "item") {
+    // items -> which monsters give them
+    const byItem = {};
+    for (const [mid, m] of Object.entries(mobs)) {
+      if (!spLevelOk(m.level)) continue;
+      for (const [iid, c, lo, hi] of m.spoil) (byItem[iid] = byItem[iid] || []).push([mid, c, lo, hi]);
+    }
+    let list = Object.entries(byItem).filter(([iid]) => {
+      const it = items[iid] || {};
+      return (!kind || spKindOf(it.kind) === kind) && (!q || (it.name || "").toLowerCase().includes(q));
+    }).sort((a, b) => (items[a[0]].name || "").localeCompare(items[b[0]].name || ""));
+    $("#spInfo").textContent = t("spInfoItems", { n: list.length });
+    list = list.slice(0, 120);
+    html = list.map(([iid, srcs]) => {
+      const it = items[iid];
+      let row = `<div class="spi ${spOpen === iid ? "open" : ""}" data-spi="${iid}">${ico(iid)}<span class="n">${esc(it.name)}</span>
+        <span class="k">${esc(t("spk_" + spKindOf(it.kind)))}</span><span class="c">${esc(t("spMobs", { n: srcs.length }))}</span></div>`;
+      if (spOpen === iid) {
+        srcs.sort((a, b) => spYield(b[1], b[2], b[3]) - spYield(a[1], a[2], a[3]));
+        row += `<div class="spd"><table><tr class="small"><td>${esc(t("spHMob"))}</td><td class="r">${esc(t("spHLv"))}</td><td>${esc(t("spHArea"))}</td>
+          <td class="r">${esc(t("spHChance"))}</td><td class="r">${esc(t("spHQty"))}</td><td class="g">${esc(t("spHAvg"))}</td><td></td></tr>` + srcs.map(([mid, c, lo, hi]) => {
+          const m = mobs[mid];
+          return `<tr><td>${esc(m.name)}</td><td class="r">${m.level}</td><td class="a" title="${esc(spArea(m))}">${esc(spArea(m))}</td>
+            <td class="r">${fmtChance(c)}</td><td class="r">${lo === hi ? lo : lo + "–" + hi}</td>
+            <td class="g" title="${esc(t("spYieldTip"))}">${spYield(c, lo, hi).toFixed(2)}</td>
+            <td><button class="b" data-spmap="${mid}" data-spitem="${iid}" title="${esc(t("bmShow"))}">🗺</button></td></tr>`;
+        }).join("") + `</table></div>`;
+      }
+      return row;
+    }).join("");
+  } else {
+    // monsters (or an area) -> what they give
+    let list = Object.entries(mobs).filter(([, m]) => spLevelOk(m.level) &&
+      (!q || m.name.toLowerCase().includes(q) || (m.area || "").toLowerCase().includes(q)) &&
+      (!kind || m.spoil.some(([iid]) => spKindOf((items[iid] || {}).kind) === kind)))
+      .sort((a, b) => a[1].level - b[1].level || a[1].name.localeCompare(b[1].name));
+    $("#spInfo").textContent = t("spInfoMobs", { n: list.length });
+    list = list.slice(0, 120);
+    html = list.map(([mid, m]) => {
+      let row = `<div class="spi ${spOpen === mid ? "open" : ""}" data-spi="${mid}"><span class="c" style="width:18px">${m.level}</span>
+        <span class="n">${esc(m.name)}</span><span class="k">${esc(spArea(m))}</span>
+        <button class="b" data-spmap="${mid}" title="${esc(t("bmShow"))}">🗺</button></div>`;
+      if (spOpen === mid) {
+        row += `<div class="spd"><table>` + m.spoil.filter(([iid]) => !kind || spKindOf((items[iid] || {}).kind) === kind)
+          .sort((a, b) => spYield(b[1], b[2], b[3]) - spYield(a[1], a[2], a[3]))
+          .map(([iid, c, lo, hi]) => `<tr><td>${ico(iid)} ${esc((items[iid] || {}).name || iid)}</td><td class="r">${fmtChance(c)}</td>
+            <td class="r">${lo === hi ? lo : lo + "–" + hi}</td><td class="g">${spYield(c, lo, hi).toFixed(2)}</td></tr>`).join("") + `</table></div>`;
+      }
+      return row;
+    }).join("");
+  }
+  box.innerHTML = html || `<div class="small" style="padding:6px">${esc(t("spNone"))}</div>`;
+  box.querySelectorAll("[data-spi]").forEach(el => el.onclick = () => { spOpen = spOpen === el.dataset.spi ? null : el.dataset.spi; renderSpoil(); });
+  box.querySelectorAll("[data-spmap]").forEach(el => el.onclick = e => { e.stopPropagation(); openSpoilMap(el.dataset.spitem || null, el.dataset.spmap); });
+}
+// open the side map on a monster's spawn spots (with every monster that gives the item, if one is chosen)
+function openSpoilMap(itemId, mobId) {
+  const mobs = itemId
+    ? Object.entries(SPOIL.mobs).filter(([, m]) => spLevelOk(m.level) && m.spoil.some(([i]) => String(i) === String(itemId))).map(([id]) => id)
+    : [mobId];
+  const m = SPOIL.mobs[mobId];
+  spoilMap = { item: itemId, mobs, mob: mobId, spot: m && m.spots[0] ? m.spots[0].slice(0, 3) : null };
+  setBossMode("map", false, true);
+  setTimeout(() => { centerOnPoint(spoilMap.spot); loadRoute(); }, 350);
+}
+function centerOnPoint(pt) {
+  if (!pt || !MAPI) return;
+  const v = $("#mapView");
+  if (!mapT) fitMap();
+  mapT.s = Math.max(mapT.s, 0.7);
+  const [mx, my] = toMap(pt[0], pt[1]);
+  mapT.x = v.clientWidth / 2 - mx * mapT.s;
+  mapT.y = v.clientHeight / 2 - my * mapT.s;
+  layoutMap();
+}
+function renderSpoilMap() {
+  if (!SPOIL || !spoilMap) return;
+  const box = $("#mapPins");
+  const sig = "spoil|" + LANG + "|" + JSON.stringify(spoilMap);
+  if (box.dataset.sig !== sig) {
+    box.dataset.sig = sig;
+    let html = "";
+    (MAPI.zones || []).forEach(z => {
+      html += `<div class="zlbl" data-x="${z.x}" data-y="${z.y}" data-zoom="${z.type === 3 ? 0.45 : 0.85}">${esc(z.name)}${z.lvl ? ` <span class="lv">${z.lvl}</span>` : ""}</div>`;
+    });
+    (MAPI.points || []).forEach(p => {
+      html += `<div class="tpt" data-x="${p.x}" data-y="${p.y}" title="Alt+B: ${esc(p.name)}"></div><div class="tlbl" data-x="${p.x}" data-y="${p.y}" data-zoom="1.1">${esc(p.name)}</div>`;
+    });
+    spoilMap.mobs.forEach(mid => {
+      const m = SPOIL.mobs[mid];
+      if (!m) return;
+      m.spots.forEach(sp => {
+        const sel = mid === spoilMap.mob && spoilMap.spot && sp[0] === spoilMap.spot[0] && sp[1] === spoilMap.spot[1];
+        html += `<div class="spot ${mid === spoilMap.mob ? "" : "other"} ${sel ? "sel" : ""}" data-x="${sp[0]}" data-y="${sp[1]}"
+          data-mob="${mid}" data-sp="${sp.slice(0, 3).join(",")}" title="${esc(m.name + " · " + m.level + " · " + t("spCount", { n: sp[3] }))}"></div>`;
+      });
+    });
+    box.innerHTML = html;
+    box.querySelectorAll("[data-sp]").forEach(el => el.onclick = e => {
+      e.stopPropagation();
+      spoilMap.mob = el.dataset.mob;
+      spoilMap.spot = el.dataset.sp.split(",").map(Number);
+      loadRoute();
+      renderSpoilMap();
+    });
+  }
+  // side list: the monsters for this item, best yield first
+  const lb = $("#sideBosses");
+  const lsig = "spoil|" + LANG + "|" + spoilMap.mob + "|" + spoilMap.mobs.join(",");
+  if (lb.dataset.sig !== lsig) {
+    lb.dataset.sig = lsig;
+    const rows = spoilMap.mobs.map(mid => {
+      const m = SPOIL.mobs[mid];
+      const sp = spoilMap.item ? m.spoil.find(([i]) => String(i) === String(spoilMap.item)) : null;
+      return { mid, m, y: sp ? spYield(sp[1], sp[2], sp[3]) : 0, c: sp ? sp[1] : null };
+    }).sort((a, b) => b.y - a.y);
+    lb.innerHTML = (spoilMap.item ? `<div class="sb" style="cursor:default">${ico(spoilMap.item)}<b class="n">${esc((SPOIL.items[spoilMap.item] || {}).name || "")}</b></div>` : "") +
+      rows.map(r => `<div class="sb ${r.mid === spoilMap.mob ? "sel" : ""}" data-smob="${r.mid}" title="${esc(spArea(r.m))}">
+        <i class="d" style="background:#7fd36b"></i><span class="n">${esc(r.m.name)}</span><span class="l">${r.m.level}</span>
+        ${r.c != null ? `<span class="l" style="width:38px">${fmtChance(r.c)}</span>` : ""}</div>`).join("");
+    lb.querySelectorAll("[data-smob]").forEach(el => el.onclick = () => {
+      spoilMap.mob = el.dataset.smob;
+      spoilMap.spot = SPOIL.mobs[spoilMap.mob].spots[0].slice(0, 3);
+      centerOnPoint(spoilMap.spot);
+      loadRoute();
+      renderSpoilMap();
+    });
+  }
+  layoutMap();
+  renderRoute();
+}
+function initSpoil() {
+  ["#spQ", "#spMin", "#spMax"].forEach(id => $(id).oninput = () => renderSpoil());
+  $("#spKind").onchange = () => renderSpoil();
+  document.querySelectorAll("[data-spm]").forEach(b => b.onclick = () => {
+    spMode = b.dataset.spm; spOpen = null;
+    document.querySelectorAll("[data-spm]").forEach(x => x.classList.toggle("on", x === b));
+    renderSpoil();
+  });
+}
+
 // ================================================= bosses map
 let bossMode = "list", mapSel = null, MAPI = null, mapT = null, mapRoute = null, mapStart = "";
-function setBossMode(mode, focus) {
+let sideMode = "boss", spoilMap = null;  // spoil mode: {item, mobs: [ids], mob, spot: [x, y, z]}
+function setBossMode(mode, focus, spoil) {
+  if (mode === "map") { sideMode = spoil ? "spoil" : "boss"; $("#mapPins").dataset.sig = ""; $("#sideBosses").dataset.sig = ""; }
   // "map" opens the side pane next to the window (the list stays in the tab)
   const open = mode === "map";
   bossMode = open ? "map" : "list";
@@ -2214,6 +2450,9 @@ function layoutMap() {
 }
 function renderBossMap(list) {
   if (!MAPI || !MAPI.ready) return;
+  $("#side .title .name").textContent = t(sideMode === "spoil" ? "sideSpoil" : "sideTitle");
+  $("#sideSearch").style.display = sideMode === "spoil" ? "none" : "";
+  if (sideMode === "spoil") return renderSpoilMap();
   const box = $("#mapPins");
   const accts = (S.slots || []).filter(s => s.tile);
   const sig = LANG + "|" + mapSel + "|" + list.map(b => b.id + bossStatus(b).cls).join(",") + "|" + accts.map(s => s.name + s.tile).join(",");
@@ -2270,17 +2509,29 @@ function renderSideList(list) {
     renderBosses();
   });
 }
-async function loadRoute() {
-  mapRoute = mapSel ? await api.boss_route(mapSel, mapStart || null) : null;
+// what the route goes to: the selected boss, or the selected spoil spot
+function routeTarget() {
+  if (sideMode === "spoil") {
+    if (!spoilMap || !spoilMap.spot || !SPOIL) return null;
+    const m = SPOIL.mobs[spoilMap.mob] || {};
+    const [x, y, z] = spoilMap.spot;
+    return { name: m.name, level: m.level, zone: m.area, floor: m.floor, x, y, z };
+  }
+  const b = (S.bosses || []).find(x => x.id === mapSel);
+  return b && b.x != null ? b : null;
+}
+async function loadRoute(boardTp) {
+  const tg = routeTarget();
+  mapRoute = tg ? await api.route_to(tg.x, tg.y, tg.z ?? null, tg.zone || null, mapStart || null, boardTp ?? null) : null;
   renderRoute();
   layoutMap();
 }
 function renderRoute() {
   const box = $("#bRoute");
-  const b = (S.bosses || []).find(x => x.id === mapSel);
-  if (!b) { box.innerHTML = `<div class="small">${esc(t("mapPick"))}</div>`; box.dataset.sig = ""; return; }
-  const st = bossStatus(b);
-  const sig = [LANG, b.id, st.txt, JSON.stringify(mapRoute), mapStart].join("|");
+  const b = routeTarget();
+  if (!b) { box.innerHTML = `<div class="small">${esc(t(sideMode === "spoil" ? "spPick" : "mapPick"))}</div>`; box.dataset.sig = ""; return; }
+  const st = sideMode === "spoil" ? { txt: "", cls: "" } : bossStatus(b);
+  const sig = [LANG, b.id || b.x + "," + b.y, st.txt, JSON.stringify(mapRoute), mapStart].join("|");
   if (box.dataset.sig === sig) return;
   box.dataset.sig = sig;
   let html = `<div class="rh"><b>${esc(b.name)}${b.level ? " · " + esc(b.level) : ""}</b><span class="st ${st.cls}">${esc(st.txt)}</span></div>`;
@@ -2303,7 +2554,7 @@ function renderRoute() {
     <label class="chk"><input type="checkbox" id="rBoardTp" ${!mapRoute || mapRoute.boardTp ? "checked" : ""}><i></i><span>${esc(t("rBoardOpt"))}</span></label>`;
   box.innerHTML = html;
   $("#rStart").onchange = e => { mapStart = e.target.value; loadRoute(); };
-  $("#rBoardTp").onchange = async e => { mapRoute = await api.boss_route(mapSel, mapStart || null, e.target.checked); renderRoute(); layoutMap(); };
+  $("#rBoardTp").onchange = e => loadRoute(e.target.checked);
   box.querySelector("[data-copy]").onclick = async e => {
     try { await navigator.clipboard.writeText(e.target.dataset.copy); } catch (_) {}
     e.target.textContent = t("copied");

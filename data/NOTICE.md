@@ -1,4 +1,4 @@
-# data/drops_db.json, data/items_db.json and data/map_db.json
+# data/drops_db.json, data/items_db.json, data/map_db.json and data/spoil_db.json
 
 Drop and spoil chances, NPC names and levels, spawn locations and NPC exchange lists in
 `drops_db.json`, and the item passive bonuses and masterwork (Foundation) chains in `items_db.json`, are derived from the **L2J Server datapack** (High Five, release 2.6.2.0):
@@ -19,6 +19,7 @@ Regenerate with:
     python tools/build_drops_db.py <path to l2j-server-datapack checkout>
     python tools/build_items_db.py <path to l2j-server-datapack checkout>
     python tools/build_map_db.py <path to l2j-server-datapack checkout>
+    python tools/build_spoil_db.py <path to l2j-server-datapack checkout>
 
 Item icons are **not** included in this repository: the panel reads them from the player's own
 game client (`SysTextures`) and caches them locally in `icons/`.
