@@ -289,7 +289,6 @@
   .sb .l { color: var(--dim); width: 18px; text-align: right; }
   .sidemap { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
   .sidemap .mapview { flex: 1; height: auto; min-height: 200px; }
-  .maplegend { position: absolute; left: 4px; bottom: 3px; right: 40px; color: #e8dcc0; text-shadow: 0 0 3px #000, 0 0 2px #000; pointer-events: none; }
   .zlbl { position: absolute; font-size: 9px; color: #f1e3b8; text-shadow: 0 0 2px #000, 0 0 3px #000, 0 0 1px #000;
           pointer-events: none; transform: translate(-50%, -50%); white-space: nowrap; font-style: italic; opacity: .9; }
   .zlbl .lv { color: #c9b27a; font-style: normal; }
@@ -2438,7 +2437,7 @@ async function loadMapInfo() {
     setTimeout(() => { if (bossMode === "map") loadMapInfo().then(() => renderBosses()); }, 3000);
   }
 }
-const toMap = (x, y) => [(x - MAPI.x0) / MAPI.scale, (y - MAPI.y0) / MAPI.scale];
+const toMap = (x, y) => [(x - MAPI.x0) / MAPI.sx, (y - MAPI.y0) / MAPI.sy];
 function fitMap() {
   // the continent: game x -110k..250k, y -200k..270k
   const v = $("#mapView"), [x1, y1] = toMap(-110000, -200000), [x2, y2] = toMap(250000, 270000);
@@ -2477,8 +2476,7 @@ function layoutMap() {
     const [px, py] = P(+el.dataset.x, +el.dataset.y);
     el.style.left = px + "px"; el.style.top = py + "px";
     if (el.classList.contains("acct")) {
-      const w = 32768 / MAPI.scale * mapT.s;
-      el.style.width = w + "px"; el.style.height = w + "px";
+      el.style.width = 32768 / MAPI.sx * mapT.s + "px"; el.style.height = 32768 / MAPI.sy * mapT.s + "px";
     }
     if (el.classList.contains("town")) el.style.display = mapT.s > 0.18 ? "" : "none";
     let show = true;

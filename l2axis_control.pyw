@@ -2833,7 +2833,7 @@ class Api:
             threading.Thread(target=self._worldmap.build, daemon=True).start()
         if self._zones is None:
             self._zones = load_hunting_zones()
-        return {"ready": self._worldmap.ready, "x0": MAP_X0, "y0": MAP_Y0, "scale": MAP_SCALE,
+        return {"ready": self._worldmap.ready, "x0": MAP_X0, "y0": MAP_Y0, "sx": MAP_SX, "sy": MAP_SY,
                 "towns": self._map_db.get("towns", {}), "zones": self._zones, "points": self._board_points,
                 "regions": [{"name": n, "x": x, "y": y} for n, x, y in MAP_REGIONS]}
 
@@ -3587,8 +3587,10 @@ return Math.ceil(document.getElementById('l').getBoundingClientRect().bottom)+10
 # icons/ (not in the repository). One full-size pixel = 128 game units and the map starts at the
 # world square (11, 11); the cached image is half size (256 units per pixel).
 MAP_FILE = ICON_DIR / "worldmap.png"
-MAP_SCALE = 256                    # game units per pixel of the cached image
-MAP_X0, MAP_Y0 = -294912, -229376  # game coordinates of the image's top-left corner
+# Calibrated on ten town drawings (Talking Island ... Schuttgart): game units per pixel of the cached
+# (half size) image, one value per axis, and the game coordinates of its top-left corner.
+MAP_SX, MAP_SY = 261.26, 265.75
+MAP_X0, MAP_Y0 = -318767, -261066
 MAP_DB_FILE = APP_DIR / "data" / "map_db.json"
 RUN_SPEED = 150                    # game units per second, a running character with a speed buff
 
