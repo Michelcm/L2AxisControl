@@ -119,6 +119,7 @@
     --pin-ink: #1b1a17;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  [hidden] { display: none !important; }
   /* dark background: only visible in the leftovers of the window shape, around the medallion */
   html, body { background: var(--base); height: 100%; overflow: hidden; }
   body {
@@ -269,6 +270,7 @@
   button.b:active:not(:disabled) { background: linear-gradient(var(--bevel-lo), var(--bevel-mid)); }
   button.b:disabled { color: var(--ink-off); background: linear-gradient(var(--bevel-off-hi), var(--bevel-off-lo));
                       box-shadow: inset 0 0 0 1px var(--line-dim); cursor: default; }
+  button.b.gold:disabled { color: var(--ink-off); box-shadow: inset 0 0 0 1px var(--line-dim); }
   button.b.gold { color: var(--gold-hi); box-shadow: inset 0 0 0 1px var(--gold), inset 0 2px 0 rgba(255,255,255,.1); }
   button.b.sq { width: 19px; padding: 0; }
   button.b.wide { width: 100%; margin-bottom: 3px; }
@@ -307,46 +309,70 @@
       background: linear-gradient(var(--bevel-ring), var(--knob-hover-lo)); border: 1px solid #000; cursor: pointer; }
 
   /* clients */
-  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(205px, 1fr)); gap: 5px; }
-  .cards .panel { margin-bottom: 0; }
-  .slot .row { gap: 3px; }
-  .slot input.name { flex: 1; width: auto; min-width: 0; }
-  .slot .acts { margin-top: 4px; }
-  .slot .acts .launch { flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px; }
-  .slot .rm { width: 14px; height: 14px; color: var(--dim); cursor: pointer; flex: none; }
-  .slot .rm:hover { color: var(--bad); }
-  .slot .movers { margin-top: 3px; gap: 3px; }
-  .slot .movers .lbl { font-size: 9px; color: var(--dim); margin-right: 2px; }
-  button.b.ico { width: 24px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
-  button.b.ico svg, .launch svg { width: 14px; height: 14px; }
-  button.b.mon { padding: 0 5px; display: inline-flex; align-items: center; gap: 3px; font-size: 10px; }
-  button.b.mon svg { width: 14px; height: 14px; }
-  button.b.mon.on { color: var(--gold-hi); box-shadow: inset 0 0 0 1px var(--gold); }
-  .addcard { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 86px;
-             border: 1px dashed var(--knob-hi); border-radius: 3px; color: var(--dim); cursor: pointer; font-size: 11px; }
-  .addcard svg { width: 22px; height: 22px; }
-  .addcard:hover { color: var(--gold-hi); border-color: var(--gold); background: rgba(201,165,90,.06); }
-  .monrow { display: flex; gap: 8px; align-items: stretch; }
-  .monmap { position: relative; flex: 1; min-height: 70px; }
-  .mon { position: absolute; border: 2px solid var(--line); border-radius: 3px; background: linear-gradient(var(--mon-hi), var(--mon-lo));
-         cursor: pointer; overflow: hidden; padding: 3px 4px; box-sizing: border-box; }
-  .mon:hover { border-color: var(--gold); }
-  .mon .n { font: bold 15px Georgia, serif; color: var(--gold); line-height: 15px; }
-  .mon .res { font-size: 9px; color: var(--dim); }
-  .mon .chips { display: flex; flex-wrap: wrap; gap: 2px; margin-top: 2px; }
-  .mon .chip2 { font-size: 9px; padding: 0 3px; border-radius: 2px; background: var(--source-craft-bg); color: var(--good-soft); white-space: nowrap; }
-  .mon .stand { position: absolute; left: 50%; bottom: -1px; width: 18px; margin-left: -9px; height: 3px; background: var(--line); }
-  .montools { display: flex; flex-direction: column; gap: 3px; }
-  .montools button.b.ico { width: 28px; height: 22px; }
-  .slot .info { margin-top: 2px; font-size: 10px; color: var(--dim); white-space: nowrap; }
-  .slot.on { box-shadow: inset 0 0 0 1px rgba(127,211,107,.35); }
-  .slot.dc { box-shadow: inset 0 0 0 1px rgba(224,90,74,.7); }
+  .sechead { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; margin: 1px 0 4px; }
+  .sechead.accs { margin-top: 9px; }
+  .sechead .ttl { font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--gold); white-space: nowrap; }
+  .sechead .cnt { font-size: 10px; color: var(--dim); white-space: nowrap; margin-left: 4px; }
+  .sechead .rule { flex: 1 1 12px; height: 1px; margin: 0 4px; background: linear-gradient(90deg, rgba(201,165,90,.55), transparent); }
+  .sechead button.b { height: 18px; padding: 0 7px; font-size: 10px; }
+  button.b.ico { width: 22px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+  button.b.ico svg { width: 13px; height: 13px; }
+  button.b.mv { padding: 0 5px; font-size: 10px; }
+  button.b.mv.on { color: var(--gold-hi); box-shadow: inset 0 0 0 1px var(--gold); }
+  /* monitors: a slim strip. Click one to arrange the windows on it; drop an account on it to send that window there */
+  .monmap { position: relative; min-height: 40px; margin-bottom: 3px; }
+  .monmap .mon { position: absolute; display: flex; align-items: center; gap: 6px; padding: 2px 6px; box-sizing: border-box; overflow: hidden;
+         border: 1px solid var(--line); border-radius: 3px; background: linear-gradient(var(--mon-hi), var(--mon-lo)); cursor: pointer; }
+  .monmap .mon:hover { border-color: var(--gold); }
+  .monmap .mon .n { flex: none; font: bold 15px Georgia, serif; color: var(--gold); white-space: nowrap; }
+  .monmap .mon .meta { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .monmap .mon .res { font-size: 9px; color: var(--dim); }
+  .monmap .mon .chips { display: flex; flex-wrap: wrap; gap: 2px; margin: 0; }
+  .monmap .mon .chip2 { font-size: 9px; padding: 0 3px; border-radius: 2px; background: var(--source-craft-bg); color: var(--good-soft); white-space: nowrap; }
+  .monmap .mon .chip2[draggable="true"] { cursor: grab; }
+  .monmap .mon.drop { border-color: var(--gold-hi); box-shadow: inset 0 0 0 1px rgba(240,207,126,.6); background: linear-gradient(var(--mon-drop-hi), var(--mon-drop-lo)); }
+  .monmap.dragon .mon { border-style: dashed; }
+  #winMsg { line-height: 13px; }
+  /* accounts: one row per client, like the game's party window; actions line up on the right */
+  .slots { border: 1px solid #000; box-shadow: inset 0 0 0 1px rgba(106,92,62,.45);
+           background: linear-gradient(rgba(40,35,26,.55), rgba(16,14,11,.55)); }
+  .slot { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 8px; row-gap: 2px; align-items: center;
+          padding: 4px 6px; border-bottom: 1px solid rgba(106,92,62,.25); }
+  .slot:last-child { border-bottom: 0; }
+  .slot .who { display: flex; align-items: center; gap: 4px; min-width: 0; }
+  .slot .who .dot { flex: none; margin: 0 1px 0 0; }
+  .slot input.name { flex: 1; min-width: 0; max-width: 170px; height: 18px; padding: 0 3px; font: bold 11px Tahoma, sans-serif;
+                     color: var(--text-hi); background: transparent; border: 0; box-shadow: none; }
+  .slot input.name:hover { box-shadow: inset 0 0 0 1px var(--line); }
+  .slot input.name:focus { background: var(--well); box-shadow: inset 0 0 0 1px var(--focus); }
+  .slot .acts { display: flex; align-items: center; justify-content: flex-end; gap: 3px; }
+  .slot .acts .pri { min-width: 72px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
+  .slot .acts .pri svg { width: 12px; height: 12px; }
+  .slot .acts [data-a="close"]:hover:not(:disabled) { background: linear-gradient(var(--close-hover-hi), var(--close-hover-lo)); }
+  .slot .acts [data-a="remove"] { width: 18px; color: var(--dim); background: none; border-color: transparent; box-shadow: none; }
+  .slot .acts [data-a="remove"]:hover { color: var(--bad-hi); background: none; }
+  .slot .sub { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 3px 10px; padding-left: 13px; min-height: 13px; }
+  .slot .info { flex: 1 1 150px; min-width: 0; font-size: 10px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .slot.on .info { color: var(--text); }
+  .slot.dc { background: rgba(228,90,74,.08); box-shadow: inset 0 0 0 1px rgba(228,90,74,.55); }
   .slot.dc .info { color: var(--bad-hi); font-weight: bold; }
+  .slot .bars, .slot .movers { display: flex; align-items: center; gap: 3px; }
+  .slot .bars:empty, .slot .movers:empty { display: none; }
+  .mbar { position: relative; width: 64px; height: 11px; background: var(--well); border: 1px solid #000; box-shadow: inset 0 0 0 1px var(--line-dim); }
+  .mbar i { position: absolute; inset: 1px; transform-origin: left center; }
+  .mbar.hp i { background: linear-gradient(var(--hp-hi), var(--hp) 50%, var(--hp-lo)); }
+  .mbar.mp i { background: linear-gradient(var(--mp-hi), var(--mp) 50%, var(--mp-lo)); }
+  .mbar b { position: absolute; inset: 0; font: 9px/9px Tahoma, sans-serif; font-weight: normal; color: #fff; text-align: center;
+            text-shadow: 1px 1px 0 #000; }
+  .mbar.low { border-color: var(--bad); }
+  .slot .movers .lbl { font-size: 9px; color: var(--dim); margin-right: 1px; }
+  .slot .movers button.b { height: 16px; min-width: 18px; padding: 0 4px; font-size: 10px; }
   .slot[draggable="true"] { cursor: grab; }
   .slot.dragging { opacity: .45; }
-  .mon.drop { border-color: var(--gold-hi); box-shadow: inset 0 0 0 1px rgba(240,207,126,.6); background: linear-gradient(var(--mon-drop-hi), var(--mon-drop-lo)); }
-  .mon .chip2[draggable="true"] { cursor: grab; }
-  .monmap.dragon .mon { border-style: dashed; }
+  .addrow { display: flex; width: 100%; align-items: center; justify-content: center; gap: 5px; height: 22px; margin-top: 4px;
+            font: 11px Tahoma, sans-serif; color: var(--dim); background: none; border: 1px dashed var(--knob-hi); border-radius: 3px; cursor: pointer; }
+  .addrow svg { width: 12px; height: 12px; }
+  .addrow:hover { color: var(--gold-hi); border-color: var(--gold); background: rgba(201,165,90,.06); }
   .warn { color: var(--note); font-size: 10px; margin-top: 3px; white-space: pre-line; }
 
   /* votes */
@@ -851,25 +877,23 @@
   <div class="body">
     <!-- CLIENTS -->
     <div class="page sel" id="p-cli">
-      <div class="panel">
-        <div class="osec" data-i18n="monTitle"></div>
-        <div class="monrow">
-          <div class="monmap" id="monMap"></div>
-          <div class="montools">
-            <button class="b ico" id="bMonAll" data-i18n-title="tipAllMon"></button>
-            <button class="b ico" id="bSaveLayout" data-i18n-title="tipSaveLayout"></button>
-            <button class="b ico" id="bRestoreLayout" data-i18n-title="tipRestoreLayout"></button>
-          </div>
-        </div>
-        <div class="small" id="winMsg" style="margin-top:4px;line-height:13px" data-i18n="monHint"></div>
+      <div class="sechead">
+        <span class="ttl" data-i18n="monTitle"></span><span class="rule"></span>
+        <button class="b" id="bMonAll" data-i18n="btnSpread" data-i18n-title="tipAllMon"></button>
+        <button class="b" id="bSaveLayout" data-i18n="btnSavePos" data-i18n-title="tipSaveLayout"></button>
+        <button class="b" id="bRestoreLayout" data-i18n="btnRestorePos" data-i18n-title="tipRestoreLayout"></button>
       </div>
-      <div id="slots" class="cards"></div>
-      <div class="small" id="external"></div>
-      <div class="btnbar">
+      <div class="monmap" id="monMap"></div>
+      <div class="small" id="winMsg" data-i18n="monHint"></div>
+
+      <div class="sechead accs">
+        <span class="ttl" data-i18n="accListTitle"></span><span class="cnt" id="accCount"></span><span class="rule"></span>
         <button class="b gold" id="bLaunchAll" data-i18n="btnOpenAll"></button>
-        <button class="b" id="bMinAll" data-i18n="btnMinimize"></button>
-        <button class="b" id="bCloseAll" data-i18n="btnClose"></button>
+        <button class="b" id="bMinAll" data-i18n="btnMinAll"></button>
+        <button class="b" id="bCloseAll" data-i18n="btnCloseAll"></button>
       </div>
+      <div id="slots" class="slots"></div>
+      <div class="small" id="external"></div>
       <div class="warn" id="hwidWarn"></div>
     </div>
 
@@ -1224,7 +1248,7 @@ const I18N = {
     rFrom: "Saindo de:", rAuto: "automático ({town})",
     dirN: "o norte", dirNE: "o nordeste", dirE: "o leste", dirSE: "o sudeste", dirS: "o sul", dirSW: "o sudoeste", dirW: "o oeste", dirNW: "o noroeste",
     tabClients: "Clientes", tabNet: "Rede", tabBosses: "Bosses", tabVotes: "Votos", tabTimers: "Timers", tabEvents: "Eventos", tabOptions: "Opções",
-    monTitle: "Monitores", monHint: "Clique num monitor para organizar as janelas nele; o ícone de dois monitores espalha por todos. Para trocar uma janela de monitor, arraste a conta (ou o nome dela no mapa) até o monitor, ou use ① ②.",
+    monTitle: "Monitores", monHint: "Clique num monitor para organizar as janelas nele, ou arraste uma conta até ele.",
     tipAllMon: "Espalhar as janelas por todos os monitores", tipSaveLayout: "Salvar a posição de cada janela", tipRestoreLayout: "Restaurar as posições salvas",
     tipMonClick: "Organizar todas as janelas no monitor {n}", moveTo: "Monitor:", tipMove: "Levar esta janela para o monitor {n}",
     addAccount: "Nova conta", tipRemove: "Remover esta conta da lista", confirmRemove: "Remover {name} da lista? (O login salvo dela também é apagado.)",
@@ -1337,6 +1361,7 @@ const I18N = {
     optCharsel: "Depois do login, confirmar o servidor e parar na seleção de personagem",
     optRename: "Nome da conta no título da janela do jogo", optDelay: "Espera máxima pela tela de login, se ela não for reconhecida", secAlerts: "Avisos",
     connLost: "Sem resposta do painel. Tentando de novo…", aTabs: "Seções", aLvMin: "Nível mínimo", aLvMax: "Nível máximo", aSort: "Ordenar", aGroup: "Agrupar", aRace: "Raça", aClass: "Classe", aKind: "Tipo de item", aSlot: "Slot do acessório", aSrc: "Origem", aRate: "Chance de sucesso", aAccName: "Nome da conta", aFav: "Só favoritos", aZoomIn: "Aproximar", aZoomOut: "Afastar", aZoomFit: "Mapa inteiro",
+    accListTitle: "Contas", accCount: "{open} de {n} abertas", btnSpread: "Espalhar", btnSavePos: "Salvar posições", btnRestorePos: "Restaurar", btnMinAll: "Minimizar todos", btnCloseAll: "Fechar todos", tipFocus: "Trazer a janela do jogo para a frente", tipMinGame: "Minimizar o jogo", tipCloseGame: "Fechar o jogo", stLobby: "aberto, no login ou na seleção", noLogin: "sem login salvo", loginIs: "login {login}",
     optScale: "Tamanho do texto", tipResize: "Arraste para redimensionar",
     secWindow: "Janela", secLogin: "Login automático", secLinks: "Links do L2Axis", secFolders: "Pastas",
     optTop: "Sempre por cima dos outros programas", optAbout: "Sobre o painel e créditos",
@@ -1398,7 +1423,7 @@ const I18N = {
     rFrom: "From:", rAuto: "automatic ({town})",
     dirN: "north", dirNE: "north-east", dirE: "east", dirSE: "south-east", dirS: "south", dirSW: "south-west", dirW: "west", dirNW: "north-west",
     tabClients: "Clients", tabNet: "Network", tabBosses: "Bosses", tabVotes: "Votes", tabTimers: "Timers", tabEvents: "Events", tabOptions: "Options",
-    monTitle: "Monitors", monHint: "Click a monitor to arrange the windows on it; the two-monitor icon spreads them over all. To move a window, drag its account (or its name on the map) onto a monitor, or use ① ②.",
+    monTitle: "Monitors", monHint: "Click a monitor to arrange the windows on it, or drag an account onto it.",
     tipAllMon: "Spread the windows over all monitors", tipSaveLayout: "Save each window's position", tipRestoreLayout: "Restore the saved positions",
     tipMonClick: "Arrange all windows on monitor {n}", moveTo: "Monitor:", tipMove: "Send this window to monitor {n}",
     addAccount: "New account", tipRemove: "Remove this account from the list", confirmRemove: "Remove {name} from the list? (Its saved login is deleted too.)",
@@ -1511,6 +1536,7 @@ const I18N = {
     optCharsel: "After logging in, confirm the server and stop at character selection",
     optRename: "Account name in the game window title", optDelay: "Longest wait for the login screen, if it is not recognised", secAlerts: "Alerts",
     connLost: "The panel is not responding. Retrying…", aTabs: "Sections", aLvMin: "Minimum level", aLvMax: "Maximum level", aSort: "Sort", aGroup: "Group", aRace: "Race", aClass: "Class", aKind: "Item type", aSlot: "Accessory slot", aSrc: "Source", aRate: "Success chance", aAccName: "Account name", aFav: "Favourites only", aZoomIn: "Zoom in", aZoomOut: "Zoom out", aZoomFit: "Whole map",
+    accListTitle: "Accounts", accCount: "{open} of {n} open", btnSpread: "Spread", btnSavePos: "Save positions", btnRestorePos: "Restore", btnMinAll: "Minimize all", btnCloseAll: "Close all", tipFocus: "Bring the game window to the front", tipMinGame: "Minimize the game", tipCloseGame: "Close the game", stLobby: "open, at login or character select", noLogin: "no saved login", loginIs: "login {login}",
     optScale: "Text size", tipResize: "Drag to resize",
     secWindow: "Window", secLogin: "Auto login", secLinks: "L2Axis links", secFolders: "Folders",
     optTop: "Always on top of other programs", optAbout: "About the panel & credits",
@@ -1572,7 +1598,7 @@ const I18N = {
     rFrom: "Start:", rAuto: "automatisch ({town})",
     dirN: "Norden", dirNE: "Nordosten", dirE: "Osten", dirSE: "Südosten", dirS: "Süden", dirSW: "Südwesten", dirW: "Westen", dirNW: "Nordwesten",
     tabClients: "Clients", tabNet: "Netzwerk", tabBosses: "Bosse", tabVotes: "Votes", tabTimers: "Timer", tabEvents: "Events", tabOptions: "Optionen",
-    monTitle: "Monitore", monHint: "Klick auf einen Monitor ordnet die Fenster darauf an; das Zwei-Monitor-Symbol verteilt sie auf alle. Um ein Fenster zu verschieben, zieh das Konto (oder seinen Namen auf der Karte) auf einen Monitor, oder nutze ① ②.",
+    monTitle: "Monitore", monHint: "Klick auf einen Monitor ordnet die Fenster darauf an; zieh ein Konto darauf, um es dorthin zu schicken.",
     tipAllMon: "Fenster auf alle Monitore verteilen", tipSaveLayout: "Position jedes Fensters speichern", tipRestoreLayout: "Gespeicherte Positionen wiederherstellen",
     tipMonClick: "Alle Fenster auf Monitor {n} anordnen", moveTo: "Monitor:", tipMove: "Dieses Fenster auf Monitor {n} schicken",
     addAccount: "Neues Konto", tipRemove: "Dieses Konto aus der Liste entfernen", confirmRemove: "{name} aus der Liste entfernen? (Der gespeicherte Login wird auch gelöscht.)",
@@ -1685,6 +1711,7 @@ const I18N = {
     optCharsel: "Nach dem Login den Server bestätigen und bei der Charakterauswahl anhalten",
     optRename: "Kontoname im Titel des Spielfensters", optDelay: "Höchste Wartezeit auf den Login-Bildschirm, falls er nicht erkannt wird", secAlerts: "Hinweise",
     connLost: "Das Panel antwortet nicht. Neuer Versuch…", aTabs: "Bereiche", aLvMin: "Mindestlevel", aLvMax: "Höchstlevel", aSort: "Sortieren", aGroup: "Gruppieren", aRace: "Rasse", aClass: "Klasse", aKind: "Itemtyp", aSlot: "Accessoire-Slot", aSrc: "Herkunft", aRate: "Erfolgschance", aAccName: "Kontoname", aFav: "Nur Favoriten", aZoomIn: "Vergrößern", aZoomOut: "Verkleinern", aZoomFit: "Ganze Karte",
+    accListTitle: "Konten", accCount: "{open} von {n} offen", btnSpread: "Verteilen", btnSavePos: "Positionen speichern", btnRestorePos: "Wiederherstellen", btnMinAll: "Alle minimieren", btnCloseAll: "Alle schließen", tipFocus: "Spielfenster nach vorne holen", tipMinGame: "Spiel minimieren", tipCloseGame: "Spiel schließen", stLobby: "offen, im Login oder in der Charakterauswahl", noLogin: "kein gespeicherter Login", loginIs: "Login {login}",
     optScale: "Textgröße", tipResize: "Ziehen, um die Größe zu ändern",
     secWindow: "Fenster", secLogin: "Auto-Login", secLinks: "L2Axis-Links", secFolders: "Ordner",
     optTop: "Immer über anderen Programmen", optAbout: "Über das Panel & Credits",
@@ -1742,7 +1769,7 @@ const setDisabled = (el, v) => { v = !!v; if (el && el.disabled !== v) el.disabl
 const isTab = id => $("#p-" + id).classList.contains("sel");
 
 // ---- keyboard and screen readers: rows and icons drawn as divs become buttons you can Tab to
-const CLICKABLE = ".tbtn, .gm, .boss .nm, .boss .fav, .recipe, .spi .n, .spgrp, .ev, .sb, .mon, .addcard, .slot .rm, .chip, .prow, [data-src], .maplegend .lgh";
+const CLICKABLE = ".tbtn, .gm, .boss .nm, .boss .fav, .recipe, .spi .n, .spgrp, .ev, .sb, .monmap .mon, .chip, .prow, [data-src], .maplegend .lgh";
 const EXPANDS = ".boss .nm, .spi .n, .recipe, .spgrp, .ev, .maplegend .lgh";
 const SYMBOLIC = /^[\s\p{Extended_Pictographic}\p{S}\p{P}]*$/u;
 function syncExpanded(el) {
@@ -1784,19 +1811,26 @@ new MutationObserver(list => {
 function focusKey(el) {
   if (!el || el === document.body) return null;
   if (el.id) return "#" + CSS.escape(el.id);
+  const host = el.parentElement && el.parentElement.closest("[data-spi],[data-spgrp],[data-id],[data-ev],[data-sb],[data-rid],[data-mon],[data-k],[data-slot]");
+  let hostSel = "";
+  if (host) {
+    const a = [...host.attributes].find(x => /^data-(spi|spgrp|id|ev|sb|rid|mon|k|slot)$/.test(x.name));
+    hostSel = `[${a.name}="${CSS.escape(a.value)}"] `;
+  }
   const own = [...el.attributes].find(a => /^data-(?!i18n|h$|sig$|aria)/.test(a.name));
-  if (own) return `${el.tagName.toLowerCase()}[${own.name}="${CSS.escape(own.value)}"]`;
-  const host = el.closest("[data-spi],[data-spgrp],[data-id],[data-ev],[data-sb],[data-rid],[data-mon],[data-k]");
+  if (own) return `${hostSel}${el.tagName.toLowerCase()}[${own.name}="${CSS.escape(own.value)}"]`;
   if (!host) return null;
-  const a = [...host.attributes].find(x => /^data-(spi|spgrp|id|ev|sb|rid|mon|k)$/.test(x.name));
-  return `[${a.name}="${CSS.escape(a.value)}"] ${el.classList.length ? "." + CSS.escape(el.classList[0]) : el.tagName.toLowerCase()}`;
+  return hostSel + (el.classList.length ? "." + CSS.escape(el.classList[0]) : el.tagName.toLowerCase());
 }
 function restoreFocus(sel) {
   if (!sel) return;
+  const usable = n => n && !n.hidden && !n.disabled && n.getClientRects().length;
   const again = () => {
     const a = document.activeElement;
     if (a && a !== document.body && a.isConnected) return true;
-    const n = document.querySelector(sel);
+    let n = document.querySelector(sel);
+    // the same control is gone or off (e.g. "Open" once the game runs): the first usable one of that row
+    if (n && !usable(n)) n = [...(n.closest("[data-slot], [data-spi], [data-id]") || n).querySelectorAll("button, [tabindex='0']")].find(usable) || null;
     if (n) n.focus();
     return !!n;
   };
@@ -1988,7 +2022,9 @@ $("#bCompact").onclick = () => {
 const SVG = body => `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
 const ICON = {
   play: SVG('<path d="M5 3l8 5-8 5z" fill="currentColor" stroke="none"/>'),
-  focus: SVG('<circle cx="8" cy="8" r="2.4"/><path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8z"/>'),
+  // a window coming to the front of another
+  front: SVG('<rect x="1.5" y="1.8" width="8.5" height="6.4" rx="1"/><rect x="5.5" y="6.6" width="9" height="7" rx="1" fill="currentColor" fill-opacity=".35"/>'),
+  user: SVG('<circle cx="8" cy="5.3" r="2.8"/><path d="M2.6 14.3c.5-3 2.6-4.6 5.4-4.6s4.9 1.6 5.4 4.6"/>'),
   key: SVG('<circle cx="5" cy="8" r="2.7"/><path d="M7.7 8H14.2M12.2 8v2.4M14.2 8v1.7"/>'),
   gear: SVG('<circle cx="8" cy="8" r="2.2"/><path d="M8 1.6v2.1M8 12.3v2.1M1.6 8h2.1M12.3 8h2.1M3.5 3.5l1.5 1.5M11 11l1.5 1.5M3.5 12.5L5 11M11 5l1.5-1.5"/>'),
   min: SVG('<path d="M3.5 11.5h9"/>'),
@@ -2008,23 +2044,20 @@ function buildSlots() {
   box.innerHTML = "";
   S.slots.forEach((s, i) => {
     const d = document.createElement("div");
-    d.className = "panel slot";
+    d.className = "slot";
+    d.dataset.slot = i;
     d.innerHTML = `
-      <div class="row">
-        <i class="dot"></i>
-        <input class="e name" maxlength="20" spellcheck="false">
-        <span class="rm" data-a="remove">${ICON.x}</span>
-      </div>
-      <div class="info"></div>
-      <div class="row acts">
-        <button class="b gold launch" data-a="launch">${ICON.play}<span></span></button>
-        <button class="b ico" data-a="focus">${ICON.focus}</button>
+      <div class="who"><i class="dot"></i><input class="name" maxlength="20" spellcheck="false"></div>
+      <div class="acts">
+        <button class="b gold pri" data-a="launch">${ICON.play}<span></span></button>
+        <button class="b pri" data-a="focus">${ICON.front}<span></span></button>
         <button class="b ico" data-a="login">${ICON.key}</button>
-        <button class="b ico" data-a="account">${ICON.gear}</button>
         <button class="b ico" data-a="minimize">${ICON.min}</button>
         <button class="b ico" data-a="close">${ICON.power}</button>
+        <button class="b ico" data-a="account">${ICON.user}</button>
+        <button class="b ico" data-a="remove">${ICON.x}</button>
       </div>
-      <div class="row movers"></div>`;
+      <div class="sub"><span class="info"></span><span class="bars"></span><span class="movers"></span></div>`;
     d.ondragstart = e => {
       if (e.target !== d) return;
       d.classList.add("dragging");
@@ -2053,27 +2086,32 @@ function buildSlots() {
     });
     box.appendChild(d);
   });
-  const add = document.createElement("div");
-  add.className = "addcard";
-  add.id = "addCard";
-  add.innerHTML = `${ICON.plus}<span>${esc(t("addAccount"))}</span>`;
-  add.onclick = async () => { await api.add_slot(); loopNow(); };
-  box.appendChild(add);
+  // "+ New account": a slim row under the list
+  let add = $("#addCard");
+  if (!add) {
+    add = document.createElement("button");
+    add.className = "addrow";
+    add.id = "addCard";
+    add.onclick = async () => { await api.add_slot(); loopNow(); };
+    box.after(add);
+  }
   builtSlots = S.slots.length;
   applySlotTexts();
 }
 
 function applySlotTexts() {
-  document.querySelectorAll(".slot").forEach(d => {
+  document.querySelectorAll("#slots .slot").forEach(d => {
     d.querySelector('[data-a="launch"] span').textContent = t("btnOpen");
-    d.querySelector('[data-a="focus"]').title = t("btnFocus");
+    d.querySelector('[data-a="focus"] span').textContent = t("btnFocus");
+    d.querySelector('[data-a="focus"]').title = t("tipFocus");
     d.querySelector('[data-a="login"]').title = t("tipLogin");
-    d.querySelector('[data-a="minimize"]').title = t("btnMinimize");
-    d.querySelector('[data-a="close"]').title = t("btnClose");
+    d.querySelector('[data-a="minimize"]').title = t("tipMinGame");
+    d.querySelector('[data-a="close"]').title = t("tipCloseGame");
     d.querySelector('[data-a="remove"]').title = t("tipRemove");
+    d.querySelector("input.name").setAttribute("aria-label", t("aAccName"));
   });
   const add = $("#addCard");
-  if (add) add.querySelector("span").textContent = t("addAccount");
+  if (add) add.innerHTML = `${ICON.plus}<span>${esc(t("addAccount"))}</span>`;
 }
 
 // monitors drawn where they really are (relative positions and sizes)
@@ -2087,15 +2125,16 @@ function renderMonitors() {
   const minX = Math.min(...mons.map(m => m.x)), minY = Math.min(...mons.map(m => m.y));
   const maxX = Math.max(...mons.map(m => m.x + m.w)), maxY = Math.max(...mons.map(m => m.y + m.h));
   const W = box.clientWidth || 300, gap = 6;
-  const k = Math.min((W - gap * (mons.length - 1)) / (maxX - minX), 92 / (maxY - minY));  // at most ~92 px tall
-  box.style.height = Math.max(60, Math.round((maxY - minY) * k) + 6) + "px";
+  // the strip uses the full width; height: about 40 px per row of monitors
+  const kx = (W - gap * (mons.length - 1)) / (maxX - minX), ky = 40 / Math.min(...mons.map(m => m.h));
+  box.style.height = Math.round((maxY - minY) * ky) + "px";
   const sorted = mons.map((m, i) => ({ ...m, i })).sort((a, b) => a.x - b.x);
   box.innerHTML = sorted.map((m, order) => {
     const chips = S.slots.map((s, i) => [s, i]).filter(([s]) => s.monitor === m.i)
       .map(([s, i]) => `<span class="chip2" draggable="true" data-slot="${i}" title="${esc(t("tipDrag"))}">${esc(s.name)}</span>`).join("");
     return `<div class="mon" data-mon="${m.i}" title="${esc(t("tipMonClick", { n: m.i + 1 }))}"
-      style="left:${Math.round((m.x - minX) * k + order * gap)}px;top:${Math.round((m.y - minY) * k)}px;width:${Math.round(m.w * k)}px;height:${Math.round(m.h * k)}px">
-      <div class="n">${m.i + 1}${m.primary ? " ★" : ""}</div><div class="res">${esc(m.res)}</div><div class="chips">${chips}</div></div>`;
+      style="left:${Math.round((m.x - minX) * kx + order * gap)}px;top:${Math.round((m.y - minY) * ky)}px;width:${Math.round(m.w * kx)}px;height:${Math.round(m.h * ky) - 2}px">
+      <div class="n">${m.i + 1}${m.primary ? " ★" : ""}</div><div class="meta"><div class="res">${esc(m.res)}</div><div class="chips">${chips}</div></div></div>`;
   }).join("");
   box.querySelectorAll("[data-mon]").forEach(el => {
     el.onclick = async () => {
@@ -2145,7 +2184,7 @@ function renderMovers(d, s, i) {
   box.dataset.sig = sig;
   if (!s.window || mons.length < 2) { box.innerHTML = ""; return; }
   box.innerHTML = `<span class="lbl">${esc(t("moveTo"))}</span>` + mons.map((m, k) =>
-    `<button class="b mon ${s.monitor === k ? "on" : ""}" data-move="${k}" title="${esc(t("tipMove", { n: k + 1 }))}">${ICON.monitor}${k + 1}</button>`).join("");
+    `<button class="b mv ${s.monitor === k ? "on" : ""}" data-move="${k}" title="${esc(t("tipMove", { n: k + 1 }))}" aria-pressed="${s.monitor === k}">${k + 1}</button>`).join("");
   box.querySelectorAll("[data-move]").forEach(b => b.onclick = async () => { await api.move_to_monitor(i, +b.dataset.move); loopNow(); });
 }
 
@@ -2156,9 +2195,6 @@ function build() {
   initSpoil();
   Object.assign(bossView, S.bossView || {});
   buildSlots();
-  $("#bMonAll").innerHTML = ICON.monitors;
-  $("#bSaveLayout").innerHTML = ICON.save;
-  $("#bRestoreLayout").innerHTML = ICON.restore;
 
   const votes = $("#votes");
   S.votes.forEach(v => {
@@ -2405,40 +2441,53 @@ function render() {
   renderMonitors();
   const add = $("#addCard");
   if (add) add.style.display = S.slots.length >= S.slotCap ? "none" : "";
-  document.querySelectorAll(".slot").forEach((d, i) => {
+  setText($("#accCount"), t("accCount", { open: S.slots.filter(x => x.pid).length, n: S.slots.length }));
+  document.querySelectorAll("#slots .slot").forEach((d, i) => {
     const s = S.slots[i];
     if (!s) return;
     renderMovers(d, s, i);
-    const rmv = (s.pid || s.pending || S.slots.length <= 1) ? "hidden" : "visible", rm = d.querySelector('[data-a="remove"]');
-    if (rm.style.visibility !== rmv) rm.style.visibility = rmv;
-    setClass(d.querySelector(".dot"), "dot " + (s.net === "lost" ? "r" : s.pid ? (s.window ? "g" : "y") : s.pending ? "y" : ""));
+    const running = !!s.pid, win = !!s.window;
+    const show = { launch: !running, focus: running, login: win && s.account.hasPassword && !s.inWorld,
+                   minimize: running, close: running, account: true, remove: !running && !s.pending && S.slots.length > 1 };
+    d.querySelectorAll(".acts [data-a]").forEach(b => {
+      if (b.dataset.a === "remove") { const v = show.remove ? "" : "hidden"; if (b.style.visibility !== v) b.style.visibility = v; return; }
+      const h = !show[b.dataset.a];
+      if (b.hidden !== h) b.hidden = h;
+    });
+    setDisabled(d.querySelector('[data-a="launch"]'), s.pending);
+    setText(d.querySelector('[data-a="launch"] span'), s.pending ? t("opening") : t("btnOpen"));
+    setDisabled(d.querySelector('[data-a="focus"]'), !win);
+    setDisabled(d.querySelector('[data-a="minimize"]'), !win);
+    setClass(d.querySelector(".dot"), "dot " + (s.net === "lost" ? "r" : running ? (s.inWorld ? "g" : "y") : s.pending ? "y" : ""));
     d.classList.toggle("dc", s.net === "lost");
-    if (d.draggable !== !!s.window) d.draggable = !!s.window;
-    setTitle(d, s.window ? t("tipDrag") : "");
-    d.classList.toggle("on", !!s.pid);
-    const autoTag = s.account.auto ? ` (${t("auto")})` : "";
-    const run = s.pid ? t("runningInfo", { pid: s.pid, ram: s.ram ? fmtNum(Math.round(s.ram)) + " MB" : "—", up: fmt(s.uptime) }) : "";
-    const status = !s.pid ? null : s.net === "lost" ? "⚠ " + t("stDc")
-      : s.inWorld ? [s.bars ? (s.bars.hp === 0 ? "☠" : `HP ${s.bars.hp}% MP ${s.bars.mp}%`) : t("stInGame"), s.region,
-                     s.online != null ? t("stOnline", { t: fmt(s.online) }) : null].filter(Boolean).join(" · ")
-      : s.net === "game" ? t("stLoading") : null;
-    setTitle(d.querySelector(".info"), run);
-    setText(d.querySelector(".info"), s.pid
-      ? (status || run)
-      : s.pending ? t("opening") : (s.account.login ? `${t("stopped")} · 🔑 ${s.account.login}${autoTag}` : t("stopped")));
+    d.classList.toggle("on", running);
+    if (d.draggable !== win) d.draggable = win;
+    setTitle(d, win ? t("tipDrag") : "");
+    // one line of status; the details (PID, memory, uptime) in its tooltip
+    const info = d.querySelector(".info");
+    const dead = s.inWorld && s.bars && s.bars.hp === 0;
+    setTitle(info, running ? t("runningInfo", { pid: s.pid, ram: s.ram ? fmtNum(Math.round(s.ram)) + " MB" : "—", up: fmt(s.uptime) }) : "");
+    setText(info, running
+      ? (s.net === "lost" ? "⚠ " + t("stDc")
+        : s.inWorld ? [dead ? "☠" : t("stInGame"), s.region, s.online != null ? t("stOnline", { t: fmt(s.online) }) : null].filter(Boolean).join(" · ")
+        : s.net === "game" ? t("stLoading") : t("stLobby"))
+      : s.pending ? t("opening")
+      : [t("stopped"), s.account.login ? t("loginIs", { login: s.account.login }) + (s.account.auto ? ` (${t("auto")})` : "") : t("noLogin")].join(" · "));
+    // HP / MP, read from the game's status window
+    const bars = running && s.inWorld && s.bars && s.net !== "lost" ? ["hp", "mp"].map(k => {
+      const v = Math.max(0, Math.min(100, s.bars[k] ?? 0));
+      return `<span class="mbar ${k}${v <= 30 ? " low" : ""}"><i style="transform:scaleX(${v / 100})"></i><b>${k.toUpperCase()} ${v}%</b></span>`;
+    }).join("") : "";
+    setHTML(d.querySelector(".bars"), bars);
     const inp = d.querySelector("input");
     if (document.activeElement !== inp && inp.value !== s.name) inp.value = s.name;
-    setDisabled(d.querySelector('[data-a="launch"]'), !!s.pid || s.pending);
-    setDisabled(d.querySelector('[data-a="focus"]'), !s.window);
-    setDisabled(d.querySelector('[data-a="minimize"]'), !s.window);
-    setDisabled(d.querySelector('[data-a="close"]'), !s.pid);
-    setDisabled(d.querySelector('[data-a="login"]'), !s.window || !s.account.hasPassword);
     const ab = d.querySelector('[data-a="account"]');
     ab.classList.toggle("gold", s.account.hasPassword);
     setTitle(ab, s.account.login ? t("accountTip", { login: s.account.login, auto: s.account.auto ? t("autoLoginTag") : "" }) : t("tipAccount"));
   });
   setText($("#external"), S.external.length ? t("external", { n: S.external.length, pids: S.external.join(", ") }) : "");
-  setText($("#hwidWarn"), t("hwidWarn", { n: S.hwidLimit }) + (S.admin ? "" : "\n" + t("notAdmin")));
+  // the HWID note only matters once there are more accounts than the server lets in
+  setText($("#hwidWarn"), [S.slots.length > S.hwidLimit ? t("hwidWarn", { n: S.hwidLimit }) : "", S.admin ? "" : t("notAdmin")].filter(Boolean).join("\n"));
 
   // network
   if (p) {
