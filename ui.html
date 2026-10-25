@@ -283,8 +283,8 @@
   .sb { display: flex; align-items: center; gap: 4px; padding: 2px 4px; cursor: pointer; border-bottom: 1px solid rgba(106,92,62,.15); font-size: 10px; }
   .sb:hover { background: rgba(201,165,90,.08); }
   .sb.sel { background: rgba(201,165,90,.18); }
-  .sb .d { width: 7px; height: 7px; border-radius: 50%; background: #e05a4a; flex: none; }
-  .sb .d.dead { background: #8a8170; } .sb .d.soon { background: #e8c547; }
+  .sb .d { width: 7px; height: 7px; border-radius: 50%; background: #7fd36b; flex: none; }
+  .sb .d.dead { background: #6e655a; } .sb .d.soon { background: #e8c547; }
   .sb .n { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .sb .l { color: var(--dim); width: 18px; text-align: right; }
   .sidemap { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
@@ -293,9 +293,11 @@
   .zlbl { position: absolute; font-size: 9px; color: #f1e3b8; text-shadow: 0 0 2px #000, 0 0 3px #000, 0 0 1px #000;
           pointer-events: none; transform: translate(-50%, -50%); white-space: nowrap; font-style: italic; opacity: .9; }
   .zlbl .lv { color: #c9b27a; font-style: normal; }
-  .tpt { position: absolute; width: 7px; height: 7px; margin: -4px 0 0 -4px; transform: rotate(45deg);
-         background: #7fd4e6; border: 1px solid #000; pointer-events: auto; cursor: help; }
+
   .tpt + .tlbl { }
+  .rlbl { position: absolute; font: bold 13px Georgia, serif; color: #f0cf7e; letter-spacing: .5px; pointer-events: none;
+          transform: translate(-50%, -50%); white-space: nowrap; text-shadow: 0 0 3px #000, 0 0 5px #000, 1px 1px 0 #000; }
+  .tlbl.custom { color: #bfeaf5; font-weight: bold; }
   .tlbl { position: absolute; font-size: 9px; color: #9fe3f0; text-shadow: 0 0 2px #000, 0 0 3px #000; pointer-events: none; white-space: nowrap; transform: translate(6px, -50%); }
   #bRoute { max-height: 150px; overflow-y: auto; }
   .sprow { display: flex; align-items: center; gap: 3px; margin-bottom: 4px; }
@@ -314,15 +316,55 @@
   .spd td.r { text-align: right; }
   .spd td.g { color: var(--gold-hi); text-align: right; }
   .spd button.b { padding: 0 4px; height: 16px; font-size: 10px; }
-  .spot { position: absolute; width: 11px; height: 11px; margin: -6px 0 0 -6px; border-radius: 2px; transform: rotate(45deg);
-          background: #7fd36b; border: 1px solid #000; cursor: pointer; box-shadow: 0 0 3px rgba(0,0,0,.9); }
-  .spot.other { background: #4f7d43; width: 8px; height: 8px; margin: -4px 0 0 -4px; }
-  .spot.sel { outline: 2px solid #fff; z-index: 3; }
+  /* map markers */
+  .bpin, .spot, .tpt { position: absolute; cursor: pointer; transform: translate(-50%, -50%); line-height: 0; }
+  .bpin svg, .spot svg, .tpt svg, .lg .ic svg, .acct svg { display: block; filter: drop-shadow(0 0 1px #000) drop-shadow(0 1px 1px #000); }
+  .bpin svg { width: 16px; height: 16px; }
+  .bpin.epic svg { width: 21px; height: 21px; }
+  .bpin.alive svg, .ic.alive svg { fill: #7fd36b; }
+  .bpin.maybe svg, .ic.maybe svg { fill: #e8c547; }
+  .bpin.dead svg, .ic.dead svg { fill: #6e655a; opacity: .85; }
+  .bpin.epic.dead svg { fill: #8a6d4a; }
+  .bpin .h, .ic .h { fill: #1b1a17; }
+  .bpin.maybe { animation: pinpulse 1.4s ease-in-out infinite; }
+  @keyframes pinpulse { 50% { filter: drop-shadow(0 0 5px #e8c547); } }
+  .bpin .q { position: absolute; right: -5px; top: -6px; font: bold 10px Tahoma; color: #000; background: #e8c547;
+             border-radius: 50%; width: 11px; height: 11px; line-height: 11px; text-align: center; font-style: normal; }
+  .bpin.sel svg { filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 4px #fff); }
+  .bpin:hover { z-index: 5; }
+  .bpin .bl, .spot .bl { display: none; position: absolute; left: 50%; top: 100%; transform: translateX(-50%); margin-top: 1px;
+                         font: 10px Tahoma; color: #f3e6c2; white-space: nowrap; line-height: 12px;
+                         text-shadow: 0 0 2px #000, 0 0 3px #000, 1px 1px 0 #000; pointer-events: none; }
+  .bpin .bl em, .spot .bl em { font-style: normal; color: #c9b27a; }
+  .bpin .bt { display: none; position: absolute; left: 50%; bottom: 100%; transform: translateX(-50%); margin-bottom: 1px;
+              font: bold 9px Tahoma; color: #f08a7a; white-space: nowrap; line-height: 10px; text-shadow: 0 0 2px #000, 0 0 3px #000; pointer-events: none; }
+  .mapview.zmid .bpin .bt, .bpin.sel .bt, .bpin:hover .bt { display: block; }
+  .mapview.znear .bpin .bl, .bpin.sel .bl, .bpin:hover .bl, .spot.sel .bl, .spot:hover .bl { display: block; }
+  .spot svg { width: 15px; height: 15px; fill: #b58cf0; }
+  .spot .h { stroke: #2b1d40; fill: none; }
+  .spot.other svg { width: 11px; height: 11px; fill: #7c63a3; opacity: .85; }
+  .spot.sel svg { filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 4px #fff); }
+  .tpt svg { width: 12px; height: 12px; stroke: #7fd4e6; }
+  .acct span { display: flex; align-items: center; gap: 2px; }
+  .acct svg { width: 11px; height: 11px; fill: #9fe38a; }
+  .maplegend { position: absolute; left: 4px; bottom: 4px; background: rgba(10,9,7,.82); border: 1px solid #4a4232;
+               border-radius: 3px; padding: 3px 6px; font-size: 10px; color: #e8dcc0; }
+  .maplegend .lgh { cursor: pointer; color: var(--gold-hi); font-weight: bold; line-height: 15px; }
+  .maplegend .lgb { display: none; }
+  .maplegend.open .lgb { display: block; }
+  .maplegend .lg { display: flex; align-items: center; gap: 4px; line-height: 15px; cursor: pointer; }
+  .maplegend input { width: 10px; height: 10px; margin: 0; }
+  .maplegend .ic { width: 14px; display: flex; justify-content: center; }
+  .maplegend .ic svg { width: 12px; height: 12px; }
+  .maplegend .ic.tp svg { stroke: #7fd4e6; }
+  .maplegend .ic.spot svg { fill: #b58cf0; }
+  .maplegend .ic.acc svg { fill: #9fe38a; }
+  .maplegend .ic.nm { font: italic bold 9px Tahoma; color: #f1e3b8; }
   .mapview { position: relative; height: 380px; overflow: hidden; border: 1px solid #4a4232; border-radius: 3px;
              background: #3d4a4f; cursor: grab; user-select: none; }
   .mapview.drag { cursor: grabbing; }
   .mapview img { position: absolute; left: 0; top: 0; transform-origin: 0 0; image-rendering: auto; pointer-events: none; }
-  .mapview svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  #mapSvg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
   .maploading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 20px; }
   .pin { position: absolute; width: 9px; height: 9px; margin: -5px 0 0 -5px; border-radius: 50%; border: 1px solid #000;
          background: #e05a4a; cursor: pointer; box-shadow: 0 0 3px rgba(0,0,0,.8); }
@@ -619,6 +661,7 @@
         <svg id="mapSvg"></svg>
         <div id="mapPins"></div>
         <div class="mapzoom"><button class="b" data-z="1.4">+</button><button class="b" data-z="0.7">−</button><button class="b" data-z="0">⤢</button></div>
+        <div class="maplegend" id="mapLegend"></div>
       </div>
       <div class="small" data-i18n="mapHint"></div>
       <div class="panel" id="bRoute"></div>
@@ -1011,11 +1054,13 @@ const I18N = {
     spYieldTip: "Média de itens por spoil (chance × quantidade média)", spCount: "{n} pontos de spawn",
     spPick: "Clique num ponto verde para ver o caminho.", spHMob: "Mob", spHLv: "Nv", spHArea: "Área", spHChance: "Chance", spHQty: "Qtd", spHAvg: "Média", sideSpoil: "Mapa — spoil",
     spNote: "Chances oficiais do High Five (datapack L2J); o L2Axis tem spoil x15. A última coluna é a média de itens por spoil. 🗺 mostra onde o mob nasce e o caminho.",
+    lgTitle: "Legenda", lgAlive: "Boss vivo", lgDead: "Boss morto (tempo até nascer)", lgMaybe: "Talvez já nasceu", lgEpic: "Épico (coroa)",
+    lgTp: "Teleporte do Alt+B", lgNames: "Nomes das áreas", lgAcc: "Região da sua conta", lgSpoil: "Onde o mob nasce",
     sideTitle: "Mapa dos bosses", tipSide: "Abrir/fechar o mapa ao lado", tipSideClose: "Fechar o mapa",
     rUp: "e subir {n} andar(es) até o {floor}º andar", rDown: "e descer {n} andar(es) até o {floor}º andar", rSame: "no {floor}º andar",
     dFloor: "{zone} · {floor}º andar",
     bmList: "☰ Lista", bmMap: "🗺 Mapa", bmShow: "🗺 Ver no mapa", mapBuilding: "Preparando o mapa a partir do seu jogo (só na primeira vez, uns 30 s)…",
-    mapHint: "Arraste para mover, roda do mouse para zoom (mais zoom = mais nomes). Clique num boss. ◆ = teleporte do Alt+B. Quadrado verde = região da sua conta.",
+    mapHint: "Arraste para mover, roda do mouse para zoom (mais zoom = mais nomes). Clique num marcador para ver o caminho.",
     mapPick: "Clique num boss no mapa para ver o caminho mais rápido.",
     rBoard: "Alt+B → teleporte para {to}", rBoardOpt: "Usar o teleporte do Alt+B para as cidades",
     rTp: "Gatekeeper: {from} → {to} ({price} adena)", rRun: "Correr ~{dist} unidades para {dir} (~{time})",
@@ -1176,11 +1221,13 @@ const I18N = {
     spYieldTip: "Average items per spoil (chance × average amount)", spCount: "{n} spawn points",
     spPick: "Click a green spot to see the way.", spHMob: "Monster", spHLv: "Lv", spHArea: "Area", spHChance: "Chance", spHQty: "Qty", spHAvg: "Avg", sideSpoil: "Map — spoil",
     spNote: "Official High Five chances (L2J datapack); L2Axis has spoil x15. The last column is the average items per spoil. 🗺 shows where the monster spawns and the way there.",
+    lgTitle: "Legend", lgAlive: "Boss alive", lgDead: "Boss dead (time to respawn)", lgMaybe: "Maybe spawned", lgEpic: "Epic (crown)",
+    lgTp: "Alt+B teleport", lgNames: "Area names", lgAcc: "Your account's area", lgSpoil: "Where the monster spawns",
     sideTitle: "Bosses map", tipSide: "Open/close the map on the side", tipSideClose: "Close the map",
     rUp: "and go up {n} floor(s) to floor {floor}", rDown: "and go down {n} floor(s) to floor {floor}", rSame: "on floor {floor}",
     dFloor: "{zone} · floor {floor}",
     bmList: "☰ List", bmMap: "🗺 Map", bmShow: "🗺 On the map", mapBuilding: "Preparing the map from your game (first time only, about 30 s)…",
-    mapHint: "Drag to move, mouse wheel to zoom (more zoom = more names). Click a boss. ◆ = Alt+B teleport. Green square = your account's area.",
+    mapHint: "Drag to move, mouse wheel to zoom (more zoom = more names). Click a marker to see the way.",
     mapPick: "Click a boss on the map to see the fastest way there.",
     rBoard: "Alt+B → teleport to {to}", rBoardOpt: "Use the Alt+B teleport to towns",
     rTp: "Gatekeeper: {from} → {to} ({price} adena)", rRun: "Run ~{dist} units {dir} (~{time})",
@@ -1341,11 +1388,13 @@ const I18N = {
     spYieldTip: "Durchschnittliche Items pro Spoil (Chance × durchschnittliche Menge)", spCount: "{n} Spawnpunkte",
     spPick: "Klick auf einen grünen Punkt zeigt den Weg.", spHMob: "Monster", spHLv: "Lv", spHArea: "Gebiet", spHChance: "Chance", spHQty: "Menge", spHAvg: "Ø", sideSpoil: "Karte — Spoil",
     spNote: "Offizielle High-Five-Chancen (L2J-Datapack); L2Axis hat Spoil x15. Letzte Spalte = durchschnittliche Items pro Spoil. 🗺 zeigt, wo das Monster spawnt, und den Weg.",
+    lgTitle: "Legende", lgAlive: "Boss lebt", lgDead: "Boss tot (Zeit bis Respawn)", lgMaybe: "Vielleicht erschienen", lgEpic: "Episch (Krone)",
+    lgTp: "Alt+B-Teleport", lgNames: "Gebietsnamen", lgAcc: "Gebiet deines Kontos", lgSpoil: "Wo das Monster spawnt",
     sideTitle: "Bosskarte", tipSide: "Karte daneben öffnen/schließen", tipSideClose: "Karte schließen",
     rUp: "und {n} Etage(n) hoch bis Etage {floor}", rDown: "und {n} Etage(n) runter bis Etage {floor}", rSame: "auf Etage {floor}",
     dFloor: "{zone} · Etage {floor}",
     bmList: "☰ Liste", bmMap: "🗺 Karte", bmShow: "🗺 Auf der Karte", mapBuilding: "Karte wird aus deinem Spiel erstellt (nur beim ersten Mal, ca. 30 s)…",
-    mapHint: "Ziehen zum Verschieben, Mausrad zum Zoomen (mehr Zoom = mehr Namen). Klick auf einen Boss. ◆ = Alt+B-Teleport. Grünes Quadrat = Gebiet deines Kontos.",
+    mapHint: "Ziehen zum Verschieben, Mausrad zum Zoomen (mehr Zoom = mehr Namen). Klick auf eine Markierung zeigt den Weg.",
     mapPick: "Klick auf einen Boss auf der Karte für den schnellsten Weg.",
     rBoard: "Alt+B → Teleport nach {to}", rBoardOpt: "Alt+B-Teleport in die Städte nutzen",
     rTp: "Gatekeeper: {from} → {to} ({price} Adena)", rRun: "~{dist} Einheiten nach {dir} laufen (~{time})",
@@ -2125,9 +2174,11 @@ function evStatus(e, now) {
   return { txt: t(e.kind === "chat" ? "evChat" : "evWaitAnn"), cls: "", rank: 1e12 };
 }
 
+let evViewedAt = 0;
 function renderEvents() {
   const box = $("#events");
   if (!box || !S.events) return;
+  if ($("#p-ev").classList.contains("sel") && Date.now() - evViewedAt > 20000) { evViewedAt = Date.now(); api.events_viewed(); }
   const now = Date.now() / 1000;
   const sts = Object.fromEntries(S.events.map(e => [e.key, evStatus(e, now)]));
   const evs = [...S.events].sort((a, b) => sts[a.key].rank - sts[b.key].rank);
@@ -2288,24 +2339,20 @@ function centerOnPoint(pt) {
 }
 function renderSpoilMap() {
   if (!SPOIL || !spoilMap) return;
+  renderLegend();
   const box = $("#mapPins");
   const sig = "spoil|" + LANG + "|" + JSON.stringify(spoilMap);
   if (box.dataset.sig !== sig) {
     box.dataset.sig = sig;
-    let html = "";
-    (MAPI.zones || []).forEach(z => {
-      html += `<div class="zlbl" data-x="${z.x}" data-y="${z.y}" data-zoom="${z.type === 3 ? 0.45 : 0.85}">${esc(z.name)}${z.lvl ? ` <span class="lv">${z.lvl}</span>` : ""}</div>`;
-    });
-    (MAPI.points || []).forEach(p => {
-      html += `<div class="tpt" data-x="${p.x}" data-y="${p.y}" title="Alt+B: ${esc(p.name)}"></div><div class="tlbl" data-x="${p.x}" data-y="${p.y}" data-zoom="1.1">${esc(p.name)}</div>`;
-    });
+    let html = mapLabelsHtml();
     spoilMap.mobs.forEach(mid => {
       const m = SPOIL.mobs[mid];
       if (!m) return;
       m.spots.forEach(sp => {
         const sel = mid === spoilMap.mob && spoilMap.spot && sp[0] === spoilMap.spot[0] && sp[1] === spoilMap.spot[1];
         html += `<div class="spot ${mid === spoilMap.mob ? "" : "other"} ${sel ? "sel" : ""}" data-x="${sp[0]}" data-y="${sp[1]}"
-          data-mob="${mid}" data-sp="${sp.slice(0, 3).join(",")}" title="${esc(m.name + " · " + m.level + " · " + t("spCount", { n: sp[3] }))}"></div>`;
+          data-mob="${mid}" data-sp="${sp.slice(0, 3).join(",")}" title="${esc(m.name + " · " + m.level + " · " + t("spCount", { n: sp[3] }))}">${MAPICON.sack}
+          ${mid === spoilMap.mob ? `<span class="bl">${esc(m.name)} <em>${m.level}</em></span>` : ""}</div>`;
       });
     });
     box.innerHTML = html;
@@ -2422,6 +2469,9 @@ function layoutMap() {
   if (!MAPI || !MAPI.ready || !mapT) return;
   const img = $("#mapImg");
   img.style.transform = `translate(${mapT.x}px,${mapT.y}px) scale(${mapT.s})`;
+  const v = $("#mapView");
+  v.classList.toggle("zmid", mapT.s >= 0.45);
+  v.classList.toggle("znear", mapT.s >= 0.75);
   const P = (x, y) => { const [mx, my] = toMap(x, y); return [mx * mapT.s + mapT.x, my * mapT.s + mapT.y]; };
   $("#mapPins").querySelectorAll("[data-x]").forEach(el => {
     const [px, py] = P(+el.dataset.x, +el.dataset.y);
@@ -2431,7 +2481,11 @@ function layoutMap() {
       el.style.width = w + "px"; el.style.height = w + "px";
     }
     if (el.classList.contains("town")) el.style.display = mapT.s > 0.18 ? "" : "none";
-    if (el.dataset.zoom) el.style.display = mapT.s >= +el.dataset.zoom ? "" : "none";
+    let show = true;
+    if (el.dataset.zoom) show = mapT.s >= +el.dataset.zoom;
+    if (el.dataset.zoommax) show = mapT.s < +el.dataset.zoommax;
+    if (el.dataset.layer && mapLayers[el.dataset.layer] === false) show = false;
+    el.style.display = show ? "" : "none";
   });
   // the route: dashed jumps for the teleports, a solid line for the run
   let svg = "";
@@ -2448,35 +2502,97 @@ function layoutMap() {
   }
   $("#mapSvg").innerHTML = svg;
 }
+
+// map symbols (inline SVG, coloured by CSS)
+const MAPICON = {
+  skull: '<svg viewBox="0 0 16 16"><path d="M8 1.5C4.4 1.5 2 3.9 2 7c0 1.9.9 3.4 2.3 4.2V13.5c0 .6.4 1 1 1h5.4c.6 0 1-.4 1-1v-2.3C13.1 10.4 14 8.9 14 7c0-3.1-2.4-5.5-6-5.5z"/><circle cx="5.7" cy="7.4" r="1.6" class="h"/><circle cx="10.3" cy="7.4" r="1.6" class="h"/><path d="M7.2 10.2h1.6L8 9z" class="h"/></svg>',
+  crown: '<svg viewBox="0 0 16 16"><path d="M1.5 5l3.3 3L8 2.5 11.2 8l3.3-3-1.3 8.5H2.8z"/><rect x="2.8" y="13" width="10.4" height="1.6" rx=".5"/></svg>',
+  portal: '<svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.2" fill="none" stroke-width="2"/><path d="M8 4.2a3.8 3.8 0 1 1-3.6 5" fill="none" stroke-width="1.6"/></svg>',
+  sack: '<svg viewBox="0 0 16 16"><path d="M6 2h4l-1 2.2c2.8 1 4.5 3.6 4.5 6.3 0 2.4-2 3.5-5.5 3.5S2.5 12.9 2.5 10.5c0-2.7 1.7-5.3 4.5-6.3z"/><path d="M6.3 4.6h3.4" class="h" stroke-width="1.2"/></svg>',
+  char: '<svg viewBox="0 0 16 16"><circle cx="8" cy="4.5" r="2.8"/><path d="M2.8 15c0-3.3 2.3-5.6 5.2-5.6s5.2 2.3 5.2 5.6z"/></svg>',
+};
+let mapLayers = { alive: true, dead: true, tp: true, names: true };
+try { Object.assign(mapLayers, JSON.parse(localStorage.getItem("mapLayers") || "{}")); } catch (_) {}
+function applyLayers() { if (mapT) layoutMap(); }
+function renderLegend() {
+  const box = $("#mapLegend");
+  const spoil = sideMode === "spoil";
+  const sig = LANG + spoil + JSON.stringify(mapLayers);
+  if (box.dataset.sig === sig) return;
+  box.dataset.sig = sig;
+  const row = (key, icon, cls, label) => `<label class="lg"><input type="checkbox" data-layer-t="${key}" ${mapLayers[key] !== false ? "checked" : ""}>
+    <span class="ic ${cls}">${icon}</span>${esc(label)}</label>`;
+  box.classList.toggle("open", mapLayers._legend === true);
+  box.innerHTML = `<div class="lgh" id="lgToggle">${esc(t("lgTitle"))} <span>${mapLayers._legend === true ? "▾" : "▸"}</span></div><div class="lgb">` + (spoil
+      ? `<div class="lg"><span class="ic spot">${MAPICON.sack}</span>${esc(t("lgSpoil"))}</div>`
+      : row("alive", MAPICON.skull, "alive", t("lgAlive")) + row("dead", MAPICON.skull, "dead", t("lgDead")) +
+        `<div class="lg"><span class="ic maybe">${MAPICON.skull}</span>${esc(t("lgMaybe"))}</div>` +
+        `<div class="lg"><span class="ic alive">${MAPICON.crown}</span>${esc(t("lgEpic"))}</div>`) +
+    row("tp", MAPICON.portal, "tp", t("lgTp")) + row("names", "Aa", "nm", t("lgNames")) +
+    `<div class="lg"><span class="ic acc">${MAPICON.char}</span>${esc(t("lgAcc"))}</div></div>`;
+  $("#lgToggle").onclick = () => {
+    mapLayers._legend = mapLayers._legend !== true;
+    try { localStorage.setItem("mapLayers", JSON.stringify(mapLayers)); } catch (_) {}
+    box.dataset.sig = "";
+    renderLegend();
+  };
+  box.querySelectorAll("[data-layer-t]").forEach(cb => cb.onchange = () => {
+    mapLayers[cb.dataset.layerT] = cb.checked;
+    try { localStorage.setItem("mapLayers", JSON.stringify(mapLayers)); } catch (_) {}
+    box.dataset.sig = "";
+    renderLegend();
+    layoutMap();
+  });
+}
+
+// names on the map: big regions when zoomed out, then towns, areas and the Alt+B destinations
+function mapLabelsHtml() {
+  let html = "";
+  (MAPI.regions || []).forEach(r => {
+    html += `<div class="rlbl" data-layer="names" data-x="${r.x}" data-y="${r.y}" data-zoommax="0.9">${esc(r.name)}</div>`;
+  });
+  const known = new Set((MAPI.zones || []).map(z => z.name.toLowerCase().replace(/^the /, "")));
+  (MAPI.zones || []).forEach(z => {
+    html += `<div class="zlbl" data-layer="names" data-x="${z.x}" data-y="${z.y}" data-zoom="${z.type === 3 ? 0.4 : 0.7}">${esc(z.name)}${z.lvl ? ` <span class="lv">${z.lvl}</span>` : ""}</div>`;
+  });
+  (MAPI.points || []).forEach(p => {
+    // destinations the client has no area for (the server's own zones) get their name earlier
+    const custom = !known.has(p.name.toLowerCase().replace(/^the /, "")) && !/floor$/i.test(p.name);
+    html += `<div class="tpt" data-layer="tp" data-x="${p.x}" data-y="${p.y}" title="Alt+B: ${esc(p.name)}">${MAPICON.portal}</div>
+      <div class="tlbl ${custom ? "custom" : ""}" data-layer="tp" data-x="${p.x}" data-y="${p.y}" data-zoom="${custom ? 0.35 : 1.1}">${esc(p.name)}</div>`;
+  });
+  return html;
+}
+
 function renderBossMap(list) {
   if (!MAPI || !MAPI.ready) return;
+  renderLegend();
   $("#side .title .name").textContent = t(sideMode === "spoil" ? "sideSpoil" : "sideTitle");
   $("#sideSearch").style.display = sideMode === "spoil" ? "none" : "";
   if (sideMode === "spoil") return renderSpoilMap();
   const box = $("#mapPins");
   const accts = (S.slots || []).filter(s => s.tile);
-  const sig = LANG + "|" + mapSel + "|" + list.map(b => b.id + bossStatus(b).cls).join(",") + "|" + accts.map(s => s.name + s.tile).join(",");
+  const sig = LANG + "|" + mapSel + "|" + list.map(b => b.id + bossStatus(b).cls + (b.remaining > 0 ? "d" : "")).join(",") + "|" + accts.map(s => s.name + s.tile).join(",");
   if (box.dataset.sig !== sig) {
     box.dataset.sig = sig;
-    let html = "";
-    (MAPI.zones || []).forEach(z => {
-      html += `<div class="zlbl" data-x="${z.x}" data-y="${z.y}" data-zoom="${z.type === 3 ? 0.45 : 0.85}">${esc(z.name)}${z.lvl ? ` <span class="lv">${z.lvl}</span>` : ""}</div>`;
-    });
-    (MAPI.points || []).forEach(p => {
-      html += `<div class="tpt" data-x="${p.x}" data-y="${p.y}" title="Alt+B: ${esc(p.name)}"></div><div class="tlbl" data-x="${p.x}" data-y="${p.y}" data-zoom="1.1">${esc(p.name)}</div>`;
-    });
+    let html = mapLabelsHtml();
     // the game's own area names already include the towns
     if (!(MAPI.zones || []).length) Object.entries(MAPI.towns || {}).forEach(([n, c]) => { html += `<div class="town" data-x="${c.x}" data-y="${c.y}">${esc(n)}</div>`; });
     accts.forEach(s => {
       const [tx, ty] = s.tile.split("_").map(Number);
-      html += `<div class="acct" data-x="${(tx - 20) * 32768}" data-y="${(ty - 18) * 32768}"><span>${esc(s.name)}</span></div>`;
+      html += `<div class="acct" data-x="${(tx - 20) * 32768}" data-y="${(ty - 18) * 32768}"><span>${MAPICON.char}${esc(s.name)}</span></div>`;
     });
     list.filter(b => b.x != null && (b.x || b.y)).forEach(b => {
       const st = bossStatus(b);
-      html += `<div class="pin ${st.cls === "alive" ? "" : st.cls} ${b.type === "epic" ? "epic" : ""} ${mapSel === b.id ? "sel" : ""}"
-        data-x="${b.x}" data-y="${b.y}" data-pin="${esc(b.id)}" title="${esc(b.name + (b.level ? " · " + b.level : "") + " · " + st.txt)}"></div>`;
+      const cls = st.cls === "alive" ? "alive" : st.cls === "soon" && !(b.remaining > 0) ? "maybe" : "dead";
+      html += `<div class="bpin ${cls} ${b.type === "epic" ? "epic" : ""} ${mapSel === b.id ? "sel" : ""}" data-layer="${cls === "dead" ? "dead" : "alive"}"
+        data-x="${b.x}" data-y="${b.y}" data-pin="${esc(b.id)}" title="${esc(b.name + (b.level ? " · " + b.level : "") + " · " + st.txt)}">
+        ${b.type === "epic" ? MAPICON.crown : MAPICON.skull}${cls === "maybe" ? '<i class="q">?</i>' : ""}
+        <span class="bl">${esc(b.name)}${b.level ? ` <em>${esc(b.level)}</em>` : ""}</span>
+        <span class="bt" data-bt="${esc(b.id)}"></span></div>`;
     });
     box.innerHTML = html;
+    applyLayers();
     box.querySelectorAll("[data-pin]").forEach(el => el.onclick = e => {
       e.stopPropagation();
       mapSel = el.dataset.pin;
@@ -2485,6 +2601,10 @@ function renderBossMap(list) {
       renderBosses();
     });
   }
+  box.querySelectorAll("[data-bt]").forEach(el => {
+    const b = list.find(x => x.id === el.dataset.bt);
+    el.textContent = b && b.remaining > 0 ? fmt(b.remaining) : "";
+  });
   layoutMap();
   renderSideList(list);
   renderRoute(list);
@@ -2561,7 +2681,8 @@ function renderRoute() {
   };
 }
 function initBossMap() {
-  document.querySelectorAll("[data-bm]").forEach(x => x.onclick = () => setBossMode(x.dataset.bm === "map" ? (bossMode === "map" ? "list" : "map") : bossMode));
+  document.querySelectorAll("[data-bm]").forEach(x => x.onclick = () =>
+    setBossMode(bossMode === "map" && sideMode === "boss" ? "list" : "map"));
   $("#bSide").onclick = () => setBossMode(bossMode === "map" ? "list" : "map");
   $("#bSideClose").onclick = () => setBossMode("list");
   $("#sideSearch").oninput = () => renderBosses();

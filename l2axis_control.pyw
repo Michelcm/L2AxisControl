@@ -929,6 +929,10 @@ def read_bars(hwnd):
     for y in _BAR_GAPS:
         if any(max(px_at(x, y)) > 0x48 for x in range(_BAR_X0, _BAR_X1, 6)):
             return None
+    # the bars themselves (filled or empty) are never black; a loading screen is
+    for y in _BAR_ROWS.values():
+        if sum(max(px_at(x, y)) for x in range(_BAR_X0, _BAR_X1, 8)) / len(range(_BAR_X0, _BAR_X1, 8)) < 0x30:
+            return None
     out = {}
     for name, y in _BAR_ROWS.items():
         last = _BAR_X0 - 1
@@ -2339,6 +2343,10 @@ class BoardWatcher(threading.Thread):
         if rows or details:
             self.on_rows(rows, details, mtime)
         elif "_bbsteleport" in text and self.on_teleports:
+            if DEBUG_BOARD:  # local copy to check the parser (icons/ is never published)
+                keep = ICON_DIR / "board_pages"
+                keep.mkdir(parents=True, exist_ok=True)
+                (keep / f"page_{int(time.time() * 1000)}.txt").write_text(text, encoding="utf-8")
             pts = parse_board_teleports(text)
             if pts:
                 self.on_teleports(pts)
@@ -2445,6 +2453,8 @@ class Api:
         self._event_live = {}           # event key -> {"state", "at", "start"} from the announcements
         self._announces = deque(maxlen=30)
         self._chat = ChatReader(self._chat_hwnd, self._on_announcement)
+        self._events_seen = 0.0  # last time the Events tab was on screen
+        self._chat.wanted = lambda: self._data.get("event_alerts", True) or time.time() - self._events_seen < 60
         self._chat.start()
         self._flows = LoginFlows(lambda: self._data.get("lang", "pt"))
         self._had_window = [False] * len(self._data["slots"])
@@ -2516,7 +2526,7 @@ class Api:
                 continue
             name = self._data["slots"][i]
             armed = self._bar_armed.setdefault(pid, {"dead": True, "hp": True, "mp": True})
-            if bars["hp"] == 0:
+            if bars["hp"] == 0 and (bars["mp"] > 0 or bars["cp"] > 0):  # all three empty = not a real reading
                 if armed["dead"]:
                     armed["dead"] = False
                     self._alert("dead", slot=name)
@@ -2567,6 +2577,16 @@ class Api:
                 self._save()
             if state in ("reg", "started") and prev.get("state") != state and self._data.get("event_alerts", True):
                 self._alert("evReg" if state == "reg" else "evStart", name=ev["name"])
+
+    def _check_restart(self, when):
+        """Every client dropped at once: a server restart, unless it is this PC's internet."""
+        server = any(icmp_ping(SERVER_IP) is not None for _ in range(3))
+        internet = any(icmp_ping(ip) is not None for ip in ("1.1.1.1", "8.8.8.8"))
+        if not server and internet:
+            with self._lock:
+                self._data["restart_at"] = when
+                self._data.pop("event_seen", None)
+                self._save()
 
     def _alert(self, key, **args):
         """Alerts are sent as a code + parameters; the interface translates them."""
@@ -2623,9 +2643,7 @@ class Api:
         # every client in game lost the connection at the same time: the server went down
         in_game = [p for p in self._slot_pid if p and (self._last_watch.get(p) or {}).get("net") == "game"]
         if dropped and len(dropped) >= max(1, len(in_game)) and len(dropped) >= 2:
-            self._data["restart_at"] = time.time()
-            self._data.pop("event_seen", None)
-            self._save()
+            threading.Thread(target=self._check_restart, args=(time.time(),), daemon=True).start()
         for pid in dropped:
             k = self._slot_pid.index(pid)
             self._alert("disconnected", slot=self._data["slots"][k])
@@ -2792,6 +2810,10 @@ class Api:
                              self._board_points, None if z is None else float(z), zone),
                 "boardTp": self._data.get("board_tp", True)}
 
+    def events_viewed(self):
+        """The Events tab is on screen: keep reading the announcements."""
+        self._events_seen = time.time()
+
     def spoil_db(self):
         """Monsters that can be spoiled, what they give and where they spawn (data/spoil_db.json)."""
         if self._spoil is None:
@@ -2812,7 +2834,8 @@ class Api:
         if self._zones is None:
             self._zones = load_hunting_zones()
         return {"ready": self._worldmap.ready, "x0": MAP_X0, "y0": MAP_Y0, "scale": MAP_SCALE,
-                "towns": self._map_db.get("towns", {}), "zones": self._zones, "points": self._board_points}
+                "towns": self._map_db.get("towns", {}), "zones": self._zones, "points": self._board_points,
+                "regions": [{"name": n, "x": x, "y": y} for n, x, y in MAP_REGIONS]}
 
     def _on_board_teleports(self, pts):
         """Teleport page opened in Alt+B: remember its destinations (they feed the routes)."""
@@ -3420,8 +3443,7 @@ class Api:
             user32.GetWindowRect(hwnd, ctypes.byref(r))
             with self._lock:
                 old = self._size()
-                side = SIDE_W if self._side_open else 0
-                self._data["size"] = [round((r.right - r.left) / scale + off_w - side),
+                self._data["size"] = [round((r.right - r.left) / scale + off_w),
                                       old[1] if compact else round((r.bottom - r.top) / scale + off_h)]
                 self._save()
         threading.Thread(target=work, daemon=True).start()
@@ -3616,6 +3638,10 @@ def _load_map_db():
 
 # ---------------------------------------------------------------- Alt+B teleports and tower floors
 BOARD_TP_FILE = APP_DIR / "data" / "l2axis_teleports.json"
+DEBUG_BOARD = True  # keep a local copy of the Alt+B teleport pages (to check the parser)
+# big regions without one name in the client's area list (label shown when zoomed out)
+MAP_REGIONS = [("Hellbound", 8000, 246000), ("Gracia · Seeds", -180000, 222000), ("Primeval Isle", 8480, -16000),
+               ("Isle of Souls", -120000, 52000), ("Fantasy Isle", -60000, -50000)]
 NECROPOLIS = {"pilgrims", "worship", "patriot's", "devotion", "martyrdom", "saint's", "disciple's", "sacrifice"}
 CATACOMB = {"branded", "apostate", "witch", "forbidden path", "dark omens", "heretic"}
 # Tower of Insolence: floor heights from the Alt+B floor teleports (1st floor = the ground entrance)
@@ -3706,7 +3732,12 @@ def load_hunting_zones():
 
 
 def _name_words(name):
-    stop = {"the", "of", "s", "lair", "nest", "floor", "instance", "tower"}
+    stop = {"the", "of", "s", "lair", "nest", "floor", "instance", "tower", "forest", "valley", "plains", "field",
+            "fields", "village", "swamp", "temple", "ruins", "lake", "island", "isle", "hill", "camp", "outpost", "cave",
+            "caverns", "fortress", "castle", "garden", "grounds", "land", "lands", "den", "town", "gate", "gateway",
+            "tomb", "wall", "monastery", "academy", "spring", "springs", "canyon", "pass", "highlands", "base", "hall",
+            "south", "north", "east", "west", "southern", "northern", "western", "eastern", "upper", "lower", "great",
+            "dark", "ancient", "old", "new"}
     return {w for w in re.findall(r"[a-z]+", (name or "").lower().replace("'s", "")) if w not in stop and len(w) > 2}
 
 
@@ -3870,6 +3901,7 @@ class ChatReader(threading.Thread):
         super().__init__(daemon=True)
         self._pick = pick_hwnd
         self._on = on_message
+        self.wanted = None  # callable: is anyone using the announcements?
         self._ps = None
         self._seen = {}   # announcement text -> last time it was on screen
         self.active = False
@@ -3886,12 +3918,16 @@ class ChatReader(threading.Thread):
                 creationflags=subprocess.CREATE_NO_WINDOW, encoding="utf-8", errors="replace")
         self._ps.stdin.write(str(path) + "\n")
         self._ps.stdin.flush()
+        ps = self._ps
+        watchdog = threading.Timer(20, lambda: ps.kill())  # a stuck OCR: kill it, the next call starts a new one
+        watchdog.start()
         lines = []
         while True:
             line = self._ps.stdout.readline()
             if not line or line.strip() == "<<END>>":
                 break
             lines.append(line.rstrip("\n"))
+        watchdog.cancel()
         return lines
 
     def read_once(self):
@@ -3944,6 +3980,10 @@ class ChatReader(threading.Thread):
         while True:
             try:
                 now = time.time()
+                if self.wanted and not self.wanted():
+                    self.active = False
+                    time.sleep(self.INTERVAL)
+                    continue
                 for text in self.read_once():
                     key = re.sub(r"\W+", "", text.lower())
                     last = self._seen.get(key)
@@ -3972,9 +4012,9 @@ def parse_announcement(text, at):
     m = re.search(r"registration is open for (\d+) seconds", low)
     if m:
         return key, "reg", at + int(m.group(1))
-    m = re.search(r"starts? in (\d+) (minute|second)", low)
+    m = re.search(r"\bin (\d+) ?(minutes?|mins?|seconds?|secs?)\b", low)
     if m:
-        return key, "reg" if "regist" in low else "soon", at + int(m.group(1)) * (60 if m.group(2) == "minute" else 1)
+        return key, "reg" if "regist" in low else "soon", at + int(m.group(1)) * (1 if m.group(2).startswith("sec") else 60)
     if re.search(r"cancel|not enough (players|participants)|no rewards", low):
         return key, "cancelled", None
     if re.search(r"was killed|has been killed|disappeared|has ended|is over|finished|winner|won ", low):
