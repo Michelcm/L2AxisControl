@@ -479,6 +479,7 @@ class GameLog:
         self.in_world = False
         self.entered = None     # epoch when the character entered the world
         self.tile = None
+        self.loaded = []        # regions loaded around the character, oldest first
         self._day0 = None       # midnight of the day the log was opened
         self._last = 0
 
@@ -531,6 +532,21 @@ class GameLog:
         if not m:
             return
         text = m.group(4)
+        # walking: the client loads the next region when the character gets near it and drops the
+        # ones it moved away from
+        sm = re.match(r"(?:Seamless Add Level|EndLoadSWLevel)\s+(\d+_\d+)", text)
+        if sm and self.tile:
+            if sm.group(1) not in self.loaded:
+                self.loaded.append(sm.group(1))
+            return
+        sm = re.match(r"(?:Seamless Detach Level :|Removed Level|Moving to LevelPool, Distant level)\s+(\d+_\d+)", text)
+        if sm:
+            gone = sm.group(1)
+            if gone in self.loaded:
+                self.loaded.remove(gone)
+            if gone == self.tile and self.loaded:  # it left that region: it is in the newest one
+                self.tile = self.loaded[-1]
+            return
         if text.startswith(("RequestEnterWorldPacket", "LoadMap:", "Teleport from", "Browse: Lobby")):
             when = self._when(int(m.group(1)), int(m.group(2)), int(m.group(3)))
             if text.startswith("RequestEnterWorldPacket"):
@@ -541,6 +557,26 @@ class GameLog:
                 t = re.search(r"(\d+_\d+)(?:\.unr)?\s*$", text.split("?")[0])
                 if t:
                     self.tile = t.group(1)
+                    self.loaded = [self.tile]  # a teleport starts over in one region
+
+    def position(self):
+        """Best guess of where the character is: the middle of its region, pulled towards each
+        neighbouring region the client has loaded (it is near that border). None if unknown."""
+        if not self.tile:
+            return None
+
+        def centre(tile):
+            tx, ty = map(int, tile.split("_"))
+            return (tx - 20) * 32768 + 16384, (ty - 18) * 32768 + 16384
+
+        cx, cy = centre(self.tile)
+        x, y = cx, cy
+        for other in self.loaded:
+            if other != self.tile:
+                ox, oy = centre(other)
+                x += (ox - cx) * 0.35
+                y += (oy - cy) * 0.35
+        return [round(x), round(y)]
 
 
 class ClientWatch:
@@ -598,6 +634,7 @@ class ClientWatch:
                 st["inWorld"] = log.in_world and game
                 st["region"] = MAP_TILE_REGION.get(log.tile) if log.in_world else None
                 st["tile"] = log.tile if log.in_world and game else None
+                st["pos"] = log.position() if log.in_world and game else None
                 st["online"] = now - log.entered if log.in_world and log.entered and game else None
             out[pid] = st
         for pid in pids:
@@ -3691,7 +3728,7 @@ def parse_board_teleports(text):
         if len(coords) < 3 or xi is None or xi == 0:
             continue
         k = xi - 1
-        while k > 0 and re.match(r"^(Lvl\.|Level|\d+\+?$)", before[k]):  # "Name - Lvl. 76+"
+        while k > 0 and re.match(r"^(Lvl\.|Level\b|\d+\+?$)", before[k]):  # "Name - Lvl. 76+"
             k -= 1
         name = before[k]
         if name == "Point:" or "____" in name:

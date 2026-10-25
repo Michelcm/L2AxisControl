@@ -338,15 +338,17 @@
   .bpin .bl em, .spot .bl em { font-style: normal; color: #c9b27a; }
   .bpin .bt { display: none; position: absolute; left: 50%; bottom: 100%; transform: translateX(-50%); margin-bottom: 1px;
               font: bold 9px Tahoma; color: #f08a7a; white-space: nowrap; line-height: 10px; text-shadow: 0 0 2px #000, 0 0 3px #000; pointer-events: none; }
-  .mapview.zmid .bpin .bt, .bpin.sel .bt, .bpin:hover .bt { display: block; }
+  .mapview.znear .bpin .bt, .bpin.sel .bt, .bpin:hover .bt { display: block; }
   .mapview.znear .bpin .bl, .bpin.sel .bl, .bpin:hover .bl, .spot.sel .bl, .spot:hover .bl { display: block; }
   .spot svg { width: 15px; height: 15px; fill: #b58cf0; }
   .spot .h { stroke: #2b1d40; fill: none; }
   .spot.other svg { width: 11px; height: 11px; fill: #7c63a3; opacity: .85; }
   .spot.sel svg { filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 4px #fff); }
   .tpt svg { width: 12px; height: 12px; stroke: #7fd4e6; }
-  .acct span { display: flex; align-items: center; gap: 2px; }
-  .acct svg { width: 11px; height: 11px; fill: #9fe38a; }
+  .accpin { position: absolute; transform: translate(-50%, -100%); display: flex; flex-direction: column; align-items: center;
+            pointer-events: auto; cursor: help; z-index: 4; transition: left .8s, top .8s; }
+  .accpin svg { width: 16px; height: 16px; fill: #9fe38a; display: block; filter: drop-shadow(0 0 1px #000) drop-shadow(0 0 2px #000); }
+  .accpin span { font: bold 10px Tahoma; color: #c9f0b5; white-space: nowrap; text-shadow: 0 0 2px #000, 0 0 3px #000; }
   .maplegend { position: absolute; left: 4px; bottom: 4px; background: rgba(10,9,7,.82); border: 1px solid #4a4232;
                border-radius: 3px; padding: 3px 6px; font-size: 10px; color: #e8dcc0; }
   .mapfilter { position: absolute; left: 50%; top: 4px; transform: translateX(-50%); z-index: 6; display: flex; align-items: center;
@@ -380,7 +382,6 @@
   .pin.sel { outline: 2px solid #fff; z-index: 3; }
   .pin:hover { z-index: 4; transform: scale(1.4); }
   .acct { position: absolute; border: 2px dashed #7fd36b; background: rgba(127,211,107,.12); pointer-events: none; }
-  .acct span { position: absolute; left: 2px; top: 1px; font-size: 9px; color: #c9f0b5; text-shadow: 0 0 2px #000, 0 0 2px #000; white-space: nowrap; }
   .town { position: absolute; font-size: 9px; color: #f3e6c2; text-shadow: 0 0 2px #000, 0 0 3px #000; pointer-events: none; transform: translate(-50%, -50%); white-space: nowrap; }
   .mapzoom { position: absolute; right: 4px; top: 4px; display: flex; flex-direction: column; gap: 2px; }
   .mapzoom button.b { width: 22px; height: 20px; padding: 0; }
@@ -2584,7 +2585,7 @@ function renderBossMap(list) {
   const all = S.bosses || [];
   const inList = new Set(list.map(b => b.id));
   const filtered = list.length < all.length;
-  const sig = LANG + "|" + mapSel + "|" + all.map(b => b.id + bossStatus(b).cls + (b.remaining > 0 ? "d" : "") + (inList.has(b.id) ? "" : "f")).join(",") + "|" + accts.map(s => s.name + s.tile).join(",");
+  const sig = LANG + "|" + mapSel + "|" + accts.map(s => (s.pos || []).join(",")).join(";") + "|" + all.map(b => b.id + bossStatus(b).cls + (b.remaining > 0 ? "d" : "") + (inList.has(b.id) ? "" : "f")).join(",") + "|" + accts.map(s => s.name + s.tile).join(",");
   const fb = $("#mapFilter");
   fb.style.display = filtered ? "" : "none";
   if (filtered) {
@@ -2597,7 +2598,8 @@ function renderBossMap(list) {
     if (!(MAPI.zones || []).length) Object.entries(MAPI.towns || {}).forEach(([n, c]) => { html += `<div class="town" data-x="${c.x}" data-y="${c.y}">${esc(n)}</div>`; });
     accts.forEach(s => {
       const [tx, ty] = s.tile.split("_").map(Number);
-      html += `<div class="acct" data-x="${(tx - 20) * 32768}" data-y="${(ty - 18) * 32768}"><span>${MAPICON.char}${esc(s.name)}</span></div>`;
+      html += `<div class="acct" data-x="${(tx - 20) * 32768}" data-y="${(ty - 18) * 32768}"></div>`;
+      if (s.pos) html += `<div class="accpin" data-x="${s.pos[0]}" data-y="${s.pos[1]}" title="${esc(t("lgAcc"))}">${MAPICON.char}<span>${esc(s.name)}</span></div>`;
     });
     all.filter(b => b.x != null && (b.x || b.y)).forEach(b => {
       const st = bossStatus(b);
