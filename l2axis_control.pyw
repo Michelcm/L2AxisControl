@@ -2861,9 +2861,61 @@ class Api:
                         fl = tower_floor(sp[0], sp[1], sp[2])
                         if fl:
                             m["floor"] = fl
+                self._classify_spoil_items()
             except (OSError, ValueError):
                 self._spoil = {"mobs": {}, "items": {}}
         return self._spoil
+
+    def _classify_spoil_items(self):
+        """Category and grade of each spoil item, from the recipes of the player's client:
+        recipe (grade of what it makes, success rate), part (used only for one or two pieces of gear),
+        intermediate (a material that is also crafted), basic material, enchant, gear, dye, other."""
+        # real client recipes only (the book also holds NPC / masterwork / drop entries)
+        recipes = [r for r in (self._recipes.recipes.values() if self._recipes else [])
+                   if r.get("id", 0) < 1_000_000 and r.get("recipeItem") and r.get("mats")]
+        gear = (self._stats or {}).get("items", {})
+        by_item = {r["recipeItem"]: r for r in recipes}
+        crafted = {r["product"] for r in recipes}
+        used_in = {}
+        for r in recipes:
+            for mat, _n in r["mats"]:
+                used_in.setdefault(mat, []).append(r["product"])
+        level_grade = lambda lv: 0 if lv <= 3 else 1 if lv == 4 else 2 if lv <= 6 else 3 if lv == 7 else 4 if lv == 8 else 5
+        for iid, it in self._spoil.get("items", {}).items():
+            i, kind, name = int(iid), it.get("kind", ""), it.get("name", "")
+            grade = None
+            r = by_item.get(i)
+            if r or kind == "recipe":
+                cat = "recipe"
+                if r:
+                    g = gear.get(str(r["product"]), {}).get("grade")
+                    # shots and other non-gear products say their grade in the name: "(S-Grade)", "(S)", "Spiritshot S"
+                    gm = re.search(r"\((S|A|B|C|D)(?:-Grade)?\)|(?:shot|Shot) (S|A|B|C|D)\b", name)
+                    if g is None and gm:
+                        g = "-DCBAS".index(gm.group(1) or gm.group(2))
+                    grade = g if g is not None else level_grade(r.get("level", 0))
+                    it["rate"] = r.get("rate")
+            elif kind.startswith(("scrl_enchant", "bless_scrl_enchant")) or re.match(r"^(Blessed )?Scroll:.*Enchant", name):
+                cat = "enchant"
+            elif kind in ("weapon", "armor") or str(i) in gear:
+                cat = "gear"
+                grade = gear.get(str(i), {}).get("grade")
+            elif kind == "dye":
+                cat = "dye"
+            elif kind == "material":
+                uses = used_in.get(i, [])
+                if uses and len(set(uses)) <= 2 and all(str(u) in gear for u in uses):
+                    cat = "part"
+                    grade = max(gear[str(u)].get("grade", 0) for u in uses)
+                elif i in crafted:
+                    cat = "craft"
+                else:
+                    cat = "material"
+            else:
+                cat = "other"
+            it["cat"] = cat
+            if grade is not None:
+                it["grade"] = grade
 
     def map_info(self):
         if not self._worldmap.ready:

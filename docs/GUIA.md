@@ -216,7 +216,11 @@ A aba **Spoil** é para quem faz spoil (Bounty Hunter / Fortune Seeker):
 - **Por item:** digite o item que você quer (ex.: *Asofe*, *Mithril Ore*, uma receita). Clique nele para ver todos os mobs
   que dão esse item, com nível, área, chance, quantidade e a **média por spoil** (os melhores primeiro).
 - **Por mob / área:** digite um mob ou uma área (ex.: *Hardin*) para ver o que cada mob dali dá.
-- **Nível min / max** deixa só os mobs que você consegue farmar. *Materiais / Receitas* filtra a lista.
+- **Categorias:** materiais, intermediários (materiais que também são craftados), peças de equipamento, receitas,
+  enchant, equipamento, tinturas e outros, cada uma com a contagem; receitas, peças e equipamento também por **grau**
+  (D … S84). Sem busca, a lista vem agrupada por categoria: clique num grupo para abrir.
+- **Nível do mob min / max** deixa só os mobs que você consegue farmar; **ordene** por melhor média, nome ou nível.
+- Por mob, cada linha mostra os ícones dos melhores spoils dele.
 - **🗺** abre o mapa lateral com os pontos de spawn (◆ verde) de todos os mobs que dão aquele item, e o caminho mais
   rápido até o escolhido. Clique em outro ponto ou em outro mob à esquerda para trocar.
 

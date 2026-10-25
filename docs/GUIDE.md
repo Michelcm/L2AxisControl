@@ -214,7 +214,11 @@ The **Spoil** tab is for spoilers (Bounty Hunters / Fortune Seekers):
 - **By item:** type the item you want (e.g. *Asofe*, *Mithril Ore*, a recipe). Click it to see every monster that gives
   it, with level, area, chance, amount and the **average per spoil** (best first).
 - **By monster / area:** type a monster or an area (e.g. *Hardin*) to see what each monster there gives.
-- **Level min / max** keeps only the monsters you can farm. *Materials / Recipes* narrows the list.
+- **Categories:** materials, intermediates (materials that are also crafted), gear parts, recipes, enchant, gear, dyes
+  and other, each with its count; recipes, parts and gear also by **grade** (D … S84). With no search, the list is
+  grouped by category: click a group to open it.
+- **Monster level min / max** keeps only the monsters you can farm; **sort** by best average, name or monster level.
+- By monster, each row shows the icons of its best spoils.
 - **🗺** opens the side map with the spawn spots (green ◆) of every monster that gives that item, and the fastest way
   to the chosen one. Click another spot or another monster on the left to change.
 

@@ -300,6 +300,24 @@
   .tlbl { position: absolute; font-size: 9px; color: #9fe3f0; text-shadow: 0 0 2px #000, 0 0 3px #000; pointer-events: none; white-space: nowrap; transform: translate(6px, -50%); }
   #bRoute { max-height: 150px; overflow-y: auto; }
   .sprow { display: flex; align-items: center; gap: 3px; margin-bottom: 4px; }
+  .spcats { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 4px; }
+  .spcats:empty { display: none; }
+  .spcats button.b { padding: 0 6px; height: 18px; font-size: 10px; }
+  .spcats button.b.on { color: var(--gold-hi); box-shadow: inset 0 0 0 1px var(--gold); }
+  .spcats button.b i { font-style: normal; color: var(--dim); margin-left: 3px; }
+  .spgrp { display: flex; align-items: center; gap: 6px; padding: 3px 5px; cursor: pointer; font-weight: bold; color: var(--gold-hi);
+           background: linear-gradient(#2a241a, #16130e); border-bottom: 1px solid #000; }
+  .spgrp .cnt { color: var(--dim); font-weight: normal; font-size: 10px; }
+  .spgrp .arr { margin-left: auto; color: var(--dim); }
+  .spi .gb { width: 26px; flex: none; font-size: 9px; text-align: center; color: #1a1408; border-radius: 2px; background: linear-gradient(#f0cf7e, #a77f35); }
+  .spi .gb.none { background: none; }
+  .spi .gb.s84 { background: linear-gradient(#e7b3ff, #8c4cc0); }
+  .spi .gb.s80 { background: linear-gradient(#ffd0a0, #b9773a); }
+  .spi .rt { font-size: 9px; color: #8fc7ff; }
+  .spi .lv2 { width: 44px; text-align: right; font-size: 10px; color: var(--dim); }
+  .spi .spvs { display: flex; gap: 1px; flex: none; }
+  .spi .spv .ico { width: 16px; height: 16px; }
+  .spi .bc { width: 46px; text-align: right; font-size: 10px; color: var(--gold-hi); }
   .sprow .grow { flex: 1; }
   .sprow input.lv { width: 34px; text-align: center; }
   .spi { display: flex; align-items: center; gap: 5px; padding: 2px 4px; cursor: pointer; border-bottom: 1px solid rgba(106,92,62,.18); }
@@ -804,16 +822,17 @@
     <div class="page" id="p-spoil">
       <div class="sprow">
         <input class="e grow" id="spQ" data-i18n-ph="spQ" spellcheck="false">
-        <select class="e" id="spKind">
-          <option value="" data-i18n="spAll"></option>
-          <option value="material" data-i18n="spMat"></option>
-          <option value="recipe" data-i18n="spRec"></option>
-          <option value="other" data-i18n="spOther"></option>
-        </select>
-        <span class="small" data-i18n="lvlLbl"></span>
+        <span class="small" data-i18n="spMobLv"></span>
         <input class="e lv" id="spMin" maxlength="2" placeholder="min">
         <input class="e lv" id="spMax" maxlength="2" placeholder="max">
+        <select class="e" id="spSort">
+          <option value="best" data-i18n="spSortBest"></option>
+          <option value="name" data-i18n="spSortName"></option>
+          <option value="level" data-i18n="spSortLevel"></option>
+        </select>
       </div>
+      <div class="spcats" id="spCats"></div>
+      <div class="spcats" id="spGrades"></div>
       <div class="bmode">
         <button class="b on" data-spm="item" data-i18n="spByItem"></button>
         <button class="b" data-spm="mob" data-i18n="spByMob"></button>
@@ -1056,6 +1075,11 @@ const I18N = {
     ev_aq: "Raid boss de evento que nasce 6 h depois do restart e depois a cada 17 h.",
     ev_pk: "Raid boss de evento que nasce 9 h depois do restart e depois a cada 19 h.",
     ev_zombie: "Zumbis invadem as cidades todo sábado e domingo às 20:00 GMT (horário mostrado já no seu fuso). Mate os zumbis nas cidades. Ring of Zombie: Precisão, P. Def. +6%, M. Def. +6%.",
+    spMobLv: "Nível do mob", spSortBest: "Melhor média", spSortName: "Nome", spSortLevel: "Nível do mob",
+    spAllGrades: "Todos os graus", spNoGrade: "Sem grau",
+    spc_material: "Materiais", spc_craft: "Intermediários", spc_part: "Peças de equipamento", spc_recipe: "Receitas",
+    spc_enchant: "Enchant", spc_gear: "Equipamento", spc_dye: "Tinturas", spc_other: "Outros",
+    spLvTip: "Nível dos mobs que dão o item", spBestTip: "Melhor chance de spoil entre esses mobs",
     tabSpoil: "Spoil", spQ: "Item, mob ou área…", spAll: "Tudo", spMat: "Materiais", spRec: "Receitas", spOther: "Outros",
     spByItem: "Por item", spByMob: "Por mob / área", spInfoItems: "{n} itens", spInfoMobs: "{n} mobs", spMobs: "{n} mobs",
     spk_material: "material", spk_recipe: "receita", spk_other: "outro", spNone: "Nada encontrado.",
@@ -1224,6 +1248,11 @@ const I18N = {
     ev_aq: "Event raid boss: spawns 6 h after the restart, then every 17 h.",
     ev_pk: "Event raid boss: spawns 9 h after the restart, then every 19 h.",
     ev_zombie: "Zombies invade the towns every Saturday and Sunday at 20:00 GMT (shown in your time zone). Kill the zombies in town. Ring of Zombie: Accuracy, P. Def. +6%, M. Def. +6%.",
+    spMobLv: "Monster level", spSortBest: "Best average", spSortName: "Name", spSortLevel: "Monster level",
+    spAllGrades: "All grades", spNoGrade: "No grade",
+    spc_material: "Materials", spc_craft: "Intermediates", spc_part: "Gear parts", spc_recipe: "Recipes",
+    spc_enchant: "Enchant", spc_gear: "Gear", spc_dye: "Dyes", spc_other: "Other",
+    spLvTip: "Level of the monsters that give it", spBestTip: "Best spoil chance among them",
     tabSpoil: "Spoil", spQ: "Item, monster or area…", spAll: "All", spMat: "Materials", spRec: "Recipes", spOther: "Other",
     spByItem: "By item", spByMob: "By monster / area", spInfoItems: "{n} items", spInfoMobs: "{n} monsters", spMobs: "{n} monsters",
     spk_material: "material", spk_recipe: "recipe", spk_other: "other", spNone: "Nothing found.",
@@ -1392,6 +1421,11 @@ const I18N = {
     ev_aq: "Event-Raidboss: erscheint 6 h nach dem Restart, dann alle 17 h.",
     ev_pk: "Event-Raidboss: erscheint 9 h nach dem Restart, dann alle 19 h.",
     ev_zombie: "Zombies überfallen jeden Samstag und Sonntag um 20:00 GMT die Städte (in deiner Zeitzone angezeigt). Töte die Zombies in der Stadt. Ring of Zombie: Genauigkeit, P. Def. +6%, M. Def. +6%.",
+    spMobLv: "Monsterlevel", spSortBest: "Bester Schnitt", spSortName: "Name", spSortLevel: "Monsterlevel",
+    spAllGrades: "Alle Grades", spNoGrade: "Ohne Grade",
+    spc_material: "Materialien", spc_craft: "Zwischenprodukte", spc_part: "Ausrüstungsteile", spc_recipe: "Rezepte",
+    spc_enchant: "Enchant", spc_gear: "Ausrüstung", spc_dye: "Färbemittel", spc_other: "Andere",
+    spLvTip: "Level der Monster, die es geben", spBestTip: "Beste Spoil-Chance unter ihnen",
     tabSpoil: "Spoil", spQ: "Item, Monster oder Gebiet…", spAll: "Alle", spMat: "Materialien", spRec: "Rezepte", spOther: "Andere",
     spByItem: "Nach Item", spByMob: "Nach Monster / Gebiet", spInfoItems: "{n} Items", spInfoMobs: "{n} Monster", spMobs: "{n} Monster",
     spk_material: "Material", spk_recipe: "Rezept", spk_other: "anderes", spNone: "Nichts gefunden.",
@@ -2045,9 +2079,10 @@ function build() {
   const view = new URLSearchParams(location.search).get("view");
   if (view === "about") $("#gmBadge").click();
   else if (view) {
-    document.querySelector(`.tab[data-p="${view.split(":")[0]}"]`)?.click();
+    document.querySelector(`.tab[data-p="${view.split(":")[0].replace(/cat$/, "")}"]`)?.click();
     if (view.startsWith("ev:")) evOpen.add(view.slice(3));  // screenshots: open one event
     if (view.startsWith("boss:map")) { mapSel = view.split(":")[2] || null; if (view.endsWith(":legend")) mapLayers._legend = true; setBossMode("map", true); }
+    if (view.startsWith("spoilcat:")) { const [, c, g, mode, q] = view.split(":"); spCat = c || ""; spGrade = g || ""; if (mode) { spMode = mode; document.querySelectorAll("[data-spm]").forEach(x => x.classList.toggle("on", x.dataset.spm === mode)); } if (q) $("#spQ").value = q; }  // screenshots
     if (view.startsWith("spoil:")) {  // screenshots: spoil:<search>[:<item id to open>[:map:<mob id>]]
       const [, q, item, , mob] = view.split(":");
       $("#spQ").value = q || ""; spOpen = item || null;
@@ -2263,68 +2298,131 @@ function spLevelOk(lv) {
   return (isNaN(lo) || lv >= lo) && (isNaN(hi) || lv <= hi);
 }
 function spArea(m) { return m.floor ? t("dFloor", { zone: m.area, floor: m.floor }) : (m.area || "—"); }
+const SP_CATS = ["material", "craft", "part", "recipe", "enchant", "gear", "dye", "other"];
+const SP_GRADES = ["—", "D", "C", "B", "A", "S", "S80", "S84"];
+let spCat = "", spGrade = "", spCollapsed = new Set(["material", "craft", "part", "recipe", "enchant", "gear", "dye", "other"]);
+const spCatOf = it => it.cat || spKindOf(it.kind);
+function spGradeBadge(it) {
+  if (it.grade == null) return `<span class="gb none"></span>`;
+  const g = SP_GRADES[it.grade] || "";
+  return `<span class="gb ${g === "S84" ? "s84" : g === "S80" ? "s80" : ""}">${g}</span>`;
+}
+function spChips() {
+  // category chips with counts, and grade chips when the category has grades
+  const items = SPOIL.items, counts = {};
+  Object.values(items).forEach(it => { const c = spCatOf(it); counts[c] = (counts[c] || 0) + 1; });
+  const total = Object.keys(items).length;
+  const cs = $("#spCats");
+  const sig = LANG + spCat + total;
+  if (cs.dataset.sig !== sig) {
+    cs.dataset.sig = sig;
+    cs.innerHTML = `<button class="b ${spCat ? "" : "on"}" data-spc="">${esc(t("spAll"))}<i>${total}</i></button>` +
+      SP_CATS.filter(c => counts[c]).map(c => `<button class="b ${spCat === c ? "on" : ""}" data-spc="${c}">${esc(t("spc_" + c))}<i>${counts[c]}</i></button>`).join("");
+    cs.querySelectorAll("[data-spc]").forEach(b => b.onclick = () => { spCat = b.dataset.spc; spGrade = ""; spOpen = null; renderSpoil(); });
+  }
+  const gs = $("#spGrades");
+  const graded = ["recipe", "part", "gear"].includes(spCat);
+  const gsig = LANG + spCat + spGrade;
+  if (gs.dataset.sig !== gsig) {
+    gs.dataset.sig = gsig;
+    gs.innerHTML = graded ? `<button class="b ${spGrade === "" ? "on" : ""}" data-spg="">${esc(t("spAllGrades"))}</button>` +
+      SP_GRADES.map((g, k) => `<button class="b ${spGrade === String(k) ? "on" : ""}" data-spg="${k}">${g === "—" ? esc(t("spNoGrade")) : g}</button>`).join("") : "";
+    gs.querySelectorAll("[data-spg]").forEach(b => b.onclick = () => { spGrade = b.dataset.spg; renderSpoil(); });
+  }
+}
 async function renderSpoil() {
   if (!$("#p-spoil").classList.contains("sel")) return;
   await loadSpoil();
-  const q = $("#spQ").value.trim().toLowerCase(), kind = $("#spKind").value;
+  spChips();
+  const q = $("#spQ").value.trim().toLowerCase(), sort = $("#spSort").value;
   const box = $("#spList");
-  const sig = [LANG, spMode, q, kind, $("#spMin").value, $("#spMax").value, spOpen].join("|");
+  const sig = [LANG, spMode, q, spCat, spGrade, sort, $("#spMin").value, $("#spMax").value, spOpen, [...spCollapsed].join()].join("|");
   if (box.dataset.sig === sig) return;
   box.dataset.sig = sig;
   const mobs = SPOIL.mobs, items = SPOIL.items;
+  const itemOk = iid => {
+    const it = items[iid] || {};
+    return (!spCat || spCatOf(it) === spCat) && (spGrade === "" || String(it.grade ?? 0) === spGrade);
+  };
   let html = "";
   if (spMode === "item") {
-    // items -> which monsters give them
+    // items -> which monsters give them (only monsters in the level range)
     const byItem = {};
     for (const [mid, m] of Object.entries(mobs)) {
       if (!spLevelOk(m.level)) continue;
       for (const [iid, c, lo, hi] of m.spoil) (byItem[iid] = byItem[iid] || []).push([mid, c, lo, hi]);
     }
-    let list = Object.entries(byItem).filter(([iid]) => {
-      const it = items[iid] || {};
-      return (!kind || spKindOf(it.kind) === kind) && (!q || (it.name || "").toLowerCase().includes(q));
-    }).sort((a, b) => (items[a[0]].name || "").localeCompare(items[b[0]].name || ""));
-    $("#spInfo").textContent = t("spInfoItems", { n: list.length });
-    list = list.slice(0, 120);
-    html = list.map(([iid, srcs]) => {
-      const it = items[iid];
-      let row = `<div class="spi ${spOpen === iid ? "open" : ""}" data-spi="${iid}">${ico(iid)}<span class="n">${esc(it.name)}</span>
-        <span class="k">${esc(t("spk_" + spKindOf(it.kind)))}</span><span class="c">${esc(t("spMobs", { n: srcs.length }))}</span></div>`;
-      if (spOpen === iid) {
-        srcs.sort((a, b) => spYield(b[1], b[2], b[3]) - spYield(a[1], a[2], a[3]));
+    const rows = Object.entries(byItem).filter(([iid]) => itemOk(iid) && (!q || (items[iid].name || "").toLowerCase().includes(q)))
+      .map(([iid, srcs]) => {
+        const lvls = srcs.map(s => mobs[s[0]].level);
+        const best = Math.max(...srcs.map(s => spYield(s[1], s[2], s[3])));
+        return { iid, it: items[iid], srcs, best, bestChance: Math.max(...srcs.map(s => s[1])), lo: Math.min(...lvls), hi: Math.max(...lvls) };
+      });
+    const sorter = { name: (a, b) => a.it.name.localeCompare(b.it.name), best: (a, b) => b.best - a.best || a.it.name.localeCompare(b.it.name),
+                     level: (a, b) => a.lo - b.lo || a.it.name.localeCompare(b.it.name) }[sort] || ((a, b) => b.best - a.best);
+    rows.sort(sorter);
+    $("#spInfo").textContent = t("spInfoItems", { n: rows.length });
+    const rowHtml = r => {
+      let row = `<div class="spi ${spOpen === r.iid ? "open" : ""}" data-spi="${r.iid}">${spGradeBadge(r.it)}${ico(r.iid)}
+        <span class="n">${esc(r.it.name)}${r.it.rate && r.it.rate < 100 && !/%/.test(r.it.name) ? ` <span class="rt">${r.it.rate}%</span>` : ""}</span>
+        <span class="lv2" title="${esc(t("spLvTip"))}">${r.lo === r.hi ? r.lo : r.lo + "–" + r.hi}</span>
+        <span class="bc" title="${esc(t("spBestTip"))}">${fmtChance(r.bestChance)}</span>
+        <span class="c">${esc(t("spMobs", { n: r.srcs.length }))}</span></div>`;
+      if (spOpen === r.iid) {
+        r.srcs.sort((a, b) => spYield(b[1], b[2], b[3]) - spYield(a[1], a[2], a[3]));
         row += `<div class="spd"><table><tr class="small"><td>${esc(t("spHMob"))}</td><td class="r">${esc(t("spHLv"))}</td><td>${esc(t("spHArea"))}</td>
-          <td class="r">${esc(t("spHChance"))}</td><td class="r">${esc(t("spHQty"))}</td><td class="g">${esc(t("spHAvg"))}</td><td></td></tr>` + srcs.map(([mid, c, lo, hi]) => {
+          <td class="r">${esc(t("spHChance"))}</td><td class="r">${esc(t("spHQty"))}</td><td class="g">${esc(t("spHAvg"))}</td><td></td></tr>` + r.srcs.map(([mid, c, lo, hi]) => {
           const m = mobs[mid];
           return `<tr><td>${esc(m.name)}</td><td class="r">${m.level}</td><td class="a" title="${esc(spArea(m))}">${esc(spArea(m))}</td>
             <td class="r">${fmtChance(c)}</td><td class="r">${lo === hi ? lo : lo + "–" + hi}</td>
             <td class="g" title="${esc(t("spYieldTip"))}">${spYield(c, lo, hi).toFixed(2)}</td>
-            <td><button class="b" data-spmap="${mid}" data-spitem="${iid}" title="${esc(t("bmShow"))}">🗺</button></td></tr>`;
+            <td><button class="b" data-spmap="${mid}" data-spitem="${r.iid}" title="${esc(t("bmShow"))}">🗺</button></td></tr>`;
         }).join("") + `</table></div>`;
       }
       return row;
-    }).join("");
+    };
+    if (spCat || q) {
+      html = rows.map(rowHtml).join("");  // one category or a search: a flat list
+    } else {
+      // everything: one group per category, closed until clicked
+      html = SP_CATS.map(c => {
+        const g = rows.filter(r => spCatOf(r.it) === c);
+        if (!g.length) return "";
+        const closed = spCollapsed.has(c);
+        return `<div class="spgrp" data-spgrp="${c}">${esc(t("spc_" + c))}<span class="cnt">${g.length}</span><span class="arr">${closed ? "▸" : "▾"}</span></div>` +
+          (closed ? "" : g.map(rowHtml).join(""));
+      }).join("");
+    }
   } else {
     // monsters (or an area) -> what they give
-    let list = Object.entries(mobs).filter(([, m]) => spLevelOk(m.level) &&
+    const list = Object.entries(mobs).filter(([, m]) => spLevelOk(m.level) &&
       (!q || m.name.toLowerCase().includes(q) || (m.area || "").toLowerCase().includes(q)) &&
-      (!kind || m.spoil.some(([iid]) => spKindOf((items[iid] || {}).kind) === kind)))
+      (!spCat || m.spoil.some(([iid]) => itemOk(iid))))
       .sort((a, b) => a[1].level - b[1].level || a[1].name.localeCompare(b[1].name));
     $("#spInfo").textContent = t("spInfoMobs", { n: list.length });
-    list = list.slice(0, 120);
     html = list.map(([mid, m]) => {
+      // a preview of its best spoils (icons), so the list says something without opening each row
+      const top = m.spoil.filter(([iid]) => itemOk(iid)).sort((a, b) => spYield(b[1], b[2], b[3]) - spYield(a[1], a[2], a[3])).slice(0, 4);
+      const prev = top.map(([iid, c]) => `<span class="spv" title="${esc(((items[iid] || {}).name || iid) + " · " + fmtChance(c))}">${ico(iid)}</span>`).join("");
       let row = `<div class="spi ${spOpen === mid ? "open" : ""}" data-spi="${mid}"><span class="c" style="width:18px">${m.level}</span>
-        <span class="n">${esc(m.name)}</span><span class="k">${esc(spArea(m))}</span>
+        <span class="n">${esc(m.name)}</span><span class="spvs">${prev}</span><span class="k">${esc(spArea(m))}</span>
         <button class="b" data-spmap="${mid}" title="${esc(t("bmShow"))}">🗺</button></div>`;
       if (spOpen === mid) {
-        row += `<div class="spd"><table>` + m.spoil.filter(([iid]) => !kind || spKindOf((items[iid] || {}).kind) === kind)
+        row += `<div class="spd"><table>` + m.spoil.filter(([iid]) => itemOk(iid))
           .sort((a, b) => spYield(b[1], b[2], b[3]) - spYield(a[1], a[2], a[3]))
-          .map(([iid, c, lo, hi]) => `<tr><td>${ico(iid)} ${esc((items[iid] || {}).name || iid)}</td><td class="r">${fmtChance(c)}</td>
+          .map(([iid, c, lo, hi]) => `<tr><td>${spGradeBadge(items[iid] || {})}</td><td>${ico(iid)} ${esc((items[iid] || {}).name || iid)}</td>
+            <td class="k">${esc(t("spc_" + spCatOf(items[iid] || {})))}</td><td class="r">${fmtChance(c)}</td>
             <td class="r">${lo === hi ? lo : lo + "–" + hi}</td><td class="g">${spYield(c, lo, hi).toFixed(2)}</td></tr>`).join("") + `</table></div>`;
       }
       return row;
     }).join("");
   }
   box.innerHTML = html || `<div class="small" style="padding:6px">${esc(t("spNone"))}</div>`;
+  box.querySelectorAll("[data-spgrp]").forEach(el => el.onclick = () => {
+    const c = el.dataset.spgrp;
+    spCollapsed.has(c) ? spCollapsed.delete(c) : spCollapsed.add(c);
+    renderSpoil();
+  });
   box.querySelectorAll("[data-spi]").forEach(el => el.onclick = () => { spOpen = spOpen === el.dataset.spi ? null : el.dataset.spi; renderSpoil(); });
   box.querySelectorAll("[data-spmap]").forEach(el => el.onclick = e => { e.stopPropagation(); openSpoilMap(el.dataset.spitem || null, el.dataset.spmap); });
 }
@@ -2402,7 +2500,7 @@ function renderSpoilMap() {
 }
 function initSpoil() {
   ["#spQ", "#spMin", "#spMax"].forEach(id => $(id).oninput = () => renderSpoil());
-  $("#spKind").onchange = () => renderSpoil();
+  $("#spSort").onchange = () => renderSpoil();
   document.querySelectorAll("[data-spm]").forEach(b => b.onclick = () => {
     spMode = b.dataset.spm; spOpen = null;
     document.querySelectorAll("[data-spm]").forEach(x => x.classList.toggle("on", x === b));
