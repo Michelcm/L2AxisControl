@@ -17,7 +17,7 @@ server events, votes, timers and a crafting guide.
 |---|---|
 | **Clients** | Account cards (up to 10): open, focus, minimize and close each game window. Each card shows whether the character is in game, the region, time online and HP/MP. A **monitor map** draws your monitors as they are: click one to arrange the windows on it, or drag an account onto a monitor to move its window there. Save and restore the layout. Optional **auto-login** (see below). |
 | **Network** | Live ping and packet loss to the game server with a 2-minute graph. Cloudflare WARP status and on/off toggle. |
-| **Bosses** | Respawn countdowns with date and time, filters, search, sort and level ranges, level/area/coordinates from the game's own data files. |
+| **Bosses** | Respawn countdowns with date and time, filters, search, sort and level ranges, level/area/coordinates from the game's own data files. A **map** (the game's own world map, read from your client) shows every boss, the area each of your accounts is in, and the fastest way to a boss: Alt+B teleport to a town, Gatekeeper, then the run. |
 | **Craft** | Step-by-step guide for every top-tier item (Dynasty, Icarus, Moirai, Vesper): crafting order, material tree, shopping list, masterworks, a plan for your class, gear without a recipe and accessories, with where everything drops. |
 | **Votes** | All vote sites with a 12-hour timer each, a beep when you can vote again and one button to open every available site. |
 | **Events** | Every server event from the forum (Border Blitz, Battle Royale, Fight the Fakes, Giant Rats, Zombie Apocalypse, Lucky Pig, the Spirits, Treasure Hunt): next start in **your** time zone, how to take part and rewards. Live status (registration open, started, ended, cancelled) from the server announcements in the chat, plus the latest announcements. |
@@ -88,7 +88,7 @@ it is ignored by Git and should never be shared.
 
 [MIT](LICENSE). The databases `data/drops_db.json` and `data/items_db.json` are derived from the
 [L2J Server datapack](https://bitbucket.org/l2jserver/l2j-server-datapack) and are distributed under the
-**GPL-3.0** (see [data/NOTICE.md](data/NOTICE.md)). The map regions also come from that datapack. Those are the official
+**GPL-3.0** (see [data/NOTICE.md](data/NOTICE.md)). The map regions and the Gatekeeper teleports (`data/map_db.json`) also come from that datapack. The world map image is not included: the panel builds it from your own client (`SysTextures/L2_RadarMap.utx`). Those are the official
 High Five values: L2Axis may use its own rates and drop lists. Event schedules come from the L2Axis forum posts.
 Game icons are not included: the panel reads them from your own client. Lineage II is a trademark of NCSOFT. This is
 an unofficial community tool and is not affiliated with NCSOFT or with the L2Axis staff.

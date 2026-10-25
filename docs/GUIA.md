@@ -178,11 +178,28 @@ anúncio deles uma vez; depois disso ele calcula os próximos.
 | Aba | Para que serve |
 |---|---|
 | ![Rede](img/network.png) | **Rede:** ping e perda de pacotes até o servidor, um gráfico de 2 minutos e o botão do Cloudflare WARP. Se o ping pular ou houver perda, teste o WARP ligado (ou desligado). |
-| ![Bosses](img/bosses.png) | **Bosses:** contagem até o respawn. No jogo, abra **Alt+B → Bosses** para atualizar. A ★ marca favoritos (apita quando nascem). Precisa de uma alteração no client que ainda não foi publicada; sem ela a lista fica vazia. |
+| ![Bosses](img/bosses.png) | **Bosses:** contagem até o respawn. No jogo, abra **Alt+B → Bosses** para atualizar. A ★ marca favoritos (apita quando nascem). Precisa de uma alteração no client que ainda não foi publicada; sem ela a lista fica vazia. **🗺 Mapa:** veja abaixo. |
 | ![Craft](img/craft.png) | **Craft:** escolha raça e classe no topo. **Receitas** lista os itens top; clique num para ver o passo a passo, os materiais e onde dropam. **Meu plano** mostra o melhor item de cada slot para a sua classe. |
 | ![Votos](img/votes.png) | **Votos:** clique em **Votar** num site para abrir e iniciar o timer de 12 h. **Abrir ★ disponíveis** abre os principais. Depois digite **.vote** no jogo. Vote com o WARP/VPN **desligado**: os sites conferem o seu IP. |
 | ![Timers](img/timers.png) | **Timers:** digite um nome e um tempo (`1:30` = 1 h 30 min, ou só minutos) e clique em **Adicionar**, ou use um atalho pronto. Apita quando acaba. |
 | ![Opções](img/options.png) | **Opções:** idioma, sempre no topo, transparência, tamanho do texto, login automático e avisos, links do L2Axis e atalhos para as pastas do jogo. **Sobre** mostra os créditos. |
+
+### Mapa dos bosses
+
+![Mapa dos bosses](img/bosses_map.png)
+
+Na aba **Bosses**, clique em **🗺 Mapa** (ou em **🗺 Ver no mapa** nos detalhes de um boss):
+
+- cada boss é um ponto: **vermelho** = vivo, **amarelo** = nascendo logo / talvez nasceu, **cinza** = morto; os épicos têm um anel dourado;
+- o **quadrado verde** é a região onde cada conta sua está (o jogo só informa a região, não o ponto exato);
+- **arraste** para mover, **roda do mouse** para zoom, ⤢ para ver o continente inteiro;
+- **clique num boss** para ver o caminho mais rápido, desenhado no mapa (pontilhado = teleporte, linha cheia = corrida)
+  e escrito embaixo: Alt+B para uma cidade → Gatekeeper → correr numa direção, com o tempo e a adena;
+- **Saindo de:** a cidade de onde você sai (automático = onde sua conta está). Desmarque *Usar o teleporte do Alt+B
+  para as cidades* se preferir só Gatekeepers.
+
+Na primeira vez o painel monta o mapa a partir dos arquivos do seu jogo (uns 30 segundos). As distâncias são em linha
+reta: o caminho real pode ser um pouco maior.
 
 ## 10. Atualizar para uma versão nova
 

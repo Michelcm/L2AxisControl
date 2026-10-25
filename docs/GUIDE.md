@@ -176,11 +176,28 @@ sees them announced once; after that it calculates the next ones.
 | Tab | Use |
 |---|---|
 | ![Network](img/network.png) | **Network:** ping and packet loss to the server, a 2-minute graph and the Cloudflare WARP switch. If your ping jumps or you lose packets, try WARP on (or off). |
-| ![Bosses](img/bosses.png) | **Bosses:** respawn countdowns. In game, open **Alt+B → Bosses** to refresh them. ★ marks favorites (beep when they respawn). Needs a client change that is not published yet; without it the list stays empty. |
+| ![Bosses](img/bosses.png) | **Bosses:** respawn countdowns. In game, open **Alt+B → Bosses** to refresh them. ★ marks favorites (beep when they respawn). Needs a client change that is not published yet; without it the list stays empty. **🗺 Map:** see below. |
 | ![Craft](img/craft.png) | **Craft:** choose your race and class at the top. **Recipes** lists the top items; click one for the step-by-step, the materials and where they drop. **My plan** shows the best item for each slot of your class. |
 | ![Votes](img/votes.png) | **Votes:** click **Vote** on a site to open it and start its 12-hour timer. **Open available ★** opens the main ones. Then type **.vote** in game. Vote with WARP/VPN **off**: the vote sites check your IP. |
 | ![Timers](img/timers.png) | **Timers:** type a name and a time (`1:30` = 1 h 30 min) and click **Add**, or use a preset. It beeps when it ends. |
 | ![Options](img/options.png) | **Options:** language, always on top, transparency, text size, auto-login and alert settings, L2Axis links and shortcuts to the game folders. **About** shows the credits. |
+
+### Bosses map
+
+![Bosses map](img/bosses_map.png)
+
+In the **Bosses** tab, click **🗺 Map** (or **🗺 On the map** in a boss's details):
+
+- every boss is a dot: **red** = alive, **yellow** = respawning soon / maybe spawned, **grey** = dead; epics have a gold ring;
+- the **green square** is the area where each of your accounts is (the game only tells the area, not the exact spot);
+- **drag** to move, **mouse wheel** to zoom, ⤢ to see the whole continent;
+- **click a boss** to see the fastest way there, drawn on the map (dashed = teleport, solid = run) and written below:
+  Alt+B teleport to a town → Gatekeeper → run in a direction, with the time and the adena;
+- **From:** the town you start in (automatic = where your account is). Untick *Use the Alt+B teleport to towns* if you
+  prefer only Gatekeepers.
+
+The first time, the panel builds the map from your game files (about 30 seconds). Distances are in a straight line:
+the real path can be a bit longer.
 
 ## 10. Updating to a new version
 

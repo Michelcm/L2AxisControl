@@ -596,6 +596,7 @@ class ClientWatch:
             if log:
                 st["inWorld"] = log.in_world and game
                 st["region"] = MAP_TILE_REGION.get(log.tile) if log.in_world else None
+                st["tile"] = log.tile if log.in_world and game else None
                 st["online"] = now - log.entered if log.in_world and log.entered and game else None
             out[pid] = st
         for pid in pids:
@@ -2426,6 +2427,8 @@ class Api:
         self._alerts = []
         self._window = None
         self._watch = ClientWatch()
+        self._worldmap = WorldMap()
+        self._map_db = _load_map_db()
         self._bars, self._bars_at, self._bar_armed = {}, {}, {}
         self._gone_slot = {}
         self._last_watch = {}
@@ -2759,6 +2762,26 @@ class Api:
                 bosses[bid] = b
                 self._boss_alerted.discard(bid)
             self._save()
+
+    def boss_route(self, boss_id, start=None, board_tp=None):
+        """Fastest way to a boss. `start`: a town; default = where an account in game is."""
+        b = self._boss_db.get(str(boss_id)) or {}
+        if not b.get("x") and not b.get("y"):
+            return None
+        if not start:
+            regions = [(self._last_watch.get(p) or {}).get("region") for p in self._slot_pid if p]
+            start = next((r for r in regions if r in self._map_db.get("towns", {})), None)
+        if board_tp is not None:
+            self._data["board_tp"] = bool(board_tp)
+            self._save()
+        return {**boss_route(self._map_db, start or "Giran", b["x"], b["y"], self._data.get("board_tp", True)),
+                "boardTp": self._data.get("board_tp", True)}
+
+    def map_info(self):
+        if not self._worldmap.ready:
+            threading.Thread(target=self._worldmap.build, daemon=True).start()
+        return {"ready": self._worldmap.ready, "x0": MAP_X0, "y0": MAP_Y0, "scale": MAP_SCALE,
+                "towns": self._map_db.get("towns", {})}
 
     def _boss_list(self, now):
         out = []
@@ -3380,6 +3403,8 @@ def make_server(api, token):
                 self._send(200, UI_FILE.read_bytes(), "text/html; charset=utf-8")
             elif path.startswith("/assets/") and path[8:] in ASSETS and (ASSETS_DIR / path[8:]).exists():
                 self._send(200, (ASSETS_DIR / path[8:]).read_bytes(), "image/png")
+            elif path == "/worldmap.png" and MAP_FILE.exists():
+                self._send(200, MAP_FILE.read_bytes(), "image/png", "max-age=86400")
             elif re.fullmatch(r"/icon/\d{1,7}\.png", path):
                 try:
                     png = api._icons.png(int(path[6:-4]))
@@ -3458,6 +3483,108 @@ document.getElementById('l').innerHTML=s.rows.map(r=>'<div class="r '+r.state+'"
 [...document.querySelectorAll('.r')].forEach((e,k)=>{e.querySelector('.n').textContent=s.rows[k].name;e.querySelector('.m').textContent=s.rows[k].msg;});
 return Math.ceil(document.getElementById('l').getBoundingClientRect().bottom)+10;}
 </script></body></html>"""
+
+
+# ---------------------------------------------------------------- world map and routes
+# The world map is the game's own radar map (SysTextures/L2_RadarMap.utx, 20 pieces of 1024 px in
+# a 5 x 4 grid). It is NCSoft art: it is built from the player's client on first use and kept in
+# icons/ (not in the repository). One full-size pixel = 128 game units and the map starts at the
+# world square (11, 11); the cached image is half size (256 units per pixel).
+MAP_FILE = ICON_DIR / "worldmap.png"
+MAP_SCALE = 256                    # game units per pixel of the cached image
+MAP_X0, MAP_Y0 = -294912, -229376  # game coordinates of the image's top-left corner
+MAP_DB_FILE = APP_DIR / "data" / "map_db.json"
+RUN_SPEED = 150                    # game units per second, a running character with a speed buff
+
+
+class WorldMap:
+    def __init__(self):
+        self.ready = MAP_FILE.exists()
+        self.building = False
+
+    def build(self):
+        """Decode the 20 pieces, keep one pixel in two, write a PNG. About 30 s, once."""
+        if self.ready or self.building:
+            return
+        self.building = True
+        try:
+            from array import array
+            pkg = _UPackage(_read_ver121(TEXTURE_DIR / "L2_RadarMap.utx"))
+            half, cols, rows = 512, 5, 4
+            W, H = half * cols, half * rows
+            out = array("I", bytes(W * H * 4))
+            for k in range(cols * rows):
+                tex = pkg.texture(f"radarmap_{k + 1}")
+                if not tex:
+                    continue
+                fmt, w, h, data = tex
+                px = array("I", _decode_texture(fmt, w, h, data))
+                ox, oy = (k % cols) * half, (k // cols) * half
+                for y in range(half):
+                    src = px[(2 * y) * w:(2 * y + 1) * w][::2]
+                    o = (oy + y) * W + ox
+                    out[o:o + half] = src
+            ICON_DIR.mkdir(exist_ok=True)
+            MAP_FILE.write_bytes(_png(W, H, out.tobytes()))
+            self.ready = True
+        except Exception:
+            log_error("world map", traceback.format_exc())
+        finally:
+            self.building = False
+
+
+def _load_map_db():
+    try:
+        return json.loads(MAP_DB_FILE.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {"towns": {}, "teleports": []}
+
+
+def boss_route(map_db, start, bx, by, board_tp=True):
+    """Fastest way from the town `start` to (bx, by) with the Gatekeepers: town-to-town
+    teleports first, then one teleport to the nearest spot, then running.
+    Returns {"steps": [...], "walk": units, "time": seconds, "price": adena}."""
+    towns, tps = map_db.get("towns", {}), map_db.get("teleports", [])
+    if start not in towns:
+        start = "Giran"
+    dist = lambda x, y: math.hypot(bx - x, by - y)
+    # towns reachable with town-to-town teleports: fewest hops, then cheapest
+    best = {start: (0, 0, [])}
+    if board_tp:  # the server's Alt+B board teleports to any town: one hop, no Gatekeeper
+        for name, c in towns.items():
+            if name != start:
+                best[name] = (1, 0, [{"from": start, "to": name, "price": 0, "x": c["x"], "y": c["y"], "board": True}])
+    frontier = list(best)
+    while frontier:
+        nxt = []
+        for town in frontier:
+            hops, price, path = best[town]
+            for t in tps:
+                if t["from"] != town or not t.get("toTown"):
+                    continue
+                cand = (hops + 1, price + t["price"], path + [t])
+                old = best.get(t["toTown"])
+                if old is None or cand[:2] < old[:2]:
+                    best[t["toTown"]] = cand
+                    nxt.append(t["toTown"])
+        frontier = nxt
+    HOP = 12000  # a teleport costs about as much as running this far (loading, walking to the NPC)
+    options = []
+    for town, (hops, price, path) in best.items():
+        tx, ty = towns[town]["x"], towns[town]["y"]
+        options.append((dist(tx, ty) + HOP * hops, path, tx, ty, price))
+        for t in tps:
+            if t["from"] == town and not t.get("toTown"):
+                options.append((dist(t["x"], t["y"]) + HOP * (hops + 1), path + [t], t["x"], t["y"], price + t["price"]))
+    score, path, ex, ey, price = min(options, key=lambda o: o[0])
+    walk = dist(ex, ey)
+    ang = math.degrees(math.atan2(-(by - ey), bx - ex)) % 360  # map up = north (game y grows south)
+    compass = ["E", "NE", "N", "NW", "W", "SW", "S", "SE"][int((ang + 22.5) // 45) % 8]
+    steps = [{"kind": "board" if t.get("board") else "tp", "from": t["from"], "to": t["to"], "price": t["price"],
+              "x": t["x"], "y": t["y"]} for t in path]
+    steps.append({"kind": "run", "dist": round(walk), "dir": compass, "x": bx, "y": by})
+    return {"start": start, "startXY": towns.get(start), "steps": steps, "walk": round(walk),
+            "time": round(walk / RUN_SPEED), "price": price}
 
 
 # ---------------------------------------------------------------- server announcements from the chat
