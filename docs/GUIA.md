@@ -188,13 +188,19 @@ anúncio deles uma vez; depois disso ele calcula os próximos.
 
 ![Mapa dos bosses](img/bosses_map.png)
 
-Na aba **Bosses**, clique em **🗺 Mapa** (ou em **🗺 Ver no mapa** nos detalhes de um boss):
+Na aba **Bosses**, clique em **🗺 Mapa**, no botão 🗺 da barra de título, ou em **🗺 Ver no mapa** nos detalhes de um
+boss. O mapa abre numa **janela lateral acoplada ao painel** (a janela cresce para o lado; o « fecha), com uma lista
+rápida de bosses à esquerda (com busca própria) e o mapa à direita:
 
 - cada boss é um ponto: **vermelho** = vivo, **amarelo** = nascendo logo / talvez nasceu, **cinza** = morto; os épicos têm um anel dourado;
 - o **quadrado verde** é a região onde cada conta sua está (o jogo só informa a região, não o ponto exato);
+- os nomes das regiões vêm do seu jogo; dê zoom para ver mais. O **◆** marca os **teleportes do Alt+B** do servidor
+  (instâncias, necrópoles, andares da Tower of Insolence…);
+- os bosses dentro da **Tower of Insolence** mostram o **andar** (ex.: Cherub Galaxia · 13º andar);
 - **arraste** para mover, **roda do mouse** para zoom, ⤢ para ver o continente inteiro;
 - **clique num boss** para ver o caminho mais rápido, desenhado no mapa (pontilhado = teleporte, linha cheia = corrida)
-  e escrito embaixo: Alt+B para uma cidade → Gatekeeper → correr numa direção, com o tempo e a adena;
+  e escrito embaixo: o **teleporte do Alt+B** mais próximo (ou Alt+B para uma cidade → Gatekeeper) → correr numa
+  direção, com o tempo e quantos andares subir ou descer na Tower of Insolence;
 - **Saindo de:** a cidade de onde você sai (automático = onde sua conta está). Desmarque *Usar o teleporte do Alt+B
   para as cidades* se preferir só Gatekeepers.
 

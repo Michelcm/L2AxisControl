@@ -268,6 +268,36 @@
   .bmode button.b { padding: 0 10px; }
   .bmode button.b.on { color: var(--gold-hi); box-shadow: inset 0 0 0 1px var(--gold); }
   .bmode #bInfo { margin-left: 6px; }
+  /* side pane: the window grows by --side-w and the pane sits on the right */
+  :root { --side-w: 720px; }
+  body.sideopen .wnd { right: var(--side-w); }
+  .side { display: none; position: absolute; top: 12px; right: 0; bottom: 0; width: calc(var(--side-w) - 4px);
+          flex-direction: column; border: 1px solid #000; border-radius: 3px; background: rgba(8, 8, 10, var(--op));
+          box-shadow: inset 0 0 0 1px var(--frame), inset 0 0 0 2px #000, 0 0 10px rgba(0,0,0,.8); }
+  body.sideopen .side { display: flex; }
+  .side > .title { padding-left: 8px; }
+  .sidebody { flex: 1; min-height: 0; display: flex; gap: 6px; padding: 6px; }
+  .sidelist, #bRoute, .sidemap > .small { zoom: var(--scale, 1); }
+  .sidelist { width: 190px; display: flex; flex-direction: column; gap: 4px; min-height: 0; }
+  .sidelist #sideBosses { flex: 1; overflow-y: auto; border: 1px solid #2a251c; }
+  .sb { display: flex; align-items: center; gap: 4px; padding: 2px 4px; cursor: pointer; border-bottom: 1px solid rgba(106,92,62,.15); font-size: 10px; }
+  .sb:hover { background: rgba(201,165,90,.08); }
+  .sb.sel { background: rgba(201,165,90,.18); }
+  .sb .d { width: 7px; height: 7px; border-radius: 50%; background: #e05a4a; flex: none; }
+  .sb .d.dead { background: #8a8170; } .sb .d.soon { background: #e8c547; }
+  .sb .n { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sb .l { color: var(--dim); width: 18px; text-align: right; }
+  .sidemap { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+  .sidemap .mapview { flex: 1; height: auto; min-height: 200px; }
+  .maplegend { position: absolute; left: 4px; bottom: 3px; right: 40px; color: #e8dcc0; text-shadow: 0 0 3px #000, 0 0 2px #000; pointer-events: none; }
+  .zlbl { position: absolute; font-size: 9px; color: #f1e3b8; text-shadow: 0 0 2px #000, 0 0 3px #000, 0 0 1px #000;
+          pointer-events: none; transform: translate(-50%, -50%); white-space: nowrap; font-style: italic; opacity: .9; }
+  .zlbl .lv { color: #c9b27a; font-style: normal; }
+  .tpt { position: absolute; width: 7px; height: 7px; margin: -4px 0 0 -4px; transform: rotate(45deg);
+         background: #7fd4e6; border: 1px solid #000; pointer-events: auto; cursor: help; }
+  .tpt + .tlbl { }
+  .tlbl { position: absolute; font-size: 9px; color: #9fe3f0; text-shadow: 0 0 2px #000, 0 0 3px #000; pointer-events: none; white-space: nowrap; transform: translate(6px, -50%); }
+  #bRoute { max-height: 150px; overflow-y: auto; }
   .mapview { position: relative; height: 380px; overflow: hidden; border: 1px solid #4a4232; border-radius: 3px;
              background: #3d4a4f; cursor: grab; user-select: none; }
   .mapview.drag { cursor: grabbing; }
@@ -552,9 +582,33 @@
 </head>
 <body>
 <div class="gm" id="gmBadge"></div>
+<div class="side" id="side">
+  <div class="title">
+    <div class="name" data-i18n="sideTitle"></div>
+    <div class="tbtn x" id="bSideClose" data-i18n-title="tipSideClose">«</div>
+  </div>
+  <div class="sidebody">
+    <div class="sidelist">
+      <input class="e" id="sideSearch" data-i18n-ph="bSearch" spellcheck="false">
+      <div id="sideBosses"></div>
+    </div>
+    <div class="sidemap">
+      <div class="mapview" id="mapView">
+        <div class="maploading small" id="mapLoading"></div>
+        <img id="mapImg" alt="" draggable="false">
+        <svg id="mapSvg"></svg>
+        <div id="mapPins"></div>
+        <div class="mapzoom"><button class="b" data-z="1.4">+</button><button class="b" data-z="0.7">−</button><button class="b" data-z="0">⤢</button></div>
+      </div>
+      <div class="small" data-i18n="mapHint"></div>
+      <div class="panel" id="bRoute"></div>
+    </div>
+  </div>
+</div>
 <div class="wnd" id="wnd">
   <div class="title drag">
     <div class="name"><b>L2Axis</b> Control</div>
+    <div class="tbtn" id="bSide" data-i18n-title="tipSide">🗺</div>
     <div class="tbtn" id="bPin" data-i18n-title="tipPin">▲</div>
     <div class="tbtn" id="bCompact" data-i18n-title="tipCompact">▬</div>
     <div class="tbtn" id="bMin" data-i18n-title="tipMinimize">_</div>
@@ -667,22 +721,11 @@
         <input class="e lv" id="bLvMax" maxlength="2" placeholder="max">
       </div>
       <div class="bmode">
-        <button class="b on" data-bm="list" data-i18n="bmList"></button>
+
         <button class="b" data-bm="map" data-i18n="bmMap"></button>
         <span class="small" id="bInfo"></span>
       </div>
       <div class="panel" style="padding:2px" id="bosses"></div>
-      <div id="bmapBox" style="display:none">
-        <div class="mapview" id="mapView">
-          <div class="maploading small" id="mapLoading"></div>
-          <img id="mapImg" alt="" draggable="false">
-          <svg id="mapSvg"></svg>
-          <div id="mapPins"></div>
-          <div class="mapzoom"><button class="b" data-z="1.4">+</button><button class="b" data-z="0.7">−</button><button class="b" data-z="0">⤢</button></div>
-        </div>
-        <div class="small" data-i18n="mapHint" style="margin:3px 2px"></div>
-        <div class="panel" id="bRoute"></div>
-      </div>
     </div>
 
     <!-- CRAFT -->
@@ -918,12 +961,15 @@ const I18N = {
     ev_aq: "Raid boss de evento que nasce 6 h depois do restart e depois a cada 17 h.",
     ev_pk: "Raid boss de evento que nasce 9 h depois do restart e depois a cada 19 h.",
     ev_zombie: "Zumbis invadem as cidades todo sábado e domingo às 20:00 GMT (horário mostrado já no seu fuso). Mate os zumbis nas cidades. Ring of Zombie: Precisão, P. Def. +6%, M. Def. +6%.",
+    sideTitle: "Mapa dos bosses", tipSide: "Abrir/fechar o mapa ao lado", tipSideClose: "Fechar o mapa",
+    rUp: "e subir {n} andar(es) até o {floor}º andar", rDown: "e descer {n} andar(es) até o {floor}º andar", rSame: "no {floor}º andar",
+    dFloor: "{zone} · {floor}º andar",
     bmList: "☰ Lista", bmMap: "🗺 Mapa", bmShow: "🗺 Ver no mapa", mapBuilding: "Preparando o mapa a partir do seu jogo (só na primeira vez, uns 30 s)…",
-    mapHint: "Arraste para mover, roda do mouse para zoom. Clique num boss para ver o caminho. Quadrado verde = região onde sua conta está.",
+    mapHint: "Arraste para mover, roda do mouse para zoom (mais zoom = mais nomes). Clique num boss. ◆ = teleporte do Alt+B. Quadrado verde = região da sua conta.",
     mapPick: "Clique num boss no mapa para ver o caminho mais rápido.",
     rBoard: "Alt+B → teleporte para {to}", rBoardOpt: "Usar o teleporte do Alt+B para as cidades",
     rTp: "Gatekeeper: {from} → {to} ({price} adena)", rRun: "Correr ~{dist} unidades para {dir} (~{time})",
-    rNote: "Teleportes padrão dos Gatekeepers (datapack High Five); distância em linha reta. Se o Alt+B do servidor tiver teleporte para perto, use.",
+    rNote: "Alt+B: os destinos do teleporte do servidor; Gatekeepers: datapack High Five. Distância em linha reta.",
     rFrom: "Saindo de:", rAuto: "automático ({town})",
     dirN: "o norte", dirNE: "o nordeste", dirE: "o leste", dirSE: "o sudeste", dirS: "o sul", dirSW: "o sudoeste", dirW: "o oeste", dirNW: "o noroeste",
     tabClients: "Clientes", tabNet: "Rede", tabBosses: "Bosses", tabVotes: "Votos", tabTimers: "Timers", tabEvents: "Eventos", tabOptions: "Opções",
@@ -1074,12 +1120,15 @@ const I18N = {
     ev_aq: "Event raid boss: spawns 6 h after the restart, then every 17 h.",
     ev_pk: "Event raid boss: spawns 9 h after the restart, then every 19 h.",
     ev_zombie: "Zombies invade the towns every Saturday and Sunday at 20:00 GMT (shown in your time zone). Kill the zombies in town. Ring of Zombie: Accuracy, P. Def. +6%, M. Def. +6%.",
+    sideTitle: "Bosses map", tipSide: "Open/close the map on the side", tipSideClose: "Close the map",
+    rUp: "and go up {n} floor(s) to floor {floor}", rDown: "and go down {n} floor(s) to floor {floor}", rSame: "on floor {floor}",
+    dFloor: "{zone} · floor {floor}",
     bmList: "☰ List", bmMap: "🗺 Map", bmShow: "🗺 On the map", mapBuilding: "Preparing the map from your game (first time only, about 30 s)…",
-    mapHint: "Drag to move, mouse wheel to zoom. Click a boss to see the way. Green square = the area your account is in.",
+    mapHint: "Drag to move, mouse wheel to zoom (more zoom = more names). Click a boss. ◆ = Alt+B teleport. Green square = your account's area.",
     mapPick: "Click a boss on the map to see the fastest way there.",
     rBoard: "Alt+B → teleport to {to}", rBoardOpt: "Use the Alt+B teleport to towns",
     rTp: "Gatekeeper: {from} → {to} ({price} adena)", rRun: "Run ~{dist} units {dir} (~{time})",
-    rNote: "Standard Gatekeeper teleports (High Five datapack); straight-line distance. If the server's Alt+B has a teleport nearby, use it.",
+    rNote: "Alt+B: the server's teleport destinations; Gatekeepers: High Five datapack. Straight-line distance.",
     rFrom: "From:", rAuto: "automatic ({town})",
     dirN: "north", dirNE: "north-east", dirE: "east", dirSE: "south-east", dirS: "south", dirSW: "south-west", dirW: "west", dirNW: "north-west",
     tabClients: "Clients", tabNet: "Network", tabBosses: "Bosses", tabVotes: "Votes", tabTimers: "Timers", tabEvents: "Events", tabOptions: "Options",
@@ -1230,12 +1279,15 @@ const I18N = {
     ev_aq: "Event-Raidboss: erscheint 6 h nach dem Restart, dann alle 17 h.",
     ev_pk: "Event-Raidboss: erscheint 9 h nach dem Restart, dann alle 19 h.",
     ev_zombie: "Zombies überfallen jeden Samstag und Sonntag um 20:00 GMT die Städte (in deiner Zeitzone angezeigt). Töte die Zombies in der Stadt. Ring of Zombie: Genauigkeit, P. Def. +6%, M. Def. +6%.",
+    sideTitle: "Bosskarte", tipSide: "Karte daneben öffnen/schließen", tipSideClose: "Karte schließen",
+    rUp: "und {n} Etage(n) hoch bis Etage {floor}", rDown: "und {n} Etage(n) runter bis Etage {floor}", rSame: "auf Etage {floor}",
+    dFloor: "{zone} · Etage {floor}",
     bmList: "☰ Liste", bmMap: "🗺 Karte", bmShow: "🗺 Auf der Karte", mapBuilding: "Karte wird aus deinem Spiel erstellt (nur beim ersten Mal, ca. 30 s)…",
-    mapHint: "Ziehen zum Verschieben, Mausrad zum Zoomen. Klick auf einen Boss zeigt den Weg. Grünes Quadrat = Gebiet deines Kontos.",
+    mapHint: "Ziehen zum Verschieben, Mausrad zum Zoomen (mehr Zoom = mehr Namen). Klick auf einen Boss. ◆ = Alt+B-Teleport. Grünes Quadrat = Gebiet deines Kontos.",
     mapPick: "Klick auf einen Boss auf der Karte für den schnellsten Weg.",
     rBoard: "Alt+B → Teleport nach {to}", rBoardOpt: "Alt+B-Teleport in die Städte nutzen",
     rTp: "Gatekeeper: {from} → {to} ({price} Adena)", rRun: "~{dist} Einheiten nach {dir} laufen (~{time})",
-    rNote: "Standard-Teleports der Gatekeeper (High-Five-Datapack); Luftlinie. Hat das Alt+B des Servers einen Teleport in der Nähe, nutze ihn.",
+    rNote: "Alt+B: die Teleportziele des Servers; Gatekeeper: High-Five-Datapack. Luftlinie.",
     rFrom: "Start:", rAuto: "automatisch ({town})",
     dirN: "Norden", dirNE: "Nordosten", dirE: "Osten", dirSE: "Südosten", dirS: "Süden", dirSW: "Südwesten", dirW: "Westen", dirNW: "Nordwesten",
     tabClients: "Clients", tabNet: "Netzwerk", tabBosses: "Bosse", tabVotes: "Votes", tabTimers: "Timer", tabEvents: "Events", tabOptions: "Optionen",
@@ -2069,18 +2121,24 @@ function renderTimers() {
 // ================================================= bosses map
 let bossMode = "list", mapSel = null, MAPI = null, mapT = null, mapRoute = null, mapStart = "";
 function setBossMode(mode, focus) {
-  bossMode = mode;
-  document.querySelectorAll("[data-bm]").forEach(x => x.classList.toggle("on", x.dataset.bm === mode));
-  $("#bosses").style.display = mode === "list" ? "" : "none";
-  $("#bmapBox").style.display = mode === "map" ? "" : "none";
+  // "map" opens the side pane next to the window (the list stays in the tab)
+  const open = mode === "map";
+  bossMode = open ? "map" : "list";
+  document.querySelectorAll("[data-bm]").forEach(x => x.classList.toggle("on", x.dataset.bm === "map" ? open : true));
+  $("#bSide").classList.toggle("on", open);
   $("#mapPins").dataset.sig = "";
-  if (mode === "map") {
+  api.set_side(open).then(() => {
+    document.body.classList.toggle("sideopen", open);
+    if (!open) return;
     loadMapInfo().then(() => {
-      if (focus && mapSel) centerOnBoss(mapSel);
-      if (mapSel) loadRoute();
-      renderBosses();
+      setTimeout(() => {
+        if (!mapT) fitMap();
+        if (focus && mapSel) centerOnBoss(mapSel);
+        if (mapSel) loadRoute();
+        renderBosses();
+      }, 60);
     });
-  }
+  });
 }
 async function loadMapInfo() {
   if (MAPI && MAPI.ready) return;
@@ -2136,7 +2194,8 @@ function layoutMap() {
       const w = 32768 / MAPI.scale * mapT.s;
       el.style.width = w + "px"; el.style.height = w + "px";
     }
-    if (el.classList.contains("town")) el.style.display = mapT.s > 0.35 ? "" : "none";
+    if (el.classList.contains("town")) el.style.display = mapT.s > 0.18 ? "" : "none";
+    if (el.dataset.zoom) el.style.display = mapT.s >= +el.dataset.zoom ? "" : "none";
   });
   // the route: dashed jumps for the teleports, a solid line for the run
   let svg = "";
@@ -2161,7 +2220,14 @@ function renderBossMap(list) {
   if (box.dataset.sig !== sig) {
     box.dataset.sig = sig;
     let html = "";
-    Object.entries(MAPI.towns || {}).forEach(([n, c]) => { html += `<div class="town" data-x="${c.x}" data-y="${c.y}">${esc(n)}</div>`; });
+    (MAPI.zones || []).forEach(z => {
+      html += `<div class="zlbl" data-x="${z.x}" data-y="${z.y}" data-zoom="${z.type === 3 ? 0.45 : 0.85}">${esc(z.name)}${z.lvl ? ` <span class="lv">${z.lvl}</span>` : ""}</div>`;
+    });
+    (MAPI.points || []).forEach(p => {
+      html += `<div class="tpt" data-x="${p.x}" data-y="${p.y}" title="Alt+B: ${esc(p.name)}"></div><div class="tlbl" data-x="${p.x}" data-y="${p.y}" data-zoom="1.1">${esc(p.name)}</div>`;
+    });
+    // the game's own area names already include the towns
+    if (!(MAPI.zones || []).length) Object.entries(MAPI.towns || {}).forEach(([n, c]) => { html += `<div class="town" data-x="${c.x}" data-y="${c.y}">${esc(n)}</div>`; });
     accts.forEach(s => {
       const [tx, ty] = s.tile.split("_").map(Number);
       html += `<div class="acct" data-x="${(tx - 20) * 32768}" data-y="${(ty - 18) * 32768}"><span>${esc(s.name)}</span></div>`;
@@ -2181,7 +2247,28 @@ function renderBossMap(list) {
     });
   }
   layoutMap();
+  renderSideList(list);
   renderRoute(list);
+}
+function renderSideList(list) {
+  const q = ($("#sideSearch").value || "").trim().toLowerCase();
+  const rows = list.filter(b => b.x != null && (!q || b.name.toLowerCase().includes(q) || (b.zone || "").toLowerCase().includes(q)));
+  const box = $("#sideBosses");
+  const sig = LANG + "|" + mapSel + "|" + q + "|" + rows.map(b => b.id + bossStatus(b).txt).join(",");
+  if (box.dataset.sig === sig) return;
+  box.dataset.sig = sig;
+  box.innerHTML = rows.map(b => {
+    const st = bossStatus(b);
+    return `<div class="sb ${mapSel === b.id ? "sel" : ""}" data-sb="${esc(b.id)}" title="${esc(st.txt)}">
+      <i class="d ${st.cls === "alive" ? "" : st.cls}"></i><span class="n">${esc(b.name)}</span><span class="l">${esc(b.level || "")}</span></div>`;
+  }).join("");
+  box.querySelectorAll("[data-sb]").forEach(el => el.onclick = () => {
+    mapSel = el.dataset.sb;
+    $("#mapPins").dataset.sig = "";
+    centerOnBoss(mapSel);
+    loadRoute();
+    renderBosses();
+  });
 }
 async function loadRoute() {
   mapRoute = mapSel ? await api.boss_route(mapSel, mapStart || null) : null;
@@ -2197,13 +2284,15 @@ function renderRoute() {
   if (box.dataset.sig === sig) return;
   box.dataset.sig = sig;
   let html = `<div class="rh"><b>${esc(b.name)}${b.level ? " · " + esc(b.level) : ""}</b><span class="st ${st.cls}">${esc(st.txt)}</span></div>`;
-  if (b.zone) html += `<div class="small">${esc(t("dZoneNear", { zone: b.zone }))}</div>`;
+  if (b.zone) html += `<div class="small">${esc(b.floor ? t("dFloor", { zone: b.zone, floor: b.floor }) : t("dZoneNear", { zone: b.zone }))}</div>`;
   if (mapRoute) {
     html += "<ol>" + mapRoute.steps.map(s => s.kind === "board"
       ? `<li>${esc(t("rBoard", { to: s.to }))}</li>`
       : s.kind === "tp"
       ? `<li>${esc(t("rTp", { from: s.from, to: s.to, price: fmtNum(s.price) }))}</li>`
-      : `<li>${esc(t("rRun", { dist: fmtNum(s.dist), dir: t("dir" + s.dir), time: fmt(mapRoute.time) }))}</li>`).join("") + "</ol>";
+      : `<li>${esc(t("rRun", { dist: fmtNum(s.dist), dir: t("dir" + s.dir), time: fmt(mapRoute.time) }))}${s.floor
+          ? " " + esc(s.floors > 0 ? t("rUp", { n: s.floors, floor: s.floor }) : s.floors < 0 ? t("rDown", { n: -s.floors, floor: s.floor }) : t("rSame", { floor: s.floor }))
+          : ""}</li>`).join("") + "</ol>";
     html += `<div class="small">${esc(t("rNote"))}</div>`;
   }
   const towns = Object.keys(MAPI.towns || {}).sort();
@@ -2221,7 +2310,10 @@ function renderRoute() {
   };
 }
 function initBossMap() {
-  document.querySelectorAll("[data-bm]").forEach(x => x.onclick = () => setBossMode(x.dataset.bm));
+  document.querySelectorAll("[data-bm]").forEach(x => x.onclick = () => setBossMode(x.dataset.bm === "map" ? (bossMode === "map" ? "list" : "map") : bossMode));
+  $("#bSide").onclick = () => setBossMode(bossMode === "map" ? "list" : "map");
+  $("#bSideClose").onclick = () => setBossMode("list");
+  $("#sideSearch").oninput = () => renderBosses();
   const v = $("#mapView");
   let drag = null;
   v.addEventListener("mousedown", e => { if (e.target.closest("button") || !mapT) return; drag = { x: e.clientX, y: e.clientY, tx: mapT.x, ty: mapT.y }; v.classList.add("drag"); });
@@ -2248,7 +2340,7 @@ function bossDetail(b) {
   const kv = (k, v) => rows.push(`<div class="kv"><span>${esc(k)}</span><b>${v}</b></div>`);
   kv(t("dId"), esc(b.id));
   if (b.level) kv(t("dLevel"), esc(b.level));
-  if (b.zone) kv(t("dZone"), esc(t("dZoneNear", { zone: b.zone })) + (b.zoneLevel ? ` <span class="small">· ${esc(t("dZoneLv", { lv: b.zoneLevel }))}</span>` : ""));
+  if (b.zone) kv(t("dZone"), esc(b.floor ? t("dFloor", { zone: b.zone, floor: b.floor }) : t("dZoneNear", { zone: b.zone })) + (b.zoneLevel ? ` <span class="small">· ${esc(t("dZoneLv", { lv: b.zoneLevel }))}</span>` : ""));
   if (b.x != null && (b.x || b.y)) {
     kv(t("dCoords"), `<span class="mono">${b.x}, ${b.y}, ${b.z}</span> <button class="b copy" data-copy="${b.x} ${b.y} ${b.z}">${esc(t("btnCopy"))}</button>
       <button class="b copy" data-onmap="${esc(b.id)}">${esc(t("bmShow"))}</button>`);

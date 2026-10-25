@@ -186,13 +186,19 @@ sees them announced once; after that it calculates the next ones.
 
 ![Bosses map](img/bosses_map.png)
 
-In the **Bosses** tab, click **🗺 Map** (or **🗺 On the map** in a boss's details):
+In the **Bosses** tab, click **🗺 Map**, the 🗺 button on the title bar, or **🗺 On the map** in a boss's details. The map
+opens in a **side pane attached to the panel** (the window grows to the side; « closes it), with a quick boss list on
+the left (with its own search) and the map on the right:
 
 - every boss is a dot: **red** = alive, **yellow** = respawning soon / maybe spawned, **grey** = dead; epics have a gold ring;
 - the **green square** is the area where each of your accounts is (the game only tells the area, not the exact spot);
+- area names come from your game; zoom in to see more of them. **◆** marks the server's **Alt+B teleports**
+  (instances, necropolises, Tower of Insolence floors…);
+- bosses inside the **Tower of Insolence** show their **floor** (e.g. Cherub Galaxia · floor 13);
 - **drag** to move, **mouse wheel** to zoom, ⤢ to see the whole continent;
 - **click a boss** to see the fastest way there, drawn on the map (dashed = teleport, solid = run) and written below:
-  Alt+B teleport to a town → Gatekeeper → run in a direction, with the time and the adena;
+  the nearest **Alt+B teleport** (or Alt+B to a town → Gatekeeper) → run in a direction, with the time, and how many
+  floors to go up or down in the Tower of Insolence;
 - **From:** the town you start in (automatic = where your account is). Untick *Use the Alt+B teleport to towns* if you
   prefer only Gatekeepers.
 

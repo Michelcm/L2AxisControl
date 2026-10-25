@@ -70,6 +70,7 @@ PING_HISTORY = 60
 LAUNCH_SPACING = 5  # seconds between clients on "Open all"
 # +12 px top/left: room for the GM medallion to stick out of the frame
 WIN_W, WIN_H, COMPACT_H = 440, 720, 104   # default size (logical pixels); the user can resize
+SIDE_W = 720                               # width of the side pane (map), added to the window when open
 MIN_W, MIN_H, MAX_W, MAX_H = 392, 480, 1000, 1400
 ASSETS_DIR = APP_DIR / "assets"
 APP_ICON = ASSETS_DIR / "app.ico"
@@ -2309,9 +2310,10 @@ def clear_board_file():
 class BoardWatcher(threading.Thread):
     """Read bd.ini whenever the game writes a new Alt+B page and hand over the bosses."""
 
-    def __init__(self, on_rows):
+    def __init__(self, on_rows, on_teleports=None):
         super().__init__(daemon=True)
         self.on_rows = on_rows
+        self.on_teleports = on_teleports
         self.last_read = None
 
     def run(self):
@@ -2336,6 +2338,10 @@ class BoardWatcher(threading.Thread):
         details = parse_board_details(text)
         if rows or details:
             self.on_rows(rows, details, mtime)
+        elif "_bbsteleport" in text and self.on_teleports:
+            pts = parse_board_teleports(text)
+            if pts:
+                self.on_teleports(pts)
         # clear it so old pages do not pile up (only if the game has not written again)
         if BOARD_FILE.stat().st_mtime == mtime and len(raw) > 64:
             BOARD_FILE.write_bytes(b"[B]\r\n")
@@ -2429,6 +2435,9 @@ class Api:
         self._watch = ClientWatch()
         self._worldmap = WorldMap()
         self._map_db = _load_map_db()
+        self._zones = None
+        self._board_points = load_board_teleports(self._data.get("board_points"))
+        self._side_open, self._side_shift = False, 0
         self._bars, self._bars_at, self._bar_armed = {}, {}, {}
         self._gone_slot = {}
         self._last_watch = {}
@@ -2473,7 +2482,7 @@ class Api:
             except Exception:
                 in_client = None
             self._recipes.add_accessory_entries(self._items, in_client)
-        self._board = BoardWatcher(self._on_board_rows)
+        self._board = BoardWatcher(self._on_board_rows, self._on_board_teleports)
         self._board.start()
         self._adopt_running()
 
@@ -2774,14 +2783,55 @@ class Api:
         if board_tp is not None:
             self._data["board_tp"] = bool(board_tp)
             self._save()
-        return {**boss_route(self._map_db, start or "Giran", b["x"], b["y"], self._data.get("board_tp", True)),
+        return {**boss_route(self._map_db, start or "Giran", b["x"], b["y"], self._data.get("board_tp", True),
+                             self._board_points, b.get("z"), b.get("zone")),
                 "boardTp": self._data.get("board_tp", True)}
 
     def map_info(self):
         if not self._worldmap.ready:
             threading.Thread(target=self._worldmap.build, daemon=True).start()
+        if self._zones is None:
+            self._zones = load_hunting_zones()
         return {"ready": self._worldmap.ready, "x0": MAP_X0, "y0": MAP_Y0, "scale": MAP_SCALE,
-                "towns": self._map_db.get("towns", {})}
+                "towns": self._map_db.get("towns", {}), "zones": self._zones, "points": self._board_points}
+
+    def _on_board_teleports(self, pts):
+        """Teleport page opened in Alt+B: remember its destinations (they feed the routes)."""
+        with self._lock:
+            saved = {p["id"]: p for p in self._data.get("board_points", [])}
+            for p in pts:
+                saved[p["id"]] = p
+            self._data["board_points"] = sorted(saved.values(), key=lambda p: p["id"])
+            self._board_points = load_board_teleports(self._data["board_points"])
+            self._save()
+
+    def set_side(self, open_):
+        """Open or close the side pane (the window grows to the right, or to the left at the screen edge)."""
+        hwnd = self._own_hwnd()
+        open_ = bool(open_)
+        if not hwnd or open_ == self._side_open:
+            return self._side_open
+        try:
+            scale = user32.GetDpiForWindow(hwnd) / 96.0
+        except (AttributeError, OSError):
+            scale = 1.0
+        r = wintypes.RECT()
+        user32.GetWindowRect(hwnd, ctypes.byref(r))
+        add = round(SIDE_W * scale) * (1 if open_ else -1)
+        x = r.left
+        if open_:
+            mons = monitors()
+            m = next((m for m in mons if m["x"] <= r.left < m["x"] + m["w"]), mons[0] if mons else None)
+            if m and r.right + add > m["x"] + m["w"]:
+                x = max(m["x"], r.left - add)  # no room on the right: grow to the left
+            self._side_shift = r.left - x
+        else:
+            x = r.left + self._side_shift
+            self._side_shift = 0
+        user32.SetWindowPos(hwnd, None, x, r.top, r.right - r.left + add, r.bottom - r.top, 0x0004 | 0x0010)
+        self._side_open = open_
+        threading.Timer(0.2, self._apply_shape).start()
+        return open_
 
     def _boss_list(self, now):
         out = []
@@ -2792,6 +2842,9 @@ class Api:
                 if remaining > -60:
                     self._alert("bossSpawn", name=b["name"])
             db = self._boss_db.get(bid, {})
+            fl = tower_floor(db.get("x", 0), db.get("y", 0), db.get("z")) if db else None
+            if fl:
+                db = {**db, "zone": "Tower of Insolence", "floor": fl}
             out.append({"id": bid, "name": b["name"], "type": b["type"], "status": b["status"],
                         "remaining": remaining, "respawnAt": b.get("respawn"), "fav": bool(b.get("fav")),
                         "age": now - b["updated"], "maxHp": b.get("maxHp"), "hp": b.get("hp"),
@@ -3339,7 +3392,8 @@ class Api:
                 user32.GetCursorPos(ctypes.byref(pt))
                 w = w0 + (pt.x - x0 if "r" in edge else 0)
                 h = h0 + (pt.y - y0 if "b" in edge and not compact else 0)
-                w = max(round(MIN_W * scale), min(round(MAX_W * scale), w))
+                side = round(SIDE_W * scale) if self._side_open else 0
+                w = max(round(MIN_W * scale) + side, min(round(MAX_W * scale) + side, w))
                 if not compact:
                     h = max(round(MIN_H * scale), min(round(MAX_H * scale), h))
                 user32.SetWindowPos(hwnd, None, 0, 0, w, h, 0x0002 | 0x0004 | 0x0010)  # NOMOVE|NOZORDER|NOACTIVATE
@@ -3347,7 +3401,8 @@ class Api:
             user32.GetWindowRect(hwnd, ctypes.byref(r))
             with self._lock:
                 old = self._size()
-                self._data["size"] = [round((r.right - r.left) / scale + off_w),
+                side = SIDE_W if self._side_open else 0
+                self._data["size"] = [round((r.right - r.left) / scale + off_w - side),
                                       old[1] if compact else round((r.bottom - r.top) / scale + off_h)]
                 self._save()
         threading.Thread(target=work, daemon=True).start()
@@ -3540,14 +3595,114 @@ def _load_map_db():
         return {"towns": {}, "teleports": []}
 
 
-def boss_route(map_db, start, bx, by, board_tp=True):
+# ---------------------------------------------------------------- Alt+B teleports and tower floors
+BOARD_TP_FILE = APP_DIR / "data" / "l2axis_teleports.json"
+NECROPOLIS = {"pilgrims", "worship", "patriot's", "devotion", "martyrdom", "saint's", "disciple's", "sacrifice"}
+CATACOMB = {"branded", "apostate", "witch", "forbidden path", "dark omens", "heretic"}
+# Tower of Insolence: floor heights from the Alt+B floor teleports (1st floor = the ground entrance)
+TOI = {"x": 114600, "y": 15800, "r": 7000,
+       "floors": [(1, -5120), (2, -3609), (3, -2127), (4, -645), (5, 843), (6, 1947), (7, 2957), (8, 3967),
+                  (9, 4977), (10, 5897), (11, 6760), (12, 7997), (13, 9100), (14, 10080)]}
+
+
+def tower_floor(x, y, z):
+    """Floor of the Tower of Insolence for a point inside it, else None."""
+    if z is None or math.hypot(x - TOI["x"], y - TOI["y"]) > TOI["r"]:
+        return None
+    return min(TOI["floors"], key=lambda f: abs(f[1] - z))[0]
+
+
+def parse_board_teleports(text):
+    """Destinations of an Alt+B teleport page: each row is a button, the name, then x / y / z."""
+    import html as _html
+
+    def words(fragment):
+        out = []
+        for w in re.sub(r"<[^>]+>", "\n", fragment).split("\n"):
+            w = _html.unescape(w).strip()
+            if w and not re.match(r"^\d+=\d+", w) and "\x08" not in w and w not in ("-", "null"):
+                out.append(w)
+        return out
+
+    found = []
+    ms = list(re.finditer(r'<button[^>]*?action="bypass[^"]*_bbsteleport;id;(\d+)"[^>]*>', text))
+    for k, m in enumerate(ms):
+        end = ms[k + 1].start() if k + 1 < len(ms) else m.end() + 800
+        after = words(text[m.end():end])
+        coords = {}
+        for i, w in enumerate(after):
+            if w in ("x:", "y:", "z:") and i + 1 < len(after) and w[0] not in coords:
+                try:
+                    coords[w[0]] = int(after[i + 1])
+                except ValueError:
+                    pass
+        name = after[1] if after[:1] == ["Point:"] and len(after) > 1 else (after[0] if after and not after[0].isupper() else None)
+        if not name or len(coords) < 3 or name.startswith("<"):
+            continue
+        low = name.lower()
+        if low in NECROPOLIS:
+            name = f"Necropolis: {name}"
+        elif low in CATACOMB:
+            name = f"Catacomb: {name}"
+        elif re.match(r"^\d+(st|nd|rd|th) floor$", low) and tower_floor(coords["x"], coords["y"], coords["z"]):
+            name = f"Tower of Insolence {name}"
+        found.append({"id": int(m.group(1)), "name": name, **coords})
+    return found
+
+
+def load_board_teleports(saved):
+    """Shipped list + whatever the player captured since (newer wins)."""
+    pts = {}
+    try:
+        for p in json.loads(BOARD_TP_FILE.read_text(encoding="utf-8")).get("points", []):
+            pts[p["id"]] = p
+    except (OSError, ValueError):
+        pass
+    for p in saved or []:
+        pts[p["id"]] = p
+    return sorted(pts.values(), key=lambda p: p["id"])
+
+
+def load_hunting_zones():
+    """Named areas of the world from the client (HuntingZone-e.dat): for the labels on the map."""
+    path = GAME_DIR / "HuntingZone-e.dat"
+    if not path.exists():
+        return []
+    try:
+        r = _DatReader(l2_decrypt413(path))
+        out, seen = [], set()
+        for _ in range(r.u32()):
+            _zid, typ, lvl, _unk = r.u32(), r.u32(), r.u32(), r.u32()
+            x, y, z = r.f32(), r.f32(), r.f32()
+            r.ascf()
+            r.u32()
+            name = r.ascf()
+            if (x or y) and name and name not in seen:
+                seen.add(name)
+                out.append({"name": name, "x": round(x), "y": round(y), "type": typ, "lvl": lvl})
+        return out
+    except Exception:
+        log_error("map", traceback.format_exc())
+        return []
+
+
+def _name_words(name):
+    stop = {"the", "of", "s", "lair", "nest", "floor", "instance", "tower"}
+    return {w for w in re.findall(r"[a-z]+", (name or "").lower().replace("'s", "")) if w not in stop and len(w) > 2}
+
+
+def boss_route(map_db, start, bx, by, board_tp=True, points=(), bz=None, zone=None):
     """Fastest way from the town `start` to (bx, by) with the Gatekeepers: town-to-town
     teleports first, then one teleport to the nearest spot, then running.
     Returns {"steps": [...], "walk": units, "time": seconds, "price": adena}."""
     towns, tps = map_db.get("towns", {}), map_db.get("teleports", [])
     if start not in towns:
         start = "Giran"
-    dist = lambda x, y: math.hypot(bx - x, by - y)
+    def dist(x, y, z=None):
+        d = math.hypot(bx - x, by - y)
+        if bz is not None and z is not None:
+            d = math.hypot(d, (bz - z) * 1.5)  # going up or down floors is slower than walking
+        return d
     # towns reachable with town-to-town teleports: fewest hops, then cheapest
     best = {start: (0, 0, [])}
     if board_tp:  # the server's Alt+B board teleports to any town: one hop, no Gatekeeper
@@ -3576,13 +3731,23 @@ def boss_route(map_db, start, bx, by, board_tp=True):
         for t in tps:
             if t["from"] == town and not t.get("toTown"):
                 options.append((dist(t["x"], t["y"]) + HOP * (hops + 1), path + [t], t["x"], t["y"], price + t["price"]))
+    zone_words = _name_words(zone)
+    if board_tp:
+        for p in points:
+            # a teleport named after the boss's zone is its entrance (caves, nests): prefer it
+            bonus = -25000 if zone_words and zone_words & _name_words(p["name"]) else 0
+            options.append((dist(p["x"], p["y"], p.get("z")) + HOP + bonus, [{"from": start, "to": p["name"], "price": 0,
+                            "x": p["x"], "y": p["y"], "z": p.get("z"), "board": True}], p["x"], p["y"], 0))
     score, path, ex, ey, price = min(options, key=lambda o: o[0])
-    walk = dist(ex, ey)
+    ez = path[-1].get("z") if path else None
+    walk = dist(ex, ey, ez)
     ang = math.degrees(math.atan2(-(by - ey), bx - ex)) % 360  # map up = north (game y grows south)
     compass = ["E", "NE", "N", "NW", "W", "SW", "S", "SE"][int((ang + 22.5) // 45) % 8]
     steps = [{"kind": "board" if t.get("board") else "tp", "from": t["from"], "to": t["to"], "price": t["price"],
               "x": t["x"], "y": t["y"]} for t in path]
-    steps.append({"kind": "run", "dist": round(walk), "dir": compass, "x": bx, "y": by})
+    floor_to, floor_from = tower_floor(bx, by, bz), tower_floor(ex, ey, ez)
+    steps.append({"kind": "run", "dist": round(walk), "dir": compass, "x": bx, "y": by,
+                  "floor": floor_to, "floors": (floor_to - floor_from) if floor_to and floor_from else None})
     return {"start": start, "startXY": towns.get(start), "steps": steps, "walk": round(walk),
             "time": round(walk / RUN_SPEED), "price": price}
 
