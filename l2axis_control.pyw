@@ -3599,7 +3599,7 @@ class ChatReader(threading.Thread):
             tmp.write_bytes(_bmp_bytes(raw, w, h))
         except OSError:
             return []
-        msgs = []
+        lines = []
         for line in self._ocr(tmp):
             box, _, text = line.partition("\t")
             if box == "ERR" or not text.strip():
@@ -3611,9 +3611,19 @@ class ChatReader(threading.Thread):
             if not _is_announcement(raw, w, (x1, y1, x2, y2)):
                 continue
             # drop a stray letter read from the scroll bar before the message
-            text = re.sub(r"^.{0,3}?(?=\[|Announcements?:)", "", text.strip())
-            # a long announcement wraps: lines that do not start a new message continue the last one
-            if msgs and not re.match(r"^(\[|Announcements?:|[A-Z][\w' ]+:)", text):
+            stripped = re.sub(r"^.{0,3}?(?=\[|Announcements?:)", "", text.strip())
+            lines.append((x1, stripped, stripped != text.strip()))
+        if not lines:
+            return []
+        # a long announcement wraps and its next lines start a little to the right (indented)
+        xs = sorted(x for x, _, junk in lines if not junk) or sorted(x for x, _, _ in lines)
+        base = xs[len(xs) // 4]
+        msgs = []
+        # a message cut at the top edge of the capture starts with a loose letter: skip it
+        while lines and re.match(r"^[A-Za-z]{1,2}\s", lines[0][1]) and not lines[0][1].startswith(("[", "A ")):
+            lines.pop(0)
+        for x1, text, junk in lines:
+            if msgs and not junk and x1 > base + 4 * CHAT_ZOOM and not re.match(r"^(\[|Announcements?:)", text):
                 msgs[-1] = msgs[-1] + " " + text
             else:
                 msgs.append(text)
@@ -3654,7 +3664,7 @@ def parse_announcement(text, at):
     m = re.search(r"starts? in (\d+) (minute|second)", low)
     if m:
         return key, "reg" if "regist" in low else "soon", at + int(m.group(1)) * (60 if m.group(2) == "minute" else 1)
-    if re.search(r"cancel", low):
+    if re.search(r"cancel|not enough (players|participants)|no rewards", low):
         return key, "cancelled", None
     if re.search(r"was killed|has been killed|disappeared|has ended|is over|finished|winner|won ", low):
         return key, "ended", None

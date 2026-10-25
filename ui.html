@@ -766,10 +766,12 @@
         <div class="osec" data-i18n="secLogin"></div>
         <label class="chk"><input type="checkbox" id="oRename"><i></i><span data-i18n="optRename"></span></label>
         <label class="chk"><input type="checkbox" id="oCharsel"><i></i><span data-i18n="optCharsel"></span></label>
-        <label class="chk"><input type="checkbox" id="oBars"><i></i><span data-i18n="optBars"></span></label>
-        <label class="chk"><input type="checkbox" id="oEvAlerts"><i></i><span data-i18n="optEvAlerts"></span></label>
         <div class="orow"><span class="lbl small" data-i18n="optDelay"></span>
           <input class="e" id="oDelay" style="width:40px;text-align:center"><span class="small">s</span></div>
+
+        <div class="osec" data-i18n="secAlerts"></div>
+        <label class="chk"><input type="checkbox" id="oBars"><i></i><span data-i18n="optBars"></span></label>
+        <label class="chk"><input type="checkbox" id="oEvAlerts"><i></i><span data-i18n="optEvAlerts"></span></label>
 
         <div class="osec" data-i18n="secLinks"></div>
         <div class="ogrid two" id="links"></div>
@@ -985,7 +987,7 @@ const I18N = {
     presetInstanceBtn: "Inst. 24h", presetRaidBtn: "Raid 12h", presetBuffBtn: "Buff 2h",
     optLang: "Idioma", folderGame: "Pasta do jogo", folderSystem: "Pasta system", folderShots: "Screenshots",
     optCharsel: "Depois do login, confirmar o servidor e parar na seleção de personagem",
-    optRename: "Nome da conta no título da janela do jogo", optDelay: "Espera até a tela de login (login automático)",
+    optRename: "Nome da conta no título da janela do jogo", optDelay: "Espera máxima pela tela de login, se ela não for reconhecida", secAlerts: "Avisos",
     optScale: "Tamanho do texto", tipResize: "Arraste para redimensionar",
     secWindow: "Janela", secLogin: "Login automático", secLinks: "Links do L2Axis", secFolders: "Pastas",
     optTop: "Sempre por cima dos outros programas", optAbout: "Sobre o painel e créditos",
@@ -1133,7 +1135,7 @@ const I18N = {
     presetInstanceBtn: "Inst. 24h", presetRaidBtn: "Raid 12h", presetBuffBtn: "Buff 2h",
     optLang: "Language", folderGame: "Game folder", folderSystem: "System folder", folderShots: "Screenshots",
     optCharsel: "After logging in, confirm the server and stop at character selection",
-    optRename: "Account name in the game window title", optDelay: "Wait until the login screen (auto login)",
+    optRename: "Account name in the game window title", optDelay: "Longest wait for the login screen, if it is not recognised", secAlerts: "Alerts",
     optScale: "Text size", tipResize: "Drag to resize",
     secWindow: "Window", secLogin: "Auto login", secLinks: "L2Axis links", secFolders: "Folders",
     optTop: "Always on top of other programs", optAbout: "About the panel & credits",
@@ -1281,7 +1283,7 @@ const I18N = {
     presetInstanceBtn: "Inst. 24h", presetRaidBtn: "Raid 12h", presetBuffBtn: "Buff 2h",
     optLang: "Sprache", folderGame: "Spielordner", folderSystem: "System-Ordner", folderShots: "Screenshots",
     optCharsel: "Nach dem Login den Server bestätigen und bei der Charakterauswahl anhalten",
-    optRename: "Kontoname im Titel des Spielfensters", optDelay: "Warten bis zum Login-Bildschirm (Auto-Login)",
+    optRename: "Kontoname im Titel des Spielfensters", optDelay: "Höchste Wartezeit auf den Login-Bildschirm, falls er nicht erkannt wird", secAlerts: "Hinweise",
     optScale: "Textgröße", tipResize: "Ziehen, um die Größe zu ändern",
     secWindow: "Fenster", secLogin: "Auto-Login", secLinks: "L2Axis-Links", secFolders: "Ordner",
     optTop: "Immer über anderen Programmen", optAbout: "Über das Panel & Credits",

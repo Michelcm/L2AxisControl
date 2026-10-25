@@ -1,67 +1,66 @@
 # L2Axis Control
 
-A small floating control panel for players of the **L2Axis** (Lineage II High Five) server, styled after the game's own windows.
-Made by players for the L2Axis community — mainly as an **accessibility** helper for people who play with several windows
-and want ping, votes, timers and boss respawns in one place.
+A floating control panel for players of the **L2Axis** (Lineage II High Five) server, styled after the game's own windows.
+It puts in one place what you usually keep in your head or in a notepad: your game windows, ping, boss respawns,
+server events, votes, timers and a crafting guide.
+
+**New here and not a programmer?** Read the step-by-step guide:
+**[English guide](docs/GUIDE.md)** · **[Guia em português](docs/GUIA.md)**
 
 > 🇧🇷 **Resumo em português** no fim da página.
+
+![Clients tab](docs/img/clients.png)
 
 ## Features
 
 | Tab | What it does |
 |---|---|
-| **Clients** | Up to 5 slots: open, focus, minimize and close game windows, RAM/uptime per client, *Open all* and *Arrange* (tile windows). Warns before exceeding the server limit of **4 clients per HWID**. Optional auto-login (see below). |
-| **Network** | Live ping and packet loss to the game server (ICMP, every 2 s) with a 2-minute graph. Cloudflare WARP status and on/off toggle. |
-| **Bosses** | Respawn countdowns with absolute date/time, filters (epics / dead / ★ favorites), search, sort by respawn/level/name and level ranges. Level, area and coordinates come from the game's own data files. Beeps when a ★ boss respawns. |
-| **Craft** | Step-by-step guide for every top-tier item (Dynasty, Icarus, Moirai, Vesper): crafting order, full material tree, shopping list (including the average for recipes below 100%). **Character profile**: pick race and class to see only what that class uses, and **My plan** shows the best items for the class in every slot and how to get each one (craft, craft + unseal, masterwork or drop). **Compare** ranks same-slot gear by an estimated damage with masterwork and boss-weapon bonuses. **Sources** shows which mobs drop or spoil each recipe, piece and material and the NPC exchanges (unseal, upgrades, dual swords/daggers). Gear without a recipe (Vorpal, Elegia, boss and hero weapons, boss jewelry) and **accessories** (shirts, belts, bracelets, talismans, cloaks) show their bonuses and where to get them. Item icons are read from your own game client. |
-| **Votes** | All 17 vote sites in one place, the 4 main ones highlighted. A 12-hour timer per site, a beep when a vote is available again, and one button to open every available site at once. |
-| **Timers** | Named countdowns (raid respawns, instance cooldowns, buffs…) with presets. |
-| **Options** | Language (**English / Português / Deutsch**), links (site, forum, news, donations, rules), game folders, transparency. |
+| **Clients** | Account cards (up to 10): open, focus, minimize and close each game window. Each card shows whether the character is in game, the region, time online and HP/MP. A **monitor map** draws your monitors as they are: click one to arrange the windows on it, or drag an account onto a monitor to move its window there. Save and restore the layout. Optional **auto-login** (see below). |
+| **Network** | Live ping and packet loss to the game server with a 2-minute graph. Cloudflare WARP status and on/off toggle. |
+| **Bosses** | Respawn countdowns with date and time, filters, search, sort and level ranges, level/area/coordinates from the game's own data files. |
+| **Craft** | Step-by-step guide for every top-tier item (Dynasty, Icarus, Moirai, Vesper): crafting order, material tree, shopping list, masterworks, a plan for your class, gear without a recipe and accessories, with where everything drops. |
+| **Votes** | All vote sites with a 12-hour timer each, a beep when you can vote again and one button to open every available site. |
+| **Events** | Every server event from the forum (Border Blitz, Battle Royale, Fight the Fakes, Giant Rats, Zombie Apocalypse, Lucky Pig, the Spirits, Treasure Hunt): next start in **your** time zone, how to take part and rewards. Live status (registration open, started, ended, cancelled) from the server announcements in the chat, plus the latest announcements. |
+| **Timers** | Your own countdowns (instances, raids, buffs…). |
+| **Options** | Language (English / Português / Deutsch), always on top, transparency, text size, auto-login and alert settings, L2Axis links and game folders. |
 
-The window stays on top, can be dragged by its title bar, resized from its edges and corner, and has a compact mode that shows only ping, loss and clients. Options include a text size setting (100% / 115% / 130%).
+**Alerts** (sound + a small notice in the corner that never takes the keyboard from the game): a client
+disconnected or closed by itself, a character died, HP below 30 %, MP below 10 %, an event opened registration or started.
 
-The medallion in the top-left corner opens the **About** window with the project credits. The L2Axis GM avatar is
-used with permission (`gm.json` + `assets/gm_*.png`).
+## How it gets its information
 
-## What it does **not** do
+Only from what is already on your PC and on your screen:
 
-- It does **not** read or write the game's memory and does **not** touch network traffic.
-- It does **not** play for you: no keystrokes, clicks or automation inside the game. No botting.
-- Everything it shows comes from your own PC: process list, ping, and files the game itself writes.
+- **Windows itself:** the list of running programs, their windows and their network connections (to know if a client
+  is connected to the server), and ping to the server.
+- **Files the game writes itself:** `system/l2.log` (when the character entered the world, the region) and
+  `system/WindowsInfo.ini` (where the status window is).
+- **The image of the game window:** the HP/MP bars, the buttons of the login screens and the chat box. Text in the chat
+  is read with the OCR that comes with Windows; only the server announcements (cyan) are used, players' chat is ignored.
 
-The only interaction with a game window is optional **auto-login**: it types *your own* saved login/password into the
-login screen of a client opened from the panel. Passwords are encrypted with Windows DPAPI (only your Windows user on
-your PC can decrypt them) and are never shown again in the interface.
+It does **not** read or write the game's memory and does **not** read or change network traffic.
+
+### What it sends to the game
+
+Only the **auto-login**, and only if you turn it on for an account:
+it types *your own* saved login and password on the login screen, presses Enter (or clicks) to confirm the server and,
+if you ticked it for that account, to start with the last character played. Nothing else: no keys, clicks or
+automation while you play. Passwords are encrypted with Windows (DPAPI): only your Windows user on your PC can read
+them, and they are never shown again in the panel.
 
 ### About the Bosses tab
 
 The game shows boss status in the **Alt+B → Bosses** community board. The panel reads that page from a file
 (`system/bd.ini`). Writing that file requires a small client-side change that is **not included in this repository**;
-it will only be published if the server staff approves it. Without it the Bosses tab simply stays empty.
+it will only be published if the server staff approves it. Without it the Bosses tab stays empty.
 
-## Installation
+## Installation (short version)
 
-Requirements: **Windows 10/11** and the Microsoft Edge **WebView2** runtime (already present on Windows 11).
-Python 3.11+ is needed too — the installer offers to install it for you.
+Windows 10/11. Full step by step with pictures: **[English](docs/GUIDE.md)** · **[Português](docs/GUIA.md)**.
 
-1. Download this repository (**Code → Download ZIP**) and extract the folder **inside your L2Axis client folder**,
-   next to the `system` folder (the ZIP folder is called `L2AxisControl-main` — any name works):
-   ```
-   L2Axis\
-   ├─ system\                 (game files, l2.exe)
-   └─ L2AxisControl-main\     (this project)
-   ```
-2. Double-click **`install.bat`**. It:
-   - checks for Python 3.11+ (and offers to install it with `winget` if missing),
-   - installs the only dependency (`pywebview`),
-   - checks that the folder is in the right place,
-   - creates **L2Axis Control** shortcuts on your Desktop and Start Menu, with the panel icon and
-     *Run as administrator* already enabled (`l2.exe` requires administrator rights, so the panel needs them to
-     open clients and to type the auto-login).
-3. Open **L2Axis Control** from your Desktop.
-
-> Windows SmartScreen may say *"Windows protected your PC"* because `install.bat` was downloaded from the internet.
-> Click **More info → Run anyway**. Both scripts are plain text — you can open them in Notepad and read them first.
+1. **Code → Download ZIP** on this page and extract the folder **inside your L2Axis client folder**, next to `system`.
+2. Double-click **`install.bat`** (it installs Python if needed, the only dependency and creates the Desktop shortcut).
+3. Open **L2Axis Control** from your Desktop and answer **Yes** to the administrator question.
 
 <details>
 <summary>Manual installation</summary>
@@ -70,36 +69,44 @@ Python 3.11+ is needed too — the installer offers to install it for you.
 pip install -r requirements.txt
 pythonw l2axis_control.pyw
 ```
-Run it as administrator (create a shortcut to `pythonw.exe "...\l2axis_control.pyw"` and tick *Run as administrator*).
+Run it as administrator (`l2.exe` runs as administrator, so the panel needs the same to open clients and to type the
+auto-login).
 </details>
 
-Your settings, vote timers, boss data and (encrypted) accounts are stored in `data.json` next to the script.
-That file is personal — it is ignored by Git and should never be shared.
+Your settings, timers and (encrypted) accounts are stored in `data.json` next to the script. That file is personal —
+it is ignored by Git and should never be shared.
 
 ## Privacy
 
-- No telemetry, no accounts, no internet access other than ping to the game server, opening vote/forum links in your
-  browser and the optional WARP toggle.
-- The panel's UI is served on `127.0.0.1` only, protected by a random token generated at every start.
+- No telemetry, no accounts, no internet access other than ping to the game server, opening links in your browser and
+  the optional WARP toggle.
+- The panel's interface is served on `127.0.0.1` only, protected by a random token generated at every start.
+- The chat images used for the announcements are temporary files in your Windows `TEMP` folder, overwritten every
+  few seconds and never sent anywhere.
 
 ## License
 
-[MIT](LICENSE). The drop/exchange database `data/drops_db.json` is derived from the
-[L2J Server datapack](https://bitbucket.org/l2jserver/l2j-server-datapack) and is distributed under the
-**GPL-3.0** (see [data/NOTICE.md](data/NOTICE.md)). Those are the official High Five values: L2Axis may use its own
-rates and drop lists. Game icons are not included: the panel reads them from your own client. Lineage II is a trademark of NCSOFT. This is an unofficial community tool and is not affiliated with
-NCSOFT or with the L2Axis staff.
+[MIT](LICENSE). The databases `data/drops_db.json` and `data/items_db.json` are derived from the
+[L2J Server datapack](https://bitbucket.org/l2jserver/l2j-server-datapack) and are distributed under the
+**GPL-3.0** (see [data/NOTICE.md](data/NOTICE.md)). The map regions also come from that datapack. Those are the official
+High Five values: L2Axis may use its own rates and drop lists. Event schedules come from the L2Axis forum posts.
+Game icons are not included: the panel reads them from your own client. Lineage II is a trademark of NCSOFT. This is
+an unofficial community tool and is not affiliated with NCSOFT or with the L2Axis staff.
 
 ---
 
 ## 🇧🇷 Resumo em português
 
-Painel flutuante para quem joga no **L2Axis**, com o visual das janelas do jogo. Junta num lugar só: abrir e organizar
-clientes (respeitando o limite de 4 por HWID), ping e perda de pacotes até o servidor, status dos bosses (lido da página
-Alt+B → Bosses), um guia de craft dos itens top (Dynasty, Icarus, Moirai, Vesper) com plano por classe, masterworks, árvore de materiais, lista de
-compras, comparação com itens de boss e onde dropa cada receita, pedaço e material, os 17 sites de votação com timer de 12h e um botão que abre todos os disponíveis, e timers livres.
-Interface em português, inglês e alemão.
+Painel flutuante para quem joga no **L2Axis**, com o visual das janelas do jogo. **Guia passo a passo:
+[docs/GUIA.md](docs/GUIA.md).**
 
-**Não** lê memória nem tráfego do jogo e **não** automatiza nada dentro dele. O login automático é opcional e usa as suas
-próprias senhas, criptografadas pelo Windows. Instalação: coloque a pasta dentro da pasta do cliente L2Axis e dê dois cliques em **`install.bat`**:
-ele instala o que falta e cria o atalho na Área de Trabalho, já como administrador.
+- **Clientes:** cartões por conta (até 10) com status (no jogo, região, tempo online, HP/MP), mapa dos monitores
+  (clique para organizar, arraste a conta para levar a janela) e login automático opcional.
+- **Avisos:** caiu/fechou, morreu, HP baixo, MP baixo, evento abrindo inscrição ou começando.
+- **Eventos:** todos os eventos do servidor com o próximo horário no seu fuso, como participar e recompensas;
+  status ao vivo lido dos anúncios do chat.
+- **Rede, Bosses, Craft, Votos, Timers e Opções.**
+
+**Não** lê a memória do jogo nem o tráfego de rede. Lê só o que já está na tela e nos arquivos que o próprio jogo
+grava. O único envio ao jogo é o login automático que você liga: digita o seu login/senha salvos (criptografados pelo
+Windows) e confirma o servidor e o personagem.
