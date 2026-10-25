@@ -4,11 +4,12 @@
 <meta charset="utf-8">
 <title>L2Axis Control</title>
 <style>
+  /* impeccable-disable single-font, flat-type-hierarchy, em-dash-overuse -- body is Tahoma via the font shorthand; one family at game sizes (9/10/11/17px) is the design (DESIGN.md, Typography); the em dashes are empty-value placeholders, not prose */
   :root {
     --op: .92;
     --text: #d9cfb4;
     --text-hi: #f3e9cc;
-    --dim: #8f8670;
+    --dim: #9c937c;            /* secondary text: >= 5:1 on every panel surface */
     --gold: #c9a55a;
     --gold-hi: #f0cf7e;
     --frame: #6a5c3e;
@@ -19,10 +20,107 @@
     --cp: #d58f1d;
     --hp: #b3261e;
     --mp: #2552b8;
+    --well: #050505;           /* inside of inputs, canvas, checkboxes */
+    --line: #4a4232;           /* 1px ring of controls and map frame */
+    --ink-btn: #e8dcc0;        /* button text */
+    --good-soft: #c9e3a5;      /* craftable / bonus text */
+    --bad-hi: #f08a7a;         /* error text on dark */
+    --bronze: #a77f35;         /* lower stop of gold gradients */
+    --bronze-deep: #8c6a2c;
+    --fav-off: #776c56;        /* inactive favourite star: 3.6:1 */
+    --focus: #f0cf7e;          /* keyboard focus ring */
+    /* surfaces */
+    --base: #0b0a08;
+    --icon-bg: #15120d;
+    --bar-track: #1a1712;
+    --line-dim: #3a3328;
+    /* bevels */
+    --bevel-hi: #6d5b3a;
+    --bevel-mid: #4a3d27;
+    --bevel-lo: #2c2416;
+    --bevel-ring: #8c784e;
+    --bevel-hover-hi: #85704a;
+    --bevel-hover-mid: #5a4b30;
+    --bevel-hover-lo: #372d1c;
+    --bevel-off-hi: #2a261f;
+    --bevel-off-lo: #191612;
+    --ink-off: #5d5648;
+    --titlebar-hi: #3b3326;
+    --titlebar-mid: #1d1912;
+    --titlebar-lo: #120f0a;
+    --knob-hi: #5a4c33;
+    --knob-lo: #2b2418;
+    --knob-ring: #7d6a45;
+    --knob-hover-hi: #77653f;
+    --knob-hover-lo: #3a301f;
+    --close-hover-hi: #8a2e22;
+    --close-hover-lo: #3d140f;
+    --tab-hi: #24201a;
+    --tab-lo: #110f0c;
+    --tab-sel-hi: #4a3f2b;
+    --tab-sel-lo: #1e1a12;
+    --ring-dark: #1c160c;
+    --medal-hi: #4a3c22;
+    --medal-lo: #120e08;
+    --medal-tag: #f6dc94;
+    --mon-hi: #1c1914;
+    --mon-lo: #0d0c0a;
+    --mon-drop-hi: #2a2418;
+    --mon-drop-lo: #14110c;
+    /* gauges */
+    --cp-hi: #f0b54a;
+    --cp-lo: #7a4c08;
+    --hp-hi: #e2574b;
+    --hp-lo: #5e0f0a;
+    --mp-hi: #5a86e6;
+    --mp-lo: #0f2768;
+    --ok-hi: #9de07f;
+    --ok-mid: #3f9a35;
+    --ok-lo: #1e4d18;
+    /* state text */
+    --dead: #c96a5e;
+    --epic-text: #f0b0a0;
+    --note: #b8955a;
+    --text-soft: #cbbf9f;
+    --lore: #b9ad8e;
+    /* grades and sources */
+    --grade-s84: #e7b3ff;
+    --grade-s84-lo: #8c4cc0;
+    --grade-s80: #ffd0a0;
+    --grade-s80-lo: #b9773a;
+    --grade-plain: #d9d0b8;
+    --badge-ink: #1a1408;
+    --source-mw: #e7c8ff;
+    --source-mw-bg: #4a2d5c;
+    --source-npc: #b8dcff;
+    --source-npc-bg: #24384a;
+    --source-craft-bg: #2f4d26;
+    --source-drop: #a39a86;
+    --source-drop-bg: #2a2620;
+    --source-unseal-bg: #5a4a24;
+    --source-acc: #9fd1c6;
+    --acc-text: #cfe8e1;
+    --announce: #7fd4e6;
+    /* map */
+    --map-water: #3d4a4f;
+    --map-label: #f1e3b8;
+    --map-label-dim: #c9b27a;
+    --map-town: #f3e6c2;
+    --tp-label: #9fe3f0;
+    --tp-label-custom: #bfeaf5;
+    --spot: #b58cf0;
+    --spot-other: #7c63a3;
+    --spot-ink: #2b1d40;
+    --acc-pin: #9fe38a;
+    --acc-pin-text: #c9f0b5;
+    --pin-dead: #c9c0b0;
+    --pin-dead-ink: #3a342b;
+    --pin-epic-dead: #d8b98a;
+    --pin-ink: #1b1a17;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   /* dark background: only visible in the leftovers of the window shape, around the medallion */
-  html, body { background: #0b0a08; height: 100%; overflow: hidden; }
+  html, body { background: var(--base); height: 100%; overflow: hidden; }
   body {
     font: 11px Tahoma, Verdana, "Segoe UI", sans-serif;
     color: var(--text);
@@ -35,8 +133,7 @@
     position: absolute; inset: 12px 0 0 12px;
     display: flex; flex-direction: column;
     background:
-      radial-gradient(ellipse at 50% -10%, rgba(120, 100, 60, .18), transparent 60%),
-      repeating-linear-gradient(0deg, rgba(255,255,255,.012) 0 1px, transparent 1px 3px),
+      radial-gradient(ellipse at 50% -10%, rgba(140, 106, 44, .18), transparent 60%),
       rgba(8, 8, 10, var(--op));
     border: 1px solid #000;
     box-shadow:
@@ -58,7 +155,7 @@
     height: 22px; flex: none;
     display: flex; align-items: center;
     padding: 0 4px 0 8px;
-    background: linear-gradient(#3b3326, #1d1912 55%, #120f0a);
+    background: linear-gradient(var(--titlebar-hi), var(--titlebar-mid) 55%, var(--titlebar-lo));
     border-bottom: 1px solid #000;
     box-shadow: 0 1px 0 rgba(201, 165, 90, .35);
   }
@@ -70,31 +167,33 @@
     width: 15px; height: 15px; margin-left: 3px;
     display: grid; place-items: center;
     font: bold 9px Tahoma; color: var(--text);
-    background: linear-gradient(#5a4c33, #2b2418);
-    border: 1px solid #000; box-shadow: inset 0 0 0 1px #7d6a45;
+    background: linear-gradient(var(--knob-hi), var(--knob-lo));
+    border: 1px solid #000; box-shadow: inset 0 0 0 1px var(--knob-ring);
     cursor: pointer;
   }
-  .tbtn:hover { color: #fff; background: linear-gradient(#77653f, #3a301f); }
+  .tbtn:hover { color: #fff; background: linear-gradient(var(--knob-hover-hi), var(--knob-hover-lo)); }
   .tbtn.on { color: var(--gold-hi); box-shadow: inset 0 0 0 1px var(--gold); }
-  .tbtn.x:hover { background: linear-gradient(#8a2e22, #3d140f); }
+  .tbtn.x:hover { background: linear-gradient(var(--close-hover-hi), var(--close-hover-lo)); }
 
   /* ------------------------------------------------ summary (status window style) */
   .status { flex: none; padding: 6px 8px 5px; border-bottom: 1px solid rgba(106,92,62,.5); }
   .grow-g { display: flex; align-items: center; margin-top: 3px; }
   .grow-g .k { width: 56px; font-size: 10px; font-weight: bold; color: var(--gold); text-shadow: 1px 1px 0 #000; }
   .gauge { position: relative; height: 13px; flex: 1;
-           background: #0a0a0a; border: 1px solid #000; box-shadow: inset 0 0 0 1px #3a3328; }
-  .gauge .fill { position: absolute; inset: 1px auto 1px 1px; transition: width .4s; }
+           background: var(--well); border: 1px solid #000; box-shadow: inset 0 0 0 1px var(--line-dim); }
+  .gauge .fill { position: absolute; inset: 1px auto 1px 1px; }
+  .status .gauge .fill { inset: 1px; transform-origin: left center; transform: scaleX(0);
+                         transition: transform .4s cubic-bezier(.25, 1, .5, 1); }
   .gauge .val { position: absolute; inset: 0; text-align: center; line-height: 11px; font-size: 10px;
                 color: #fff; text-shadow: 1px 1px 0 #000; }
-  .fill.cp { background: linear-gradient(#f0b54a, var(--cp) 50%, #7a4c08); }
-  .fill.hp { background: linear-gradient(#e2574b, var(--hp) 50%, #5e0f0a); }
-  .fill.mp { background: linear-gradient(#5a86e6, var(--mp) 50%, #0f2768); }
-  .fill.ok { background: linear-gradient(#9de07f, #3f9a35 50%, #1e4d18); }
+  .fill.cp { background: linear-gradient(var(--cp-hi), var(--cp) 50%, var(--cp-lo)); }
+  .fill.hp { background: linear-gradient(var(--hp-hi), var(--hp) 50%, var(--hp-lo)); }
+  .fill.mp { background: linear-gradient(var(--mp-hi), var(--mp) 50%, var(--mp-lo)); }
+  .fill.ok { background: linear-gradient(var(--ok-hi), var(--ok-mid) 50%, var(--ok-lo)); }
   .chips { display: flex; gap: 10px; margin-top: 5px; font-size: 10px; color: var(--dim); }
   .chips span b { color: var(--text-hi); font-weight: normal; }
   .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 3px;
-         border: 1px solid #000; vertical-align: -1px; background: #444; }
+         border: 1px solid #000; vertical-align: -1px; background: var(--line); }
   .dot.g { background: var(--good); box-shadow: 0 0 4px var(--good); }
   .dot.y { background: var(--warn); }
   .dot.r { background: var(--bad); }
@@ -105,13 +204,13 @@
   .tab {
     flex: 1; font-size: 10px; text-align: center; height: 20px; line-height: 18px; cursor: pointer;
     color: var(--dim);
-    background: linear-gradient(#24201a, #110f0c);
+    background: linear-gradient(var(--tab-hi), var(--tab-lo));
     border: 1px solid #000; border-bottom: 0;
     box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
     border-radius: 3px 3px 0 0;
   }
   .tab:hover { color: var(--text); }
-  .tab.sel { color: var(--gold-hi); background: linear-gradient(#4a3f2b, #1e1a12);
+  .tab.sel { color: var(--gold-hi); background: linear-gradient(var(--tab-sel-hi), var(--tab-sel-lo));
              box-shadow: inset 0 0 0 1px rgba(201,165,90,.45); }
   .body { flex: 1; overflow-y: auto; padding: 6px; zoom: var(--scale, 1); }
   .tabs { zoom: var(--scale, 1); }
@@ -131,8 +230,8 @@
   .compact .tabs, .compact .body { display: none; }
 
   .body::-webkit-scrollbar { width: 10px; }
-  .body::-webkit-scrollbar-track { background: #0b0a08; border-left: 1px solid #2a241a; }
-  .body::-webkit-scrollbar-thumb { background: linear-gradient(90deg, #5a4c33, #2b2418); border: 1px solid #000; }
+  .body::-webkit-scrollbar-track { background: var(--base); border-left: 1px solid var(--frame-dark); }
+  .body::-webkit-scrollbar-thumb { background: linear-gradient(90deg, var(--knob-hi), var(--knob-lo)); border: 1px solid #000; }
 
   /* ------------------------------------------------ components */
   .osec { margin: 7px 2px 3px; display: flex; align-items: center; gap: 6px; font-size: 9px; letter-spacing: 1px;
@@ -161,15 +260,15 @@
 
   button.b {
     height: 19px; padding: 0 7px; cursor: pointer;
-    font: 11px Tahoma, sans-serif; color: #e8dcc0;
-    background: linear-gradient(#6d5b3a, #4a3d27 45%, #2c2416);
-    border: 1px solid #000; box-shadow: inset 0 0 0 1px #8c784e, inset 0 2px 0 rgba(255,255,255,.08);
+    font: 11px Tahoma, sans-serif; color: var(--ink-btn);
+    background: linear-gradient(var(--bevel-hi), var(--bevel-mid) 45%, var(--bevel-lo));
+    border: 1px solid #000; box-shadow: inset 0 0 0 1px var(--bevel-ring), inset 0 2px 0 rgba(255,255,255,.08);
     text-shadow: 1px 1px 0 #000;
   }
-  button.b:hover:not(:disabled) { color: #fff; background: linear-gradient(#85704a, #5a4b30 45%, #372d1c); }
-  button.b:active:not(:disabled) { background: linear-gradient(#2c2416, #4a3d27); }
-  button.b:disabled { color: #5d5648; background: linear-gradient(#2a261f, #191612);
-                      box-shadow: inset 0 0 0 1px #3a3428; cursor: default; }
+  button.b:hover:not(:disabled) { color: #fff; background: linear-gradient(var(--bevel-hover-hi), var(--bevel-hover-mid) 45%, var(--bevel-hover-lo)); }
+  button.b:active:not(:disabled) { background: linear-gradient(var(--bevel-lo), var(--bevel-mid)); }
+  button.b:disabled { color: var(--ink-off); background: linear-gradient(var(--bevel-off-hi), var(--bevel-off-lo));
+                      box-shadow: inset 0 0 0 1px var(--line-dim); cursor: default; }
   button.b.gold { color: var(--gold-hi); box-shadow: inset 0 0 0 1px var(--gold), inset 0 2px 0 rgba(255,255,255,.1); }
   button.b.sq { width: 19px; padding: 0; }
   button.b.wide { width: 100%; margin-bottom: 3px; }
@@ -178,25 +277,34 @@
 
   input.e {
     height: 18px; padding: 0 4px; font: 11px Tahoma; color: var(--text-hi);
-    background: #050505; border: 1px solid #000; box-shadow: inset 0 0 0 1px #4a4232;
+    background: var(--well); border: 1px solid #000; box-shadow: inset 0 0 0 1px var(--line);
     outline: none;
   }
   input.e:focus { box-shadow: inset 0 0 0 1px var(--gold); }
+  input.e::placeholder { color: var(--dim); }
+  /* keyboard focus: a thin gold ring; mouse clicks show nothing */
+  :focus { outline: none; }
+  :focus-visible { outline: 1px solid var(--focus); outline-offset: 1px; }
+  input.e:focus-visible, select.e:focus-visible { outline: none; box-shadow: inset 0 0 0 1px var(--focus); }
+  .tab:focus-visible, .spi:focus-visible, .recipe:focus-visible, .boss:focus-visible, .sb:focus-visible,
+  .ev:focus-visible, .spgrp:focus-visible, .prow:focus-visible { outline-offset: -1px; }
   input.name { width: 90px; background: transparent; box-shadow: none; font-weight: bold; padding: 0 2px; }
-  input.name:hover { box-shadow: inset 0 0 0 1px #4a4232; }
-  input.name:focus { background: #050505; box-shadow: inset 0 0 0 1px var(--gold); }
+  input.name:hover { box-shadow: inset 0 0 0 1px var(--line); }
+  input.name:focus { background: var(--well); box-shadow: inset 0 0 0 1px var(--gold); }
 
-  label.chk { display: flex; align-items: center; gap: 5px; cursor: pointer; color: var(--dim); margin: 3px 0; }
-  label.chk input { display: none; }
-  label.chk i { width: 12px; height: 12px; background: #050505; border: 1px solid #000;
-                box-shadow: inset 0 0 0 1px #6a5c3e; position: relative; }
+  label.chk { position: relative; display: flex; align-items: center; gap: 5px; cursor: pointer; color: var(--dim); margin: 3px 0; }
+  /* the real checkbox stays in the page (keyboard, screen readers); the square is drawn next to it */
+  label.chk input { position: absolute; left: 0; top: 0; width: 12px; height: 12px; margin: 0; opacity: 0; pointer-events: none; }
+  label.chk input:focus-visible + i { outline: 1px solid var(--focus); outline-offset: 1px; }
+  label.chk i { flex: none; width: 12px; height: 12px; background: var(--well); border: 1px solid #000;
+                box-shadow: inset 0 0 0 1px var(--frame); position: relative; }
   label.chk input:checked + i::after { content: "✔"; position: absolute; left: 1px; top: -2px;
                                        color: var(--gold-hi); font-size: 11px; }
 
-  input[type=range] { -webkit-appearance: none; width: 100%; height: 8px; background: #050505;
-                      border: 1px solid #000; box-shadow: inset 0 0 0 1px #4a4232; }
+  input[type=range] { -webkit-appearance: none; width: 100%; height: 8px; background: var(--well);
+                      border: 1px solid #000; box-shadow: inset 0 0 0 1px var(--line); }
   input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 10px; height: 14px;
-      background: linear-gradient(#8c784e, #3a301f); border: 1px solid #000; cursor: pointer; }
+      background: linear-gradient(var(--bevel-ring), var(--knob-hover-lo)); border: 1px solid #000; cursor: pointer; }
 
   /* clients */
   .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(205px, 1fr)); gap: 5px; }
@@ -206,7 +314,7 @@
   .slot .acts { margin-top: 4px; }
   .slot .acts .launch { flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px; }
   .slot .rm { width: 14px; height: 14px; color: var(--dim); cursor: pointer; flex: none; }
-  .slot .rm:hover { color: #e45a4a; }
+  .slot .rm:hover { color: var(--bad); }
   .slot .movers { margin-top: 3px; gap: 3px; }
   .slot .movers .lbl { font-size: 9px; color: var(--dim); margin-right: 2px; }
   button.b.ico { width: 24px; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
@@ -215,31 +323,31 @@
   button.b.mon svg { width: 14px; height: 14px; }
   button.b.mon.on { color: var(--gold-hi); box-shadow: inset 0 0 0 1px var(--gold); }
   .addcard { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 86px;
-             border: 1px dashed #5a4c33; border-radius: 3px; color: var(--dim); cursor: pointer; font-size: 11px; }
+             border: 1px dashed var(--knob-hi); border-radius: 3px; color: var(--dim); cursor: pointer; font-size: 11px; }
   .addcard svg { width: 22px; height: 22px; }
   .addcard:hover { color: var(--gold-hi); border-color: var(--gold); background: rgba(201,165,90,.06); }
   .monrow { display: flex; gap: 8px; align-items: stretch; }
   .monmap { position: relative; flex: 1; min-height: 70px; }
-  .mon { position: absolute; border: 2px solid #4a4232; border-radius: 3px; background: linear-gradient(#1c1914, #0d0c0a);
+  .mon { position: absolute; border: 2px solid var(--line); border-radius: 3px; background: linear-gradient(var(--mon-hi), var(--mon-lo));
          cursor: pointer; overflow: hidden; padding: 3px 4px; box-sizing: border-box; }
-  .mon:hover { border-color: var(--gold); box-shadow: 0 0 6px rgba(240,207,126,.35); }
+  .mon:hover { border-color: var(--gold); }
   .mon .n { font: bold 15px Georgia, serif; color: var(--gold); line-height: 15px; }
-  .mon .res { font-size: 8px; color: var(--dim); }
+  .mon .res { font-size: 9px; color: var(--dim); }
   .mon .chips { display: flex; flex-wrap: wrap; gap: 2px; margin-top: 2px; }
-  .mon .chip2 { font-size: 8px; padding: 0 3px; border-radius: 2px; background: #2f4d26; color: #c9e3a5; white-space: nowrap; }
-  .mon .stand { position: absolute; left: 50%; bottom: -1px; width: 18px; margin-left: -9px; height: 3px; background: #4a4232; }
+  .mon .chip2 { font-size: 9px; padding: 0 3px; border-radius: 2px; background: var(--source-craft-bg); color: var(--good-soft); white-space: nowrap; }
+  .mon .stand { position: absolute; left: 50%; bottom: -1px; width: 18px; margin-left: -9px; height: 3px; background: var(--line); }
   .montools { display: flex; flex-direction: column; gap: 3px; }
   .montools button.b.ico { width: 28px; height: 22px; }
   .slot .info { margin-top: 2px; font-size: 10px; color: var(--dim); white-space: nowrap; }
   .slot.on { box-shadow: inset 0 0 0 1px rgba(127,211,107,.35); }
   .slot.dc { box-shadow: inset 0 0 0 1px rgba(224,90,74,.7); }
-  .slot.dc .info { color: #f08a7a; font-weight: bold; }
+  .slot.dc .info { color: var(--bad-hi); font-weight: bold; }
   .slot[draggable="true"] { cursor: grab; }
   .slot.dragging { opacity: .45; }
-  .mon.drop { border-color: var(--gold-hi); box-shadow: 0 0 10px rgba(240,207,126,.6); background: linear-gradient(#2a2418, #14110c); }
+  .mon.drop { border-color: var(--gold-hi); box-shadow: inset 0 0 0 1px rgba(240,207,126,.6); background: linear-gradient(var(--mon-drop-hi), var(--mon-drop-lo)); }
   .mon .chip2[draggable="true"] { cursor: grab; }
   .monmap.dragon .mon { border-style: dashed; }
-  .warn { color: #b8955a; font-size: 10px; margin-top: 3px; white-space: pre-line; }
+  .warn { color: var(--note); font-size: 10px; margin-top: 3px; white-space: pre-line; }
 
   /* votes */
   .vote { display: flex; align-items: center; gap: 3px; padding: 2px 4px; border-bottom: 1px solid rgba(106,92,62,.18); }
@@ -248,7 +356,7 @@
   .vote.sub .nm { color: var(--dim); }
   .vote .st { width: 62px; font-size: 10px; text-align: right; padding-right: 4px; }
   .st.ready { color: var(--good); }
-  .warpvote { display: none; margin: 0 2px 5px; padding: 4px 6px; font-size: 10px; line-height: 13px; color: #e8c547;
+  .warpvote { display: none; margin: 0 2px 5px; padding: 4px 6px; font-size: 10px; line-height: 13px; color: var(--warn);
     background: rgba(232,197,71,.07); border: 1px solid rgba(232,197,71,.35); }
   .presets { display: flex; gap: 3px; justify-content: center; margin: 8px 0 2px; }
   .presets button.b { padding: 0 6px; white-space: nowrap; }
@@ -258,8 +366,8 @@
   .stats { display: grid; grid-template-columns: repeat(4, 1fr); text-align: center; }
   .stats .k { font-size: 10px; color: var(--dim); }
   .stats .v { font-size: 17px; color: var(--text-hi); text-shadow: 1px 1px 0 #000; margin-top: 1px; }
-  canvas { display: block; width: 100%; height: 96px; margin-top: 6px; background: #050505;
-           border: 1px solid #000; box-shadow: inset 0 0 0 1px #3a3328; }
+  canvas { display: block; width: 100%; height: 96px; margin-top: 6px; background: var(--well);
+           border: 1px solid #000; box-shadow: inset 0 0 0 1px var(--line-dim); }
 
   /* bosses */
   .bfilter { display: grid; grid-template-columns: repeat(4, 1fr) 1.4fr; gap: 3px; margin-bottom: 4px; }
@@ -279,48 +387,50 @@
   .sidebody { flex: 1; min-height: 0; display: flex; gap: 6px; padding: 6px; }
   .sidelist, #bRoute, .sidemap > .small { zoom: var(--scale, 1); }
   .sidelist { width: 190px; display: flex; flex-direction: column; gap: 4px; min-height: 0; }
-  .sidelist #sideBosses { flex: 1; overflow-y: auto; border: 1px solid #2a251c; }
+  .sidelist #sideBosses { flex: 1; overflow-y: auto; border: 1px solid var(--frame-dark); }
   .sb { display: flex; align-items: center; gap: 4px; padding: 2px 4px; cursor: pointer; border-bottom: 1px solid rgba(106,92,62,.15); font-size: 10px; }
   .sb:hover { background: rgba(201,165,90,.08); }
   .sb.sel { background: rgba(201,165,90,.18); }
-  .sb .d { width: 7px; height: 7px; border-radius: 50%; background: #7fd36b; flex: none; }
-  .sb .d.dead { background: #6e655a; } .sb .d.soon { background: #e8c547; }
+  .sb .d { width: 7px; height: 7px; border-radius: 50%; background: var(--good); flex: none; }
+  .sb .d.dead { background: var(--fav-off); } .sb .d.soon { background: var(--warn); }
   .sb .n { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .sb .l { color: var(--dim); width: 18px; text-align: right; }
   .sidemap { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
   .sidemap .mapview { flex: 1; height: auto; min-height: 200px; }
-  .zlbl { position: absolute; font-size: 9px; color: #f1e3b8; text-shadow: 0 0 2px #000, 0 0 3px #000, 0 0 1px #000;
+  .zlbl { position: absolute; font-size: 9px; color: var(--map-label); text-shadow: 0 0 2px #000, 0 0 3px #000, 0 0 1px #000;
           pointer-events: none; transform: translate(-50%, -50%); white-space: nowrap; font-style: italic; opacity: .9; }
-  .zlbl .lv { color: #c9b27a; font-style: normal; }
+  .zlbl .lv { color: var(--map-label-dim); font-style: normal; }
 
   .tpt + .tlbl { }
-  .rlbl { position: absolute; font: bold 13px Georgia, serif; color: #f0cf7e; letter-spacing: .5px; pointer-events: none;
+  .rlbl { position: absolute; font: bold 13px Georgia, serif; color: var(--gold-hi); letter-spacing: .5px; pointer-events: none;
           transform: translate(-50%, -50%); white-space: nowrap; text-shadow: 0 0 3px #000, 0 0 5px #000, 1px 1px 0 #000; }
-  .tlbl.custom { color: #bfeaf5; font-weight: bold; }
-  .tlbl { position: absolute; font-size: 9px; color: #9fe3f0; text-shadow: 0 0 2px #000, 0 0 3px #000; pointer-events: none; white-space: nowrap; transform: translate(6px, -50%); }
+  .tlbl.custom { color: var(--tp-label-custom); font-weight: bold; }
+  .tlbl { position: absolute; font-size: 9px; color: var(--tp-label); text-shadow: 0 0 2px #000, 0 0 3px #000; pointer-events: none; white-space: nowrap; transform: translate(6px, -50%); }
   #bRoute { max-height: 150px; overflow-y: auto; }
-  .sprow { display: flex; align-items: center; gap: 3px; margin-bottom: 4px; }
+  .sprow { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; margin-bottom: 4px; }
+  .sprow select.e { max-width: 100%; }
   .spcats { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 4px; }
   .spcats:empty { display: none; }
   .spcats button.b { padding: 0 6px; height: 18px; font-size: 10px; }
   .spcats button.b.on { color: var(--gold-hi); box-shadow: inset 0 0 0 1px var(--gold); }
-  .spcats button.b i { font-style: normal; color: var(--dim); margin-left: 3px; }
+  .spcats button.b i { font-style: normal; color: var(--text-hi); margin-left: 3px; }
   .spgrp { display: flex; align-items: center; gap: 6px; padding: 3px 5px; cursor: pointer; font-weight: bold; color: var(--gold-hi);
-           background: linear-gradient(#2a241a, #16130e); border-bottom: 1px solid #000; }
+           background: linear-gradient(var(--frame-dark), var(--tab-lo)); border-bottom: 1px solid #000; }
   .spgrp .cnt { color: var(--dim); font-weight: normal; font-size: 10px; }
   .spgrp .arr { margin-left: auto; color: var(--dim); }
-  .spi .gb { width: 26px; flex: none; font-size: 9px; text-align: center; color: #1a1408; border-radius: 2px; background: linear-gradient(#f0cf7e, #a77f35); }
+  .spi .gb { width: 26px; flex: none; font-size: 9px; text-align: center; color: var(--badge-ink); border-radius: 2px; background: linear-gradient(var(--gold-hi), var(--bronze)); }
   .spi .gb.none { background: none; }
-  .spi .gb.s84 { background: linear-gradient(#e7b3ff, #8c4cc0); }
-  .spi .gb.s80 { background: linear-gradient(#ffd0a0, #b9773a); }
-  .spi .rt { font-size: 9px; color: #8fc7ff; }
+  .spi .gb.s84 { background: linear-gradient(var(--grade-s84), var(--grade-s84-lo)); }
+  .spi .gb.s80 { background: linear-gradient(var(--grade-s80), var(--grade-s80-lo)); }
+  .spi .rt { font-size: 9px; color: var(--source-npc); }
   .spi .lv2 { width: 44px; text-align: right; font-size: 10px; color: var(--dim); }
   .spi .spvs { display: flex; gap: 1px; flex: none; }
   .spi .spv .ico { width: 16px; height: 16px; }
   .spi .bc { width: 46px; text-align: right; font-size: 10px; color: var(--gold-hi); }
-  .sprow .grow { flex: 1; }
+  .sprow .grow { flex: 1 1 130px; min-width: 130px; }
   .sprow input.lv { width: 34px; text-align: center; }
-  .spi { display: flex; align-items: center; gap: 5px; padding: 2px 4px; cursor: pointer; border-bottom: 1px solid rgba(106,92,62,.18); }
+  .spi { display: flex; align-items: center; gap: 5px; padding: 2px 4px; cursor: pointer; border-bottom: 1px solid rgba(106,92,62,.18);
+         content-visibility: auto; contain-intrinsic-size: auto 21px; }
   .spi:hover { background: rgba(201,165,90,.06); }
   .spi.open { background: rgba(201,165,90,.1); }
   .spi .n { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -338,37 +448,40 @@
   .bpin svg, .spot svg, .tpt svg, .lg .ic svg, .acct svg { display: block; filter: drop-shadow(0 0 1px #000) drop-shadow(0 0 1px #000) drop-shadow(0 1px 2px #000); }
   .bpin svg { width: 16px; height: 16px; }
   .bpin.epic svg { width: 21px; height: 21px; }
-  .bpin.alive svg, .ic.alive svg { fill: #7fd36b; }
-  .bpin.maybe svg, .ic.maybe svg { fill: #e8c547; }
-  .bpin.dead svg, .ic.dead svg { fill: #c9c0b0; }
-  .bpin.dead .h { fill: #3a342b; }
-  .bpin.epic.dead svg { fill: #d8b98a; }
-  .bpin .h, .ic .h { fill: #1b1a17; }
-  .bpin.maybe { animation: pinpulse 1.4s ease-in-out infinite; }
-  @keyframes pinpulse { 50% { filter: drop-shadow(0 0 5px #e8c547); } }
-  .bpin .q { position: absolute; right: -5px; top: -6px; font: bold 10px Tahoma; color: #000; background: #e8c547;
+  .bpin.alive svg, .ic.alive svg { fill: var(--good); }
+  .bpin.maybe svg, .ic.maybe svg { fill: var(--warn); }
+  .bpin.dead svg, .ic.dead svg { fill: var(--pin-dead); }
+  .bpin.dead .h { fill: var(--pin-dead-ink); }
+  .bpin.epic.dead svg { fill: var(--pin-epic-dead); }
+  .bpin .h, .ic .h { fill: var(--pin-ink); }
+  .bpin.maybe::after { content: ""; position: absolute; inset: -3px; border-radius: 50%; pointer-events: none;
+                       /* impeccable-disable-next-line dark-glow -- the "maybe alive" halo is a state signal (DESIGN.md: the only loop) */
+                       box-shadow: 0 0 5px 2px rgba(232,197,71,.85); opacity: 0; will-change: opacity;
+                       animation: pinpulse 1.4s ease-in-out infinite; }
+  @keyframes pinpulse { 50% { opacity: 1; } }
+  .bpin .q { position: absolute; right: -5px; top: -6px; font: bold 10px Tahoma; color: #000; background: var(--warn);
              border-radius: 50%; width: 11px; height: 11px; line-height: 11px; text-align: center; font-style: normal; }
   .bpin.sel svg { filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 4px #fff); }
   .bpin:hover { z-index: 5; }
   .bpin .bl, .spot .bl { display: none; position: absolute; left: 50%; top: 100%; transform: translateX(-50%); margin-top: 1px;
-                         font: 10px Tahoma; color: #f3e6c2; white-space: nowrap; line-height: 12px;
+                         font: 10px Tahoma; color: var(--map-town); white-space: nowrap; line-height: 12px;
                          text-shadow: 0 0 2px #000, 0 0 3px #000, 1px 1px 0 #000; pointer-events: none; }
-  .bpin .bl em, .spot .bl em { font-style: normal; color: #c9b27a; }
+  .bpin .bl em, .spot .bl em { font-style: normal; color: var(--map-label-dim); }
   .bpin .bt { display: none; position: absolute; left: 50%; bottom: 100%; transform: translateX(-50%); margin-bottom: 1px;
-              font: bold 9px Tahoma; color: #f08a7a; white-space: nowrap; line-height: 10px; text-shadow: 0 0 2px #000, 0 0 3px #000; pointer-events: none; }
+              font: bold 9px Tahoma; color: var(--bad-hi); white-space: nowrap; line-height: 10px; text-shadow: 0 0 2px #000, 0 0 3px #000; pointer-events: none; }
   .mapview.znear .bpin .bt, .bpin.sel .bt, .bpin:hover .bt { display: block; }
   .mapview.znear .bpin .bl, .bpin.sel .bl, .bpin:hover .bl, .spot.sel .bl, .spot:hover .bl { display: block; }
-  .spot svg { width: 15px; height: 15px; fill: #b58cf0; }
-  .spot .h { stroke: #2b1d40; fill: none; }
-  .spot.other svg { width: 11px; height: 11px; fill: #7c63a3; opacity: .85; }
+  .spot svg { width: 15px; height: 15px; fill: var(--spot); }
+  .spot .h { stroke: var(--spot-ink); fill: none; }
+  .spot.other svg { width: 11px; height: 11px; fill: var(--spot-other); opacity: .85; }
   .spot.sel svg { filter: drop-shadow(0 0 2px #fff) drop-shadow(0 0 4px #fff); }
-  .tpt svg { width: 12px; height: 12px; stroke: #7fd4e6; }
+  .tpt svg { width: 12px; height: 12px; stroke: var(--announce); }
   .accpin { position: absolute; transform: translate(-50%, -100%); display: flex; flex-direction: column; align-items: center;
             pointer-events: auto; cursor: help; z-index: 4; transition: left .8s, top .8s; }
-  .accpin svg { width: 16px; height: 16px; fill: #9fe38a; display: block; filter: drop-shadow(0 0 1px #000) drop-shadow(0 0 2px #000); }
-  .accpin span { font: bold 10px Tahoma; color: #c9f0b5; white-space: nowrap; text-shadow: 0 0 2px #000, 0 0 3px #000; }
-  .maplegend { position: absolute; left: 4px; bottom: 4px; background: rgba(10,9,7,.82); border: 1px solid #4a4232;
-               border-radius: 3px; padding: 3px 6px; font-size: 10px; color: #e8dcc0; }
+  .accpin svg { width: 16px; height: 16px; fill: var(--acc-pin); display: block; filter: drop-shadow(0 0 1px #000) drop-shadow(0 0 2px #000); }
+  .accpin span { font: bold 10px Tahoma; color: var(--acc-pin-text); white-space: nowrap; text-shadow: 0 0 2px #000, 0 0 3px #000; }
+  .maplegend { position: absolute; left: 4px; bottom: 4px; background: rgba(10,9,7,.82); border: 1px solid var(--line);
+               border-radius: 3px; padding: 3px 6px; font-size: 10px; color: var(--ink-btn); }
   .mapfilter { position: absolute; left: 50%; top: 4px; transform: translateX(-50%); z-index: 6; display: flex; align-items: center;
                gap: 6px; background: rgba(10,9,7,.85); border: 1px solid var(--gold); border-radius: 3px; padding: 2px 6px;
                font-size: 10px; color: var(--gold-hi); white-space: nowrap; }
@@ -382,25 +495,25 @@
   .maplegend input { width: 10px; height: 10px; margin: 0; }
   .maplegend .ic { width: 14px; display: flex; justify-content: center; }
   .maplegend .ic svg { width: 12px; height: 12px; }
-  .maplegend .ic.tp svg { stroke: #7fd4e6; }
-  .maplegend .ic.spot svg { fill: #b58cf0; }
-  .maplegend .ic.acc svg { fill: #9fe38a; }
-  .maplegend .ic.nm { font: italic bold 9px Tahoma; color: #f1e3b8; }
-  .mapview { position: relative; height: 380px; overflow: hidden; border: 1px solid #4a4232; border-radius: 3px;
-             background: #3d4a4f; cursor: grab; user-select: none; }
+  .maplegend .ic.tp svg { stroke: var(--announce); }
+  .maplegend .ic.spot svg { fill: var(--spot); }
+  .maplegend .ic.acc svg { fill: var(--acc-pin); }
+  .maplegend .ic.nm { font: italic bold 9px Tahoma; color: var(--map-label); }
+  .mapview { position: relative; height: 380px; overflow: hidden; border: 1px solid var(--line); border-radius: 3px;
+             background: var(--map-water); cursor: grab; user-select: none; }
   .mapview.drag { cursor: grabbing; }
   .mapview img { position: absolute; left: 0; top: 0; transform-origin: 0 0; image-rendering: auto; pointer-events: none; }
   #mapSvg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
   .maploading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 20px; }
   .pin { position: absolute; width: 9px; height: 9px; margin: -5px 0 0 -5px; border-radius: 50%; border: 1px solid #000;
-         background: #e05a4a; cursor: pointer; box-shadow: 0 0 3px rgba(0,0,0,.8); }
-  .pin.dead { background: #8a8170; }
-  .pin.soon { background: #e8c547; }
-  .pin.epic { width: 13px; height: 13px; margin: -7px 0 0 -7px; border: 2px solid #f0cf7e; }
+         background: var(--bad); cursor: pointer; box-shadow: 0 0 3px rgba(0,0,0,.8); }
+  .pin.dead { background: var(--dim); }
+  .pin.soon { background: var(--warn); }
+  .pin.epic { width: 13px; height: 13px; margin: -7px 0 0 -7px; border: 2px solid var(--gold-hi); }
   .pin.sel { outline: 2px solid #fff; z-index: 3; }
   .pin:hover { z-index: 4; transform: scale(1.4); }
-  .acct { position: absolute; border: 2px dashed #7fd36b; background: rgba(127,211,107,.12); pointer-events: none; }
-  .town { position: absolute; font-size: 9px; color: #f3e6c2; text-shadow: 0 0 2px #000, 0 0 3px #000; pointer-events: none; transform: translate(-50%, -50%); white-space: nowrap; }
+  .acct { position: absolute; border: 2px dashed var(--good); background: rgba(127,211,107,.12); pointer-events: none; }
+  .town { position: absolute; font-size: 9px; color: var(--map-town); text-shadow: 0 0 2px #000, 0 0 3px #000; pointer-events: none; transform: translate(-50%, -50%); white-space: nowrap; }
   .mapzoom { position: absolute; right: 4px; top: 4px; display: flex; flex-direction: column; gap: 2px; }
   .mapzoom button.b { width: 22px; height: 20px; padding: 0; }
   #bRoute { margin-top: 4px; }
@@ -410,32 +523,32 @@
   #bRoute li { margin: 2px 0; }
   #bRoute .rs { display: flex; align-items: center; gap: 4px; margin-top: 3px; }
   .boss { display: flex; align-items: center; gap: 4px; padding: 2px 4px; border-bottom: 1px solid rgba(106,92,62,.18); }
-  .boss .fav { width: 14px; cursor: pointer; color: #4a4232; text-align: center; }
+  .boss .fav { width: 14px; cursor: pointer; color: var(--fav-off); text-align: center; }
   .boss .fav.on { color: var(--gold-hi); }
-  .boss .tag { width: 12px; font-size: 9px; color: #b06a6a; }
+  .boss .tag { width: 12px; font-size: 9px; color: var(--dead); }
   .boss .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .boss.epic .nm { color: #f0b0a0; }
+  .boss.epic .nm { color: var(--epic-text); }
   .boss .st { width: 74px; text-align: right; font-size: 10px; }
   .st.alive { color: var(--good); }
   .st.soon { color: var(--warn); }
-  .st.dead { color: #c96a5e; }
+  .st.dead { color: var(--dead); }
 
   /* timers */
   .timer { display: flex; align-items: center; gap: 4px; padding: 3px 4px; border-bottom: 1px solid rgba(106,92,62,.18); }
   .timer .t { width: 70px; text-align: right; font-size: 11px; }
-  .ev .when.bad { color: #f08a7a; }
+  .ev .when.bad { color: var(--bad-hi); }
   .ann { display: flex; gap: 6px; font-size: 10px; padding: 2px 4px; border-bottom: 1px solid rgba(106,92,62,.12); }
   .ann .at { color: var(--dim); flex: none; width: 34px; }
-  .ann .tx { color: #7fd4e6; }
+  .ann .tx { color: var(--announce); }
   .ev { border-bottom: 1px solid rgba(106,92,62,.18); padding: 3px 4px; cursor: pointer; }
   .ev .top { display: flex; align-items: center; gap: 6px; }
   .ev .nm { flex: 1; color: var(--gold-hi); }
   .ev .when { font-size: 11px; text-align: right; }
-  .ev .when.now { color: #7fd36b; font-weight: bold; }
-  .ev .when.soon { color: #e8c547; }
+  .ev .when.now { color: var(--good); font-weight: bold; }
+  .ev .when.soon { color: var(--warn); }
   .ev .det { display: none; font-size: 10px; color: var(--dim); margin-top: 3px; line-height: 1.35; }
   .ev.open .det { display: block; }
-  .ev .det b { color: #cbbf9f; font-weight: normal; }
+  .ev .det b { color: var(--text-soft); font-weight: normal; }
 
   /* modal dialog in the "System Message" style */
   .modal { position: absolute; inset: 0; background: rgba(0,0,0,.55); display: none;
@@ -449,9 +562,9 @@
   .dlg button.b { width: 80px; }
   .form { padding: 10px 12px 4px; }
   .form .f { display: flex; align-items: center; margin-bottom: 6px; }
-  .form .f span { width: 52px; color: var(--dim); }
+  .form .f span, .form .f label { width: 52px; color: var(--dim); }
   .form .f input.e { flex: 1; }
-  .form .note { font-size: 10px; color: #b8955a; line-height: 13px; margin: 4px 0 6px; }
+  .form .note { font-size: 10px; color: var(--note); line-height: 13px; margin: 4px 0 6px; }
   .acc { color: var(--gold); }
 
   /* GM medallion, sticking out of the frame corner */
@@ -459,30 +572,25 @@
     position: absolute; left: 1px; top: 1px; width: 40px; height: 40px; z-index: 5; cursor: pointer;
     background: #000 url(/assets/gm_96.png) center / cover no-repeat;
     border: 1px solid #000; border-radius: 3px;
-    box-shadow: 0 0 0 1px var(--gold), 0 0 0 3px #1c160c, 0 0 0 4px #8c6a2c, 0 3px 8px rgba(0,0,0,.9);
+    box-shadow: 0 0 0 1px var(--gold), 0 0 0 3px var(--ring-dark), 0 0 0 4px var(--bronze-deep), 0 3px 8px rgba(0,0,0,.9);
     transition: filter .15s, box-shadow .15s;
   }
-  .gm.generic { background: radial-gradient(circle at 50% 35%, #4a3c22, #120e08 75%);
+  .gm.generic { background: radial-gradient(circle at 50% 35%, var(--medal-hi), var(--medal-lo) 75%);
     display: grid; place-items: center; font: bold 15px Georgia, serif; color: var(--gold-hi);
-    text-shadow: 0 1px 0 #000, 0 0 6px rgba(240,207,126,.5); }
+    text-shadow: 0 1px 0 #000; }
   .gm.generic::after { display: none; }
   .gm:hover { filter: brightness(1.15);
-    box-shadow: 0 0 0 1px var(--gold-hi), 0 0 0 3px #1c160c, 0 0 0 4px var(--gold), 0 0 10px rgba(240,207,126,.45); }
+    box-shadow: 0 0 0 1px var(--gold-hi), 0 0 0 3px var(--ring-dark), 0 0 0 4px var(--gold), 0 3px 8px rgba(0,0,0,.9); }
   .gm::after {
     content: "GM"; position: absolute; right: -7px; bottom: -6px; padding: 0 3px; line-height: 10px;
-    font: bold 8px Tahoma; color: #1a1408; background: linear-gradient(#f6dc94, #a77f35);
+    font: bold 8px Tahoma; color: var(--badge-ink); background: linear-gradient(var(--medal-tag), var(--bronze));
     border: 1px solid #000; border-radius: 2px;
   }
   /* "About": large GM portrait on top, with a golden name plate */
   .dlg.about { width: 336px; }
   .about .row button.b { width: auto; padding: 0 10px; white-space: nowrap; }
   .about .hero { position: relative; height: 300px; margin: 10px 10px 0; overflow: hidden; border: 1px solid #000;
-    box-shadow: 0 0 0 1px var(--gold), 0 0 0 4px #1c160c, 0 0 0 5px #8c6a2c, 0 6px 18px #000;
-    animation: heroGlow 3.6s ease-in-out infinite; }
-  @keyframes heroGlow {
-    0%, 100% { box-shadow: 0 0 0 1px var(--gold), 0 0 0 4px #1c160c, 0 0 0 5px #8c6a2c, 0 6px 18px #000, 0 0 0 rgba(240,207,126,0); }
-    50% { box-shadow: 0 0 0 1px var(--gold-hi), 0 0 0 4px #1c160c, 0 0 0 5px #b8913f, 0 6px 18px #000, 0 0 18px rgba(240,207,126,.35); }
-  }
+    box-shadow: 0 0 0 1px var(--gold), 0 0 0 4px var(--ring-dark), 0 0 0 5px var(--bronze-deep), 0 6px 18px #000; }
   .about .hero img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .about .hero::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 48%;
     background: linear-gradient(rgba(8,6,4,0), rgba(8,6,4,.78) 55%, rgba(8,6,4,.95)); }
@@ -493,49 +601,47 @@
   .about .hero .bl { bottom: 5px; left: 5px; border-right: 0; border-top: 0; }
   .about .hero .br { bottom: 5px; right: 5px; border-left: 0; border-top: 0; }
   .about .plate { position: absolute; left: 0; right: 0; bottom: 14px; z-index: 2; text-align: center; }
-  .about .gmname { font: 23px "Palatino Linotype", "Book Antiqua", Georgia, serif; color: #e8dcc0;
+  .about .gmname { font: 23px "Palatino Linotype", "Book Antiqua", Georgia, serif; color: var(--ink-btn);
     letter-spacing: .5px; text-shadow: 0 2px 4px #000; }
-  .about .gmname b { font-weight: bold; color: transparent;
-    background: linear-gradient(#fff6cf, #f0cf7e 45%, #a77f35); -webkit-background-clip: text; background-clip: text;
-    filter: drop-shadow(0 2px 2px rgba(0,0,0,.9)); }
-  .about .plate .sub { margin-top: 2px; font-size: 9px; letter-spacing: 1.6px; text-transform: uppercase; color: #c9a55a;
+  .about .gmname b { font-weight: bold; color: var(--gold-hi); }
+  .about .plate .sub { margin-top: 2px; font-size: 9px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--gold);
     text-shadow: 0 1px 2px #000; }
   .about .abody { padding: 6px 16px 4px; text-align: center; }
   .about .orn { display: flex; align-items: center; gap: 8px; margin: 6px 0 8px; color: var(--gold); font-size: 11px; }
   .about .orn::before, .about .orn::after { content: ""; flex: 1; height: 1px; }
   .about .orn::before { background: linear-gradient(90deg, transparent, var(--gold)); }
   .about .orn::after { background: linear-gradient(90deg, var(--gold), transparent); }
-  .about .thanks { font: italic 12px/18px "Palatino Linotype", "Book Antiqua", Georgia, serif; color: #e6d9b6; }
+  .about .thanks { font: italic 12px/18px "Palatino Linotype", "Book Antiqua", Georgia, serif; color: var(--text-hi); }
   .about .thanks .q { font: bold 28px/0 Georgia, serif; color: var(--gold); vertical-align: -10px; margin: 0 2px; }
   .about .sign { margin: 6px 4px 0; text-align: right; font: italic 11px Georgia, serif; color: var(--gold); }
   .about .mail { margin: 6px 0 2px; font-family: Consolas, monospace; font-size: 10px; color: var(--dim); }
   /* no avatar (build without gm.json): text only */
-  .about.noavatar .hero { height: auto; margin: 12px 10px 0; border: 0; box-shadow: none; animation: none; overflow: visible; }
+  .about.noavatar .hero { height: auto; margin: 12px 10px 0; border: 0; box-shadow: none; overflow: visible; }
   .about.noavatar .hero img, .about.noavatar .hero .c, .about.noavatar .hero::after { display: none; }
   .about.noavatar .plate { position: static; }
 
   /* sorting / level range */
   .bsort { display: flex; align-items: center; gap: 3px; margin-bottom: 4px; font-size: 10px; color: var(--dim); }
-  select.e { height: 18px; padding: 0 2px; font: 11px Tahoma; color: var(--text-hi); background: #050505;
-             border: 1px solid #000; box-shadow: inset 0 0 0 1px #4a4232; outline: none; cursor: pointer; }
+  select.e { height: 18px; padding: 0 2px; font: 11px Tahoma; color: var(--text-hi); background: var(--well);
+             border: 1px solid #000; box-shadow: inset 0 0 0 1px var(--line); outline: none; cursor: pointer; }
   select.e:focus { box-shadow: inset 0 0 0 1px var(--gold); }
-  select.e option { background: #111; color: var(--text-hi); }
+  select.e option { background: var(--well); color: var(--text-hi); }
   input.lv { width: 30px; text-align: center; }
   .bsort .sp { flex: 1; }
 
   /* craft */
   .cfilter { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin-bottom: 4px; }
   .cfilter button.b.on, .cmode button.b.on, .ctabs button.b.on { color: var(--gold-hi); box-shadow: inset 0 0 0 1px var(--gold); }
-  .crow2 { display: flex; gap: 3px; margin-bottom: 4px; }
-  .crow2 select.e { flex: none; }
-  .crow2 input.e { flex: 1; min-width: 0; }
+  .crow2 { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 4px; }
+  .crow2 select.e { flex: none; max-width: 100%; }
+  .crow2 input.e { flex: 1 1 120px; min-width: 120px; }
   .recipe { display: flex; align-items: center; gap: 5px; padding: 2px 4px; cursor: pointer;
             border-bottom: 1px solid rgba(106,92,62,.18); }
   .recipe:hover { background: rgba(201,165,90,.07); }
-  .recipe.open { background: rgba(201,165,90,.12); box-shadow: inset 2px 0 0 var(--gold); }
-  .recipe .g { width: 26px; font-size: 9px; text-align: center; color: #1a1408; border-radius: 2px;
-               background: linear-gradient(#f0cf7e, #a77f35); }
-  .recipe .g.s84 { background: linear-gradient(#e7b3ff, #8c4cc0); }
+  .recipe.open { background: rgba(201,165,90,.12); box-shadow: inset 0 0 0 1px rgba(201,165,90,.45); }
+  .recipe .g { width: 26px; font-size: 9px; text-align: center; color: var(--badge-ink); border-radius: 2px;
+               background: linear-gradient(var(--gold-hi), var(--bronze)); }
+  .recipe .g.s84 { background: linear-gradient(var(--grade-s84), var(--grade-s84-lo)); }
   .recipe .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .recipe .rt { width: 34px; text-align: right; font-size: 10px; }
   .rt.r100 { color: var(--good); }
@@ -548,7 +654,7 @@
   .cmode button.b, .ctabs button.b { flex: 1; }
   .csum { font-size: 10px; color: var(--dim); line-height: 14px; }
   .csum b { color: var(--text-hi); font-weight: normal; }
-  .cnote { margin: 4px 0; padding: 3px 5px; font-size: 10px; line-height: 13px; color: #e8c547;
+  .cnote { margin: 4px 0; padding: 3px 5px; font-size: 10px; line-height: 13px; color: var(--warn);
            background: rgba(232,197,71,.07); border: 1px solid rgba(232,197,71,.3); }
   .cbody { max-height: max(220px, calc((100vh - 330px) / var(--scale, 1))); overflow-y: auto; margin-top: 4px; }
   .step { display: grid; grid-template-columns: 18px 1fr; column-gap: 5px; padding: 3px 0;
@@ -559,13 +665,13 @@
   .ctabs button.b { white-space: nowrap; padding: 0 4px; }
   .tnode { font-size: 10px; line-height: 15px; white-space: nowrap; }
   .tnode .q { color: var(--gold-hi); }
-  .tnode .craftable { color: #c9e3a5; }
+  .tnode .craftable { color: var(--good-soft); }
   .tnode .m { color: var(--dim); }
   .shop { display: flex; justify-content: space-between; font-size: 10px; padding: 1px 0;
           border-bottom: 1px solid rgba(106,92,62,.12); }
   .shop .q { color: var(--gold-hi); font-family: Consolas, monospace; }
   img.ico { width: 16px; height: 16px; vertical-align: -4px; margin-right: 3px; border: 1px solid #000;
-            border-radius: 2px; background: #15120d; flex: none; }
+            border-radius: 2px; background: var(--icon-bg); flex: none; }
   .recipe img.ico { margin-right: 0; }
   .shop span:first-child, .step .what { min-width: 0; }
   [data-src] { cursor: pointer; }
@@ -573,10 +679,10 @@
   .chips { display: flex; flex-wrap: wrap; gap: 2px; margin-bottom: 4px; }
   .chip { position: relative; padding: 1px; border: 1px solid transparent; border-radius: 3px; cursor: pointer; }
   .chip img.ico { width: 22px; height: 22px; margin: 0; vertical-align: top; }
-  .chip.on { border-color: var(--gold-hi); box-shadow: 0 0 4px rgba(240,207,126,.6); }
+  .chip.on { border-color: var(--gold-hi); box-shadow: inset 0 0 0 1px rgba(240,207,126,.6); }
   .chip:hover { border-color: var(--gold); }
-  .chip b { position: absolute; right: 0; bottom: 0; font-size: 8px; line-height: 9px; padding: 0 2px;
-            background: #5a4a24; color: var(--gold-hi); border-radius: 2px; }
+  .chip b { position: absolute; right: 0; bottom: 0; font-size: 9px; line-height: 10px; padding: 0 2px;
+            background: var(--source-unseal-bg); color: var(--gold-hi); border-radius: 2px; }
   .srcname { font-size: 11px; color: var(--gold-hi); padding: 2px 0 1px; }
   .srcname img.ico { width: 20px; height: 20px; vertical-align: -6px; }
   .srch { margin: 6px 0 2px; font-size: 9px; letter-spacing: .5px; color: var(--gold); text-transform: uppercase;
@@ -584,7 +690,7 @@
   .srow { display: grid; grid-template-columns: 1fr 52px; gap: 0 4px; font-size: 10px; padding: 1px 0;
           border-bottom: 1px solid rgba(106,92,62,.12); }
   .srow .who { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-hi); }
-  .srow .who.boss { color: #f0a0a0; }
+  .srow .who.boss { color: var(--epic-text); }
   .srow .pc { text-align: right; font-family: Consolas, monospace; color: var(--gold-hi); }
   .srow .where { grid-column: 1 / 3; color: var(--dim); font-size: 9px; }
   .deal { font-size: 10px; padding: 2px 0; border-bottom: 1px solid rgba(106,92,62,.12); }
@@ -594,27 +700,27 @@
   .cmp { display: grid; grid-template-columns: 44px 1fr 34px 34px; gap: 0 4px; align-items: center;
          padding: 2px 0; border-bottom: 1px solid rgba(106,92,62,.12); font-size: 10px; }
   .cmp.w { grid-template-columns: 44px 1fr 30px 30px 34px; }
-  .cmp .bon { grid-column: 2 / -1; font-size: 8.5px; color: #c9e3a5; line-height: 11px; white-space: normal; }
+  .cmp .bon { grid-column: 2 / -1; font-size: 9px; color: var(--good-soft); line-height: 11px; white-space: normal; }
   .cmp .idx { text-align: right; font-family: Consolas, monospace; color: var(--gold-hi); }
-  .src.mw { background: #4a2d5c; color: #e7c8ff; }
-  .src.npc { background: #24384a; color: #b8dcff; }
-  .prow .src { font-size: 8px; text-align: center; border-radius: 2px; padding: 1px 0; }
-  .rt.npc { color: #b8dcff; font-size: 9px; }
-  .rt.mw { color: #e7c8ff; font-size: 9px; width: 52px; }
-  .rt.drop { color: #a39a86; font-size: 9px; }
-  .rt.acc { color: #9fd1c6; font-size: 9px; width: 58px; }
+  .src.mw { background: var(--source-mw-bg); color: var(--source-mw); }
+  .src.npc { background: var(--source-npc-bg); color: var(--source-npc); }
+  .prow .src { font-size: 9px; text-align: center; border-radius: 2px; padding: 1px 0; }
+  .rt.npc { color: var(--source-npc); font-size: 9px; }
+  .rt.mw { color: var(--source-mw); font-size: 9px; width: 52px; }
+  .rt.drop { color: var(--source-drop); font-size: 9px; }
+  .rt.acc { color: var(--source-acc); font-size: 9px; width: 58px; }
   .recipe .pw { width: 34px; text-align: right; font-family: Consolas, monospace; font-size: 10px; color: var(--gold-hi); }
   .recipe .pw.lo { color: var(--dim); }
   .rgroup { padding: 4px 4px 1px; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--gold);
             border-bottom: 1px solid rgba(201,165,90,.35); }
-  .recipe.accrow .nm { color: #cfe8e1; }
-  .accbon { margin: 3px 0 0; font-size: 10px; line-height: 14px; color: #c9e3a5; }
-  .accbon .act { color: #b8dcff; }
-  .recipe.droprow .nm { color: #cfc4a8; }
-  .g.sx { background: linear-gradient(#d9d0b8, #8f8670); }
-  .obtain { margin: 2px 0 4px; padding: 4px 6px; font-size: 10px; line-height: 14px; color: var(--text-hi);
-            background: rgba(90,74,36,.25); border-left: 2px solid var(--gold); }
-  .recipe.mwrow .nm { color: #e7c8ff; }
+  .recipe.accrow .nm { color: var(--acc-text); }
+  .accbon { margin: 3px 0 0; font-size: 10px; line-height: 14px; color: var(--good-soft); }
+  .accbon .act { color: var(--source-npc); }
+  .recipe.droprow .nm { color: var(--text-soft); }
+  .g.sx { background: linear-gradient(var(--grade-plain), var(--dim)); }
+  .obtain { margin: 2px 0 4px; padding: 4px 8px; font-size: 10px; line-height: 14px; color: var(--text-hi);
+            background: rgba(90,74,36,.25); border: 1px solid rgba(201,165,90,.35); }
+  .recipe.mwrow .nm { color: var(--source-mw); }
   .charbar { display: flex; gap: 3px; align-items: center; margin-bottom: 4px; }
   .charbar select.e { flex: 1; min-width: 0; }
   .charbar label.chk { flex: none; font-size: 10px; }
@@ -629,28 +735,28 @@
   .prow { display: grid; grid-template-columns: 44px 1fr 32px; gap: 0 4px; align-items: center; font-size: 10px;
           padding: 1px 0; cursor: pointer; border-bottom: 1px solid rgba(106,92,62,.12); }
   .prow:hover { background: rgba(201,165,90,.07); }
-  .prow.best { background: rgba(80,140,60,.16); box-shadow: inset 2px 0 0 #8fd16a; }
+  .prow.best { background: rgba(63,154,53,.16); box-shadow: inset 0 0 0 1px rgba(127,211,107,.45); }
   .prow .lb { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-hi); }
   .prow .v { text-align: right; font-family: Consolas, monospace; color: var(--gold-hi); }
-  .prow .bon { grid-column: 2 / -1; font-size: 8.5px; color: #c9e3a5; line-height: 11px; }
+  .prow .bon { grid-column: 2 / -1; font-size: 9px; color: var(--good-soft); line-height: 11px; }
   .prow .inl { grid-column: 1 / -1; padding: 3px 4px; background: rgba(0,0,0,.4); cursor: default; }
   .plannote { font-size: 10px; line-height: 13px; color: var(--dim); margin: 2px 2px 6px; }
-  .cmp.me { background: rgba(201,165,90,.14); box-shadow: inset 2px 0 0 var(--gold); }
-  .cmp .src { font-size: 8px; text-align: center; border-radius: 2px; padding: 1px 0; }
-  .src.craft { background: #2f4d26; color: #c9e3a5; }
-  .src.drop { background: #2a2620; color: #a39a86; }
-  .src.unseal { background: #5a4a24; color: var(--gold-hi); }
+  .cmp.me { background: rgba(201,165,90,.14); box-shadow: inset 0 0 0 1px rgba(201,165,90,.45); }
+  .cmp .src { font-size: 9px; text-align: center; border-radius: 2px; padding: 1px 0; }
+  .src.craft { background: var(--source-craft-bg); color: var(--good-soft); }
+  .src.drop { background: var(--source-drop-bg); color: var(--source-drop); }
+  .src.unseal { background: var(--source-unseal-bg); color: var(--gold-hi); }
   .cmp .lb { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-hi); }
   .cmp .v { text-align: right; font-family: Consolas, monospace; }
-  .cmp .bar { grid-column: 2 / -1; height: 2px; background: #1a1712; margin-top: 1px; }
-  .cmp .bar i { display: block; height: 100%; background: linear-gradient(90deg, #8c6a2c, #f0cf7e); }
+  .cmp .bar { grid-column: 2 / -1; height: 2px; background: var(--bar-track); margin-top: 1px; }
+  .cmp .bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--bronze-deep), var(--gold-hi)); }
   .cmp.chead { color: var(--dim); font-size: 9px; border-bottom: 1px solid rgba(106,92,62,.35); }
   .cbody { padding-right: 4px; }
 
   /* boss details */
   .boss { cursor: pointer; }
   .boss:hover { background: rgba(201,165,90,.07); }
-  .boss.open { background: rgba(201,165,90,.12); box-shadow: inset 2px 0 0 var(--gold); }
+  .boss.open { background: rgba(201,165,90,.12); box-shadow: inset 0 0 0 1px rgba(201,165,90,.45); }
   .boss .lv { width: 18px; font-size: 10px; color: var(--dim); text-align: right; }
   .bdetail { margin: 2px 2px 6px 18px; padding: 6px 8px; background: rgba(0,0,0,.45);
              border: 1px solid #000; box-shadow: inset 0 0 0 1px rgba(106,92,62,.4); }
@@ -660,11 +766,20 @@
   .mono { font-family: Consolas, monospace; font-size: 10px; }
   button.b.copy { height: 15px; padding: 0 5px; font-size: 9px; margin-left: 4px; }
   .gauge.hpg { flex: 1; height: 13px; }
-  .bdetail .hint { color: #8f7a55; margin: 3px 0; }
+  .bdetail .hint { color: var(--dim); margin: 3px 0; }
   .bdetail .right { text-align: right; margin-bottom: 2px; }
   .lore { margin-top: 5px; padding-top: 5px; border-top: 1px solid rgba(106,92,62,.3);
-          font-size: 10px; line-height: 13px; color: #b9ad8e; font-style: italic; }
+          font-size: 10px; line-height: 13px; color: var(--lore); font-style: italic; }
   .lore span { display: block; font-style: normal; color: var(--dim); margin-bottom: 2px; }
+
+  /* the panel's own backend stopped answering */
+  .conn { display: none; margin-top: 4px; padding: 2px 6px; font-size: 10px; color: var(--bad-hi);
+          background: rgba(228,90,74,.08); border: 1px solid rgba(228,90,74,.45); }
+  .conn.show { display: block; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
 </style>
 </head>
 <body>
@@ -683,10 +798,11 @@
       <div class="mapview" id="mapView">
         <div class="maploading small" id="mapLoading"></div>
         <div class="mapfilter" id="mapFilter" style="display:none"><span></span><button class="b" id="mapFilterClear"></button></div>
-        <img id="mapImg" alt="" draggable="false">
+        <!-- impeccable-disable-next-line broken-image -- the map picture is set by script once the backend has built it -->
+        <img id="mapImg" alt="" draggable="false" hidden>
         <svg id="mapSvg"></svg>
         <div id="mapPins"></div>
-        <div class="mapzoom"><button class="b" data-z="1.4">+</button><button class="b" data-z="0.7">−</button><button class="b" data-z="0">⤢</button></div>
+        <div class="mapzoom"><button class="b" data-z="1.4" data-i18n-title="aZoomIn">+</button><button class="b" data-z="0.7" data-i18n-title="aZoomOut">−</button><button class="b" data-z="0" data-i18n-title="aZoomFit">⤢</button></div>
         <div class="maplegend" id="mapLegend"></div>
       </div>
       <div class="small" data-i18n="mapHint"></div>
@@ -714,10 +830,11 @@
       <span id="sBoss"></span>
       <span id="sTimer"></span>
     </div>
-    <div class="toast" id="toast"></div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <div class="conn" id="conn" role="alert" data-i18n="connLost"></div>
   </div>
 
-  <div class="tabs">
+  <div class="tabs" data-i18n-aria="aTabs">
     <div class="tab sel" data-p="cli" data-i18n="tabClients"></div>
     <div class="tab" data-p="net" data-i18n="tabNet"></div>
     <div class="tab" data-p="boss" data-i18n="tabBosses"></div>
@@ -784,11 +901,11 @@
         <button class="b on" data-bf="all" data-i18n="bfAll"></button>
         <button class="b" data-bf="epic" data-i18n="bfEpic"></button>
         <button class="b" data-bf="dead" data-i18n="bfDead"></button>
-        <button class="b" data-bf="fav">★</button>
+        <button class="b" data-bf="fav" data-i18n-title="aFav">★</button>
         <input class="e" id="bSearch" data-i18n-ph="bSearch" spellcheck="false">
       </div>
       <div class="bsort">
-        <span data-i18n="sortLbl"></span>
+        <label for="bSort" data-i18n="sortLbl"></label>
         <select class="e" id="bSort">
           <option value="respawn" data-i18n="sortRespawn"></option>
           <option value="lvlAsc" data-i18n="sortLvlAsc"></option>
@@ -796,7 +913,7 @@
           <option value="name" data-i18n="sortName"></option>
         </select>
         <span class="sp"></span>
-        <span data-i18n="lvlLbl"></span>
+        <label for="bRange" data-i18n="lvlLbl"></label>
         <select class="e" id="bRange">
           <option value="" data-i18n="lvlAny"></option>
           <option value="1-39">1–39</option>
@@ -806,9 +923,9 @@
           <option value="80-99">80+</option>
           <option value="custom" data-i18n="lvlCustom"></option>
         </select>
-        <input class="e lv" id="bLvMin" maxlength="2" placeholder="min">
+        <input class="e lv" id="bLvMin" maxlength="2" placeholder="min" data-i18n-aria="aLvMin">
         <span id="bDash">–</span>
-        <input class="e lv" id="bLvMax" maxlength="2" placeholder="max">
+        <input class="e lv" id="bLvMax" maxlength="2" placeholder="max" data-i18n-aria="aLvMax">
       </div>
       <div class="bmode">
 
@@ -823,15 +940,15 @@
       <div class="sprow">
         <input class="e grow" id="spQ" data-i18n-ph="spQ" spellcheck="false">
         <span class="small" data-i18n="spMobLv"></span>
-        <input class="e lv" id="spMin" maxlength="2" placeholder="min">
-        <input class="e lv" id="spMax" maxlength="2" placeholder="max">
-        <select class="e" id="spSort">
+        <input class="e lv" id="spMin" maxlength="2" placeholder="min" data-i18n-aria="aLvMin">
+        <input class="e lv" id="spMax" maxlength="2" placeholder="max" data-i18n-aria="aLvMax">
+        <select class="e" id="spSort" data-i18n-aria="aSort">
           <option value="best" data-i18n="spSortBest"></option>
           <option value="name" data-i18n="spSortName"></option>
           <option value="level" data-i18n="spSortLevel"></option>
           <option value="grade" data-i18n="spSortGrade"></option>
         </select>
-        <select class="e" id="spGroup">
+        <select class="e" id="spGroup" data-i18n-aria="aGroup">
           <option value="cat" data-i18n="spGroupCat"></option>
           <option value="grade" data-i18n="spGroupGrade"></option>
           <option value="none" data-i18n="spGroupNone"></option>
@@ -851,8 +968,8 @@
     <!-- CRAFT -->
     <div class="page" id="p-craft">
       <div class="charbar">
-        <select class="e" id="cRace"></select>
-        <select class="e" id="cClass"></select>
+        <select class="e" id="cRace" data-i18n-aria="aRace"></select>
+        <select class="e" id="cClass" data-i18n-aria="aClass"></select>
         <label class="chk" data-i18n-title="cOnlyTip"><input type="checkbox" id="cOnly"><i></i><span data-i18n="cOnly"></span></label>
       </div>
       <div class="cviews">
@@ -873,19 +990,19 @@
         <button class="b" data-cf="Acc" data-i18n="cAcc"></button>
       </div>
       <div class="crow2">
-        <select class="e" id="cKind">
+        <select class="e" id="cKind" data-i18n-aria="aKind">
           <option value="" data-i18n="cAllKinds"></option>
           <option value="weapon" data-i18n="cWeapon"></option>
           <option value="armor" data-i18n="cArmor"></option>
           <option value="jewelry" data-i18n="cJewelry"></option>
           <option value="accessory" data-i18n="cAcc"></option>
         </select>
-        <select class="e" id="cSort">
+        <select class="e" id="cSort" data-i18n-aria="aSort">
           <option value="power" data-i18n="sortPower"></option>
           <option value="grade" data-i18n="sortGrade"></option>
           <option value="name" data-i18n="sortName"></option>
         </select>
-        <select class="e" id="cAccSlot">
+        <select class="e" id="cAccSlot" data-i18n-aria="aSlot">
           <option value="" data-i18n="accAll"></option>
           <option value="shirt" data-i18n="acc_shirt"></option>
           <option value="belt" data-i18n="acc_belt"></option>
@@ -893,12 +1010,12 @@
           <option value="talisman" data-i18n="acc_talisman"></option>
           <option value="cloak" data-i18n="acc_cloak"></option>
         </select>
-        <select class="e" id="cSrc">
+        <select class="e" id="cSrc" data-i18n-aria="aSrc">
           <option value="" data-i18n="cSrcAll"></option>
           <option value="craft" data-i18n="cSrcCraft"></option>
           <option value="obtain" data-i18n="cSrcObtain"></option>
         </select>
-        <select class="e" id="cRate">
+        <select class="e" id="cRate" data-i18n-aria="aRate">
           <option value="" data-i18n="cAllRates"></option>
         </select>
         <input class="e" id="cSearch" data-i18n-ph="cSearch" spellcheck="false">
@@ -963,16 +1080,16 @@
 
         <div class="osec" data-i18n="secWindow"></div>
         <label class="chk"><input type="checkbox" id="oTop"><i></i><span data-i18n="optTop"></span></label>
-        <div class="orow"><span class="lbl small" data-i18n="optOpacity"></span>
+        <div class="orow"><label class="lbl small" for="oOpacity" data-i18n="optOpacity"></label>
           <input type="range" id="oOpacity" min="0.5" max="1" step="0.01"><span class="pct" id="oOpacityPct"></span></div>
-        <div class="orow"><span class="lbl small" data-i18n="optScale"></span>
+        <div class="orow" role="group" aria-labelledby="lblScale"><span class="lbl small" id="lblScale" data-i18n="optScale"></span>
           <button class="b" data-scale="1">100%</button><button class="b" data-scale="1.15">115%</button>
           <button class="b" data-scale="1.3">130%</button></div>
 
         <div class="osec" data-i18n="secLogin"></div>
         <label class="chk"><input type="checkbox" id="oRename"><i></i><span data-i18n="optRename"></span></label>
         <label class="chk"><input type="checkbox" id="oCharsel"><i></i><span data-i18n="optCharsel"></span></label>
-        <div class="orow"><span class="lbl small" data-i18n="optDelay"></span>
+        <div class="orow"><label class="lbl small" for="oDelay" data-i18n="optDelay"></label>
           <input class="e" id="oDelay" style="width:40px;text-align:center"><span class="small">s</span></div>
 
         <div class="osec" data-i18n="secAlerts"></div>
@@ -994,11 +1111,11 @@
   </div>
 
   <div class="modal" id="accModal">
-    <div class="dlg">
+    <div class="dlg" role="dialog" aria-modal="true" aria-labelledby="aTitle">
       <div class="title"><div class="name" style="text-align:center" id="aTitle"></div></div>
       <div class="form">
-        <div class="f"><span>Login</span><input class="e" id="aLogin" maxlength="32" spellcheck="false" autocomplete="off"></div>
-        <div class="f"><span data-i18n="accPassword"></span><input class="e" id="aPwd" type="password" maxlength="32" autocomplete="new-password"></div>
+        <div class="f"><label for="aLogin">Login</label><input class="e" id="aLogin" maxlength="32" spellcheck="false" autocomplete="off"></div>
+        <div class="f"><label for="aPwd" data-i18n="accPassword"></label><input class="e" id="aPwd" type="password" maxlength="32" autocomplete="new-password"></div>
         <label class="chk"><input type="checkbox" id="aAuto"><i></i><span data-i18n="accAuto"></span></label>
         <label class="chk"><input type="checkbox" id="aEnter"><i></i><span data-i18n="accEnter"></span></label>
         <div class="note" data-i18n="accNote"></div>
@@ -1012,8 +1129,8 @@
   </div>
 
   <div class="modal" id="aboutModal">
-    <div class="dlg about">
-      <div class="title"><div class="name" style="text-align:center" data-i18n="aboutTitle"></div></div>
+    <div class="dlg about" role="dialog" aria-modal="true" aria-labelledby="abTitle">
+      <div class="title"><div class="name" style="text-align:center" id="abTitle" data-i18n="aboutTitle"></div></div>
       <div class="portrait hero">
         <img src="/assets/gm_512.png" alt="">
         <i class="c tl"></i><i class="c tr"></i><i class="c bl"></i><i class="c br"></i>
@@ -1037,8 +1154,8 @@
   </div>
 
   <div class="modal" id="promptModal">
-    <div class="dlg">
-      <div class="title"><div class="name" style="text-align:center" data-i18n="sysMessage"></div></div>
+    <div class="dlg" role="dialog" aria-modal="true" aria-labelledby="pTitle" aria-describedby="pMsg">
+      <div class="title"><div class="name" style="text-align:center" id="pTitle" data-i18n="sysMessage"></div></div>
       <div class="msg"><span id="pMsg"></span>
         <div class="presets" id="pPresets"></div>
         <input class="e" id="pInput" inputmode="numeric" maxlength="3">
@@ -1048,8 +1165,8 @@
   </div>
 
   <div class="modal" id="modal">
-    <div class="dlg">
-      <div class="title"><div class="name" style="text-align:center" data-i18n="sysMessage"></div></div>
+    <div class="dlg" role="dialog" aria-modal="true" aria-labelledby="mTitle" aria-describedby="mMsg">
+      <div class="title"><div class="name" style="text-align:center" id="mTitle" data-i18n="sysMessage"></div></div>
       <div class="msg" id="mMsg"></div>
       <div class="row"><button class="b gold" id="mOk">OK</button><button class="b" id="mNo" data-i18n="btnCancel"></button></div>
     </div>
@@ -1219,6 +1336,7 @@ const I18N = {
     optLang: "Idioma", folderGame: "Pasta do jogo", folderSystem: "Pasta system", folderShots: "Screenshots",
     optCharsel: "Depois do login, confirmar o servidor e parar na seleção de personagem",
     optRename: "Nome da conta no título da janela do jogo", optDelay: "Espera máxima pela tela de login, se ela não for reconhecida", secAlerts: "Avisos",
+    connLost: "Sem resposta do painel. Tentando de novo…", aTabs: "Seções", aLvMin: "Nível mínimo", aLvMax: "Nível máximo", aSort: "Ordenar", aGroup: "Agrupar", aRace: "Raça", aClass: "Classe", aKind: "Tipo de item", aSlot: "Slot do acessório", aSrc: "Origem", aRate: "Chance de sucesso", aAccName: "Nome da conta", aFav: "Só favoritos", aZoomIn: "Aproximar", aZoomOut: "Afastar", aZoomFit: "Mapa inteiro",
     optScale: "Tamanho do texto", tipResize: "Arraste para redimensionar",
     secWindow: "Janela", secLogin: "Login automático", secLinks: "Links do L2Axis", secFolders: "Pastas",
     optTop: "Sempre por cima dos outros programas", optAbout: "Sobre o painel e créditos",
@@ -1392,6 +1510,7 @@ const I18N = {
     optLang: "Language", folderGame: "Game folder", folderSystem: "System folder", folderShots: "Screenshots",
     optCharsel: "After logging in, confirm the server and stop at character selection",
     optRename: "Account name in the game window title", optDelay: "Longest wait for the login screen, if it is not recognised", secAlerts: "Alerts",
+    connLost: "The panel is not responding. Retrying…", aTabs: "Sections", aLvMin: "Minimum level", aLvMax: "Maximum level", aSort: "Sort", aGroup: "Group", aRace: "Race", aClass: "Class", aKind: "Item type", aSlot: "Accessory slot", aSrc: "Source", aRate: "Success chance", aAccName: "Account name", aFav: "Favourites only", aZoomIn: "Zoom in", aZoomOut: "Zoom out", aZoomFit: "Whole map",
     optScale: "Text size", tipResize: "Drag to resize",
     secWindow: "Window", secLogin: "Auto login", secLinks: "L2Axis links", secFolders: "Folders",
     optTop: "Always on top of other programs", optAbout: "About the panel & credits",
@@ -1565,6 +1684,7 @@ const I18N = {
     optLang: "Sprache", folderGame: "Spielordner", folderSystem: "System-Ordner", folderShots: "Screenshots",
     optCharsel: "Nach dem Login den Server bestätigen und bei der Charakterauswahl anhalten",
     optRename: "Kontoname im Titel des Spielfensters", optDelay: "Höchste Wartezeit auf den Login-Bildschirm, falls er nicht erkannt wird", secAlerts: "Hinweise",
+    connLost: "Das Panel antwortet nicht. Neuer Versuch…", aTabs: "Bereiche", aLvMin: "Mindestlevel", aLvMax: "Höchstlevel", aSort: "Sortieren", aGroup: "Gruppieren", aRace: "Rasse", aClass: "Klasse", aKind: "Itemtyp", aSlot: "Accessoire-Slot", aSrc: "Herkunft", aRate: "Erfolgschance", aAccName: "Kontoname", aFav: "Nur Favoriten", aZoomIn: "Vergrößern", aZoomOut: "Verkleinern", aZoomFit: "Ganze Karte",
     optScale: "Textgröße", tipResize: "Ziehen, um die Größe zu ändern",
     secWindow: "Fenster", secLogin: "Auto-Login", secLinks: "L2Axis-Links", secFolders: "Ordner",
     optTop: "Immer über anderen Programmen", optAbout: "Über das Panel & Credits",
@@ -1597,6 +1717,7 @@ function applyI18n() {
   document.querySelectorAll("[data-i18n-html]").forEach(el => el.innerHTML = t(el.dataset.i18nHtml));
   document.querySelectorAll("[data-i18n-title]").forEach(el => el.title = t(el.dataset.i18nTitle));
   document.querySelectorAll("[data-i18n-ph]").forEach(el => el.placeholder = t(el.dataset.i18nPh));
+  document.querySelectorAll("[data-i18n-aria]").forEach(el => el.setAttribute("aria-label", t(el.dataset.i18nAria)));
   document.querySelectorAll("[data-lang]").forEach(b => b.classList.toggle("gold", b.dataset.lang === LANG));
   // dynamically built content
   applySlotTexts();
@@ -1607,10 +1728,130 @@ function applyI18n() {
   });
   document.querySelectorAll("#links button").forEach(b => b.textContent = t(b.dataset.key));
   ["#bosses", "#timers"].forEach(s => { const el = $(s); if (el) { el.dataset.sig = ""; el.dataset.ids = ""; } });
+  enhance();
 }
 
 // ================================================= helpers
 const $ = s => document.querySelector(s);
+// write to the page only when the value changed: the loop runs every second and most values stay the same
+const setText = (el, v) => { v = String(v); if (el && el.textContent !== v) el.textContent = v; };
+const setHTML = (el, v) => { if (el && el.dataset.h !== v) { el.dataset.h = v; el.innerHTML = v; } };
+const setClass = (el, v) => { if (el && el.className !== v) el.className = v; };
+const setTitle = (el, v) => { if (el && el.title !== v) el.title = v; };
+const setDisabled = (el, v) => { v = !!v; if (el && el.disabled !== v) el.disabled = v; };
+const isTab = id => $("#p-" + id).classList.contains("sel");
+
+// ---- keyboard and screen readers: rows and icons drawn as divs become buttons you can Tab to
+const CLICKABLE = ".tbtn, .gm, .boss .nm, .boss .fav, .recipe, .spi .n, .spgrp, .ev, .sb, .mon, .addcard, .slot .rm, .chip, .prow, [data-src], .maplegend .lgh";
+const EXPANDS = ".boss .nm, .spi .n, .recipe, .spgrp, .ev, .maplegend .lgh";
+const SYMBOLIC = /^[\s\p{Extended_Pictographic}\p{S}\p{P}]*$/u;
+function syncExpanded(el) {
+  const host = el.closest(".boss, .spi, .recipe, .ev");
+  const open = el.matches(".spgrp") ? (el.querySelector(".arr") || {}).textContent === "▾"
+    : el.matches(".maplegend .lgh") ? el.closest(".maplegend").classList.contains("open")
+    : !!host && host.classList.contains("open");
+  el.setAttribute("aria-expanded", open ? "true" : "false");
+}
+function enhance(root = document.body) {
+  const all = sel => root.matches && root.matches(sel) ? [root, ...root.querySelectorAll(sel)] : [...root.querySelectorAll(sel)];
+  for (const el of all(CLICKABLE)) {
+    if (!el.hasAttribute("role")) el.setAttribute("role", "button");
+    if (!el.hasAttribute("tabindex")) el.tabIndex = 0;
+  }
+  all(EXPANDS).forEach(syncExpanded);
+  for (const el of all(".boss .fav")) el.setAttribute("aria-pressed", el.classList.contains("on") ? "true" : "false");
+  // icon-only controls: the tooltip is also their name
+  for (const el of all("button[title], [role=button][title]")) {
+    if (el.title && SYMBOLIC.test(el.textContent) && (!el.hasAttribute("aria-label") || el.dataset.ariaAuto)) {
+      el.setAttribute("aria-label", el.title); el.dataset.ariaAuto = "1";
+    }
+  }
+  // fields named only by a placeholder or a tooltip
+  for (const el of all("input:not([type=checkbox]):not([type=range]), select")) {
+    if ((el.labels && el.labels.length) || (el.hasAttribute("aria-label") && !el.dataset.ariaAuto)) continue;
+    const n = el.placeholder || el.title;
+    if (n) { el.setAttribute("aria-label", n); el.dataset.ariaAuto = "1"; }
+  }
+}
+new MutationObserver(list => {
+  for (const m of list) {
+    if (m.addedNodes.length > 20) { enhance(m.target); continue; }
+    for (const n of m.addedNodes) if (n.nodeType === 1) enhance(n);
+  }
+}).observe(document.body, { childList: true, subtree: true });
+
+// lists are redrawn after a click: put the keyboard focus back on the same row
+function focusKey(el) {
+  if (!el || el === document.body) return null;
+  if (el.id) return "#" + CSS.escape(el.id);
+  const own = [...el.attributes].find(a => /^data-(?!i18n|h$|sig$|aria)/.test(a.name));
+  if (own) return `${el.tagName.toLowerCase()}[${own.name}="${CSS.escape(own.value)}"]`;
+  const host = el.closest("[data-spi],[data-spgrp],[data-id],[data-ev],[data-sb],[data-rid],[data-mon],[data-k]");
+  if (!host) return null;
+  const a = [...host.attributes].find(x => /^data-(spi|spgrp|id|ev|sb|rid|mon|k)$/.test(x.name));
+  return `[${a.name}="${CSS.escape(a.value)}"] ${el.classList.length ? "." + CSS.escape(el.classList[0]) : el.tagName.toLowerCase()}`;
+}
+function restoreFocus(sel) {
+  if (!sel) return;
+  const again = () => {
+    const a = document.activeElement;
+    if (a && a !== document.body && a.isConnected) return true;
+    const n = document.querySelector(sel);
+    if (n) n.focus();
+    return !!n;
+  };
+  setTimeout(() => { if (!again()) setTimeout(again, 300); }, 40);
+}
+
+// dialogs: focus inside, Esc cancels, Tab stays in the dialog, focus goes back where it was
+const modals = [];
+function openModal(id, onCancel, focusSel) {
+  const m = $("#" + id);
+  const entry = { m, onCancel, prev: document.activeElement };
+  modals.push(entry);
+  m.classList.add("show");
+  setTimeout(() => {
+    const f = (focusSel && m.querySelector(focusSel)) || m.querySelector("input, button.gold, button");
+    if (f) f.focus();
+  }, 0);
+  return () => {
+    m.classList.remove("show");
+    const k = modals.indexOf(entry);
+    if (k >= 0) modals.splice(k, 1);
+    if (entry.prev && entry.prev !== document.body && entry.prev.isConnected) entry.prev.focus();
+  };
+}
+
+document.addEventListener("keydown", e => {
+  const top = modals[modals.length - 1];
+  if (top) {
+    if (e.key === "Escape") { e.preventDefault(); top.onCancel(); return; }
+    if (e.key === "Tab") {
+      const f = [...top.m.querySelectorAll("button, input, select, [tabindex='0']")].filter(x => !x.disabled && x.getClientRects().length);
+      if (!f.length) return;
+      const first = f[0], last = f[f.length - 1], a = document.activeElement;
+      if (!top.m.contains(a)) { e.preventDefault(); first.focus(); }
+      else if (e.shiftKey && a === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && a === last) { e.preventDefault(); first.focus(); }
+      return;
+    }
+  }
+  if (e.key !== "Enter" && e.key !== " ") return;
+  const el = e.target;
+  if (!el || !el.getAttribute || /^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName)) return;
+  const key = focusKey(el);
+  const role = el.getAttribute("role");
+  if ((role === "button" || role === "tab") && !/^(BUTTON|A)$/.test(el.tagName)) {
+    e.preventDefault();
+    el.click();
+  }
+  restoreFocus(key);
+});
+// rows that open in place: keep aria-expanded in step
+document.addEventListener("click", e => {
+  const host = e.target.closest && e.target.closest(".ev, .maplegend");
+  if (host) setTimeout(() => { if (host.matches(".ev")) syncExpanded(host); host.querySelectorAll(".lgh").forEach(syncExpanded); }, 0);
+});
 let api, S = null, built = false, toastUntil = 0, bossFilter = "all", openBoss = null;
 // craft tab state
 let RECIPES = null, craftFamily = "", openRecipe = null, craftQty = 1, craftFull = true, craftView = "plan", craftData = null, craftCmp = null,
@@ -1631,15 +1872,18 @@ const fmtDate = ts => new Date(ts * 1000).toLocaleString(LOCALES[LANG],
   { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const pingClass = ms => ms == null ? "r" : ms < 220 ? "g" : ms < 320 ? "y" : "r";
-const pingColor = ms => ({ g: "#7fd36b", y: "#e8c547", r: "#e45a4a" })[pingClass(ms)];
+const pingColor = ms => ({ g: "var(--good)", y: "var(--warn)", r: "var(--bad)" })[pingClass(ms)];
+// canvas cannot read CSS variables: resolve them
+const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 
 function confirmDlg(msg, okText = "OK", cancel = true) {
   return new Promise(res => {
     $("#mMsg").textContent = msg;
     $("#mOk").textContent = okText;
     $("#mNo").style.display = cancel ? "" : "none";
-    $("#modal").classList.add("show");
-    const done = v => { $("#modal").classList.remove("show"); $("#mOk").onclick = $("#mNo").onclick = null; res(v); };
+    let close = null;
+    const done = v => { close(); $("#mOk").onclick = $("#mNo").onclick = null; res(v); };
+    close = openModal("modal", () => done(cancel ? false : true), "#mOk");
     $("#mOk").onclick = () => done(true);
     $("#mNo").onclick = () => done(false);
   });
@@ -1658,9 +1902,9 @@ function minutesDlg(msg) {
       b.onclick = () => done(m);
       box.appendChild(b);
     });
-    $("#promptModal").classList.add("show");
-    $("#pInput").focus();
-    const done = v => { $("#promptModal").classList.remove("show"); $("#pOk").onclick = $("#pNo").onclick = $("#pInput").onkeydown = null; res(v); };
+    let close = null;
+    const done = v => { close(); $("#pOk").onclick = $("#pNo").onclick = $("#pInput").onkeydown = null; res(v); };
+    close = openModal("promptModal", () => done(null), "#pInput");
     const fromInput = () => {
       const v = $("#pInput").value.trim();
       if (!/^\d{1,3}$/.test(v) || +v > 720) { $("#pMsg").textContent = msg + "\n" + t("badMinutes"); return; }
@@ -1680,9 +1924,9 @@ async function accountDlg(i) {
   $("#aPwd").placeholder = acc.hasPassword ? t("accKeep") : "";
   $("#aAuto").checked = acc.auto;
   $("#aEnter").checked = acc.enter;
-  $("#accModal").classList.add("show");
-  $("#aLogin").focus();
-  const close = () => { $("#accModal").classList.remove("show"); $("#aPwd").value = ""; };
+  const closeModal = openModal("accModal", () => close(), "#aLogin");
+  const close = () => { closeModal(); $("#aPwd").value = ""; };
+  $("#aLogin").onkeydown = $("#aPwd").onkeydown = e => { if (e.key === "Enter") $("#aSave").click(); };
   $("#aCancel").onclick = close;
   $("#aClear").onclick = async () => {
     close();
@@ -1698,9 +1942,37 @@ async function accountDlg(i) {
 }
 
 // ================================================= tabs and window
-document.querySelectorAll(".tab").forEach(tb => tb.onclick = () => {
-  document.querySelectorAll(".tab").forEach(x => x.classList.toggle("sel", x === tb));
+const tabList = document.querySelector(".tabs");
+tabList.setAttribute("role", "tablist");
+document.querySelectorAll(".tab").forEach(tb => {
+  tb.setAttribute("role", "tab");
+  tb.id = "tab-" + tb.dataset.p;
+  tb.setAttribute("aria-controls", "p-" + tb.dataset.p);
+  const pg = $("#p-" + tb.dataset.p);
+  pg.setAttribute("role", "tabpanel");
+  pg.setAttribute("aria-labelledby", tb.id);
+  tb.onclick = () => selectTab(tb);
+});
+function selectTab(tb, focus) {
+  document.querySelectorAll(".tab").forEach(x => {
+    const on = x === tb;
+    x.classList.toggle("sel", on);
+    x.setAttribute("aria-selected", on ? "true" : "false");
+    x.tabIndex = on ? 0 : -1;
+  });
   document.querySelectorAll(".page").forEach(p => p.classList.toggle("sel", p.id === "p-" + tb.dataset.p));
+  if (focus) tb.focus();
+  if (S && built) render();  // hidden tabs are not kept up to date: refresh the one now shown
+}
+selectTab(document.querySelector(".tab.sel"));
+tabList.addEventListener("keydown", e => {
+  const tabs = [...document.querySelectorAll(".tab")];
+  const i = tabs.indexOf(document.activeElement);
+  if (i < 0) return;
+  const j = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 }[e.key];
+  if (j == null) return;
+  e.preventDefault();
+  selectTab(tabs[(j + tabs.length) % tabs.length], true);
 });
 $("#bClose").onclick = () => api.quit();
 $("#bMin").onclick = () => api.minimize_self();
@@ -2075,8 +2347,9 @@ function build() {
     $("#gmBadge").textContent = "L2";
     document.querySelector("#aboutModal .dlg").classList.add("noavatar");
   }
-  $("#gmBadge").onclick = () => $("#aboutModal").classList.add("show");
-  $("#abClose").onclick = () => $("#aboutModal").classList.remove("show");
+  let closeAbout = null;
+  $("#gmBadge").onclick = () => { closeAbout = openModal("aboutModal", () => closeAbout(), "#abClose"); };
+  $("#abClose").onclick = () => closeAbout && closeAbout();
   $("#abSite").onclick = () => api.open_link(linkUrl("linkSite"));
   applyI18n();
   built = true;
@@ -2103,23 +2376,23 @@ function render() {
   const p = S.ping;
   if (p) {
     const last = p.last;
-    $("#vPing").textContent = last == null ? t("pingLost") : `${Math.round(last)} ms`;
-    $("#gPing").style.width = last == null ? "0" : `calc(${Math.min(100, last / 400 * 100)}% - 2px)`;
-    $("#gPing").className = "fill " + (pingClass(last) === "g" ? "ok" : pingClass(last) === "y" ? "cp" : "hp");
-    $("#vLoss").textContent = `${Math.round(p.loss)}%`;
-    $("#gLoss").style.width = `calc(${Math.min(100, p.loss)}% - 2px)`;
+    setText($("#vPing"), last == null ? t("pingLost") : `${Math.round(last)} ms`);
+    $("#gPing").style.transform = `scaleX(${last == null ? 0 : Math.min(1, last / 400)})`;
+    setClass($("#gPing"), "fill " + (pingClass(last) === "g" ? "ok" : pingClass(last) === "y" ? "cp" : "hp"));
+    setText($("#vLoss"), `${Math.round(p.loss)}%`);
+    $("#gLoss").style.transform = `scaleX(${Math.min(1, p.loss / 100)})`;
   }
-  $("#vCli").textContent = `${S.running} / ${S.hwidLimit}`;
-  $("#gCli").style.width = `calc(${Math.min(100, S.running / S.hwidLimit * 100)}% - 2px)`;
+  setText($("#vCli"), `${S.running} / ${S.hwidLimit}`);
+  $("#gCli").style.transform = `scaleX(${Math.min(1, S.running / S.hwidLimit)})`;
   const wc = S.warp === "connected" ? "g" : ["connecting", "waiting", "checking"].includes(S.warp) ? "y" : "r";
-  $("#dWarp").className = "dot " + wc;
-  $("#sWarp").textContent = t("warp_" + S.warp);
-  $("#sVotes").textContent = `${S.votes.filter(v => v.main && v.remaining <= 0).length}/4`;
+  setClass($("#dWarp"), "dot " + wc);
+  setText($("#sWarp"), t("warp_" + S.warp));
+  setText($("#sVotes"), `${S.votes.filter(v => v.main && v.remaining <= 0).length}/4`);
   const nt = S.timers.find(x => x.remaining > 0);
-  $("#sTimer").innerHTML = nt ? `⏱ ${esc(nt.name)} <b>${fmt(nt.remaining)}</b>` : "";
+  setHTML($("#sTimer"), nt ? `⏱ ${esc(nt.name)} <b>${fmt(nt.remaining)}</b>` : "");
 
   if (S.alerts.length) {
-    $("#toast").textContent = "🔔 " + S.alerts.map(a => t("a_" + a.k, a)).join(" · ");
+    setText($("#toast"), "🔔 " + S.alerts.map(a => t("a_" + a.k, a)).join(" · "));
     toastUntil = Date.now() + 15000;
   }
   $("#toast").style.display = Date.now() < toastUntil ? "block" : "none";
@@ -2136,11 +2409,12 @@ function render() {
     const s = S.slots[i];
     if (!s) return;
     renderMovers(d, s, i);
-    d.querySelector('[data-a="remove"]').style.visibility = (s.pid || s.pending || S.slots.length <= 1) ? "hidden" : "visible";
-    d.querySelector(".dot").className = "dot " + (s.net === "lost" ? "r" : s.pid ? (s.window ? "g" : "y") : s.pending ? "y" : "");
+    const rmv = (s.pid || s.pending || S.slots.length <= 1) ? "hidden" : "visible", rm = d.querySelector('[data-a="remove"]');
+    if (rm.style.visibility !== rmv) rm.style.visibility = rmv;
+    setClass(d.querySelector(".dot"), "dot " + (s.net === "lost" ? "r" : s.pid ? (s.window ? "g" : "y") : s.pending ? "y" : ""));
     d.classList.toggle("dc", s.net === "lost");
-    d.draggable = !!s.window;
-    d.title = s.window ? t("tipDrag") : "";
+    if (d.draggable !== !!s.window) d.draggable = !!s.window;
+    setTitle(d, s.window ? t("tipDrag") : "");
     d.classList.toggle("on", !!s.pid);
     const autoTag = s.account.auto ? ` (${t("auto")})` : "";
     const run = s.pid ? t("runningInfo", { pid: s.pid, ram: s.ram ? fmtNum(Math.round(s.ram)) + " MB" : "—", up: fmt(s.uptime) }) : "";
@@ -2148,47 +2422,47 @@ function render() {
       : s.inWorld ? [s.bars ? (s.bars.hp === 0 ? "☠" : `HP ${s.bars.hp}% MP ${s.bars.mp}%`) : t("stInGame"), s.region,
                      s.online != null ? t("stOnline", { t: fmt(s.online) }) : null].filter(Boolean).join(" · ")
       : s.net === "game" ? t("stLoading") : null;
-    d.querySelector(".info").title = run;
-    d.querySelector(".info").textContent = s.pid
+    setTitle(d.querySelector(".info"), run);
+    setText(d.querySelector(".info"), s.pid
       ? (status || run)
-      : s.pending ? t("opening") : (s.account.login ? `${t("stopped")} · 🔑 ${s.account.login}${autoTag}` : t("stopped"));
+      : s.pending ? t("opening") : (s.account.login ? `${t("stopped")} · 🔑 ${s.account.login}${autoTag}` : t("stopped")));
     const inp = d.querySelector("input");
     if (document.activeElement !== inp && inp.value !== s.name) inp.value = s.name;
-    d.querySelector('[data-a="launch"]').disabled = !!s.pid || s.pending;
-    d.querySelector('[data-a="focus"]').disabled = !s.window;
-    d.querySelector('[data-a="minimize"]').disabled = !s.window;
-    d.querySelector('[data-a="close"]').disabled = !s.pid;
-    d.querySelector('[data-a="login"]').disabled = !s.window || !s.account.hasPassword;
+    setDisabled(d.querySelector('[data-a="launch"]'), !!s.pid || s.pending);
+    setDisabled(d.querySelector('[data-a="focus"]'), !s.window);
+    setDisabled(d.querySelector('[data-a="minimize"]'), !s.window);
+    setDisabled(d.querySelector('[data-a="close"]'), !s.pid);
+    setDisabled(d.querySelector('[data-a="login"]'), !s.window || !s.account.hasPassword);
     const ab = d.querySelector('[data-a="account"]');
     ab.classList.toggle("gold", s.account.hasPassword);
-    ab.title = s.account.login ? t("accountTip", { login: s.account.login, auto: s.account.auto ? t("autoLoginTag") : "" }) : t("tipAccount");
+    setTitle(ab, s.account.login ? t("accountTip", { login: s.account.login, auto: s.account.auto ? t("autoLoginTag") : "" }) : t("tipAccount"));
   });
-  $("#external").textContent = S.external.length ? t("external", { n: S.external.length, pids: S.external.join(", ") }) : "";
-  $("#hwidWarn").textContent = t("hwidWarn", { n: S.hwidLimit }) + (S.admin ? "" : "\n" + t("notAdmin"));
+  setText($("#external"), S.external.length ? t("external", { n: S.external.length, pids: S.external.join(", ") }) : "");
+  setText($("#hwidWarn"), t("hwidWarn", { n: S.hwidLimit }) + (S.admin ? "" : "\n" + t("notAdmin")));
 
   // network
   if (p) {
-    $("#nLast").textContent = p.last == null ? "—" : Math.round(p.last);
+    setText($("#nLast"), p.last == null ? "—" : Math.round(p.last));
     $("#nLast").style.color = pingColor(p.last);
-    $("#nAvg").textContent = p.avg == null ? "—" : Math.round(p.avg);
-    $("#nLoss").textContent = Math.round(p.loss) + "%";
-    $("#nLoss").style.color = p.loss === 0 ? "#7fd36b" : p.loss < 5 ? "#e8c547" : "#e45a4a";
-    $("#nJit").textContent = Math.round(p.jitter);
-    drawGraph(p.samples);
+    setText($("#nAvg"), p.avg == null ? "—" : Math.round(p.avg));
+    setText($("#nLoss"), Math.round(p.loss) + "%");
+    $("#nLoss").style.color = p.loss === 0 ? "var(--good)" : p.loss < 5 ? "var(--warn)" : "var(--bad)";
+    setText($("#nJit"), Math.round(p.jitter));
+    if (isTab("net")) drawGraph(p.samples);
   }
-  $("#nSrv").textContent = t("netServer", { ip: S.server });
-  $("#nWarp").textContent = t("warp_" + S.warp);
-  $("#nWarp").style.color = { g: "#7fd36b", y: "#e8c547", r: "#e45a4a" }[wc];
-  $("#bWarp").textContent = ["connected", "connecting"].includes(S.warp) ? t("btnOff") : t("btnOn");
-  $("#bWarp").disabled = S.warp === "missing" || S.warp === "waiting";
+  setText($("#nSrv"), t("netServer", { ip: S.server }));
+  setText($("#nWarp"), t("warp_" + S.warp));
+  $("#nWarp").style.color = { g: "var(--good)", y: "var(--warn)", r: "var(--bad)" }[wc];
+  setText($("#bWarp"), ["connected", "connecting"].includes(S.warp) ? t("btnOff") : t("btnOn"));
+  setDisabled($("#bWarp"), S.warp === "missing" || S.warp === "waiting");
 
   // votes
   $("#warpVoteWarn").style.display = ["connected", "connecting"].includes(S.warp) ? "block" : "none";
-  S.votes.forEach(v => {
+  if (isTab("vote")) S.votes.forEach(v => {
     const st = document.querySelector(`.vote[data-k="${v.key}"] .st`);
     const ready = v.remaining <= 0;
-    st.textContent = ready ? t("voteReadyLbl") : fmt(v.remaining);
-    st.className = "st" + (ready ? " ready" : "");
+    setText(st, ready ? t("voteReadyLbl") : fmt(v.remaining));
+    setClass(st, "st" + (ready ? " ready" : ""));
   });
 
   renderBosses();
@@ -2229,7 +2503,7 @@ function evStatus(e, now) {
 let evViewedAt = 0;
 function renderEvents() {
   const box = $("#events");
-  if (!box || !S.events) return;
+  if (!box || !S.events || !isTab("ev")) return;
   if ($("#p-ev").classList.contains("sel") && Date.now() - evViewedAt > 20000) { evViewedAt = Date.now(); api.events_viewed(); }
   const now = Date.now() / 1000;
   const sts = Object.fromEntries(S.events.map(e => [e.key, evStatus(e, now)]));
@@ -2250,8 +2524,8 @@ function renderEvents() {
   }
   S.events.forEach(e => {
     const w = box.querySelector(`[data-ev="${e.key}"] .when`);
-    w.textContent = sts[e.key].txt;
-    w.className = "when " + sts[e.key].cls;
+    setText(w, sts[e.key].txt);
+    setClass(w, "when " + sts[e.key].cls);
   });
   // latest announcements read in the chat
   $("#evChatState").textContent = S.chatReading ? t("evChatOn") : t("evChatOff");
@@ -2267,6 +2541,7 @@ function renderEvents() {
 
 function renderTimers() {
   const box = $("#timers");
+  if (!isTab("tmr")) return;
   const ids = S.timers.map(x => x.id).join(",");
   if (box.dataset.ids !== ids) {
     box.dataset.ids = ids;
@@ -2285,8 +2560,8 @@ function renderTimers() {
     const el = box.querySelector(`[data-id="${CSS.escape(x.id)}"] .t`);
     if (!el) return;
     const done = x.remaining <= 0;
-    el.textContent = done ? t("timerDoneLbl") : fmt(x.remaining);
-    el.style.color = done ? "#7fd36b" : x.remaining < 300 ? "#e8c547" : "";
+    setText(el, done ? t("timerDoneLbl") : fmt(x.remaining));
+    el.style.color = done ? "var(--good)" : x.remaining < 300 ? "var(--warn)" : "";
   });
 }
 
@@ -2337,6 +2612,62 @@ function spChips() {
     gs.querySelectorAll("[data-spg]").forEach(b => b.onclick = () => { spGrade = b.dataset.spg; renderSpoil(); });
   }
 }
+const spItemOk = iid => {
+  const it = SPOIL.items[iid] || {};
+  return (!spCat || spCatOf(it) === spCat) && (spGrade === "" || String(it.grade ?? 0) === spGrade);
+};
+const spSig = () => [LANG, spMode, $("#spQ").value.trim().toLowerCase(), spCat, spGrade, $("#spSort").value, $("#spGroup").value,
+  $("#spMin").value, $("#spMax").value, spOpen, [...spCollapsed].join()].join("|");
+// the monsters (in the level range) that give an item, best first
+function spItemSources(iid) {
+  const out = [];
+  for (const [mid, m] of Object.entries(SPOIL.mobs)) {
+    if (!spLevelOk(m.level)) continue;
+    for (const [i, c, lo, hi] of m.spoil) if (String(i) === String(iid)) out.push([mid, c, lo, hi]);
+  }
+  return out.sort((a, b) => spYield(b[1], b[2], b[3]) - spYield(a[1], a[2], a[3]));
+}
+function spItemDetail(iid) {
+  const mobs = SPOIL.mobs;
+  return `<div class="spd"><table><tr class="small"><td>${esc(t("spHMob"))}</td><td class="r">${esc(t("spHLv"))}</td><td>${esc(t("spHArea"))}</td>
+    <td class="r">${esc(t("spHChance"))}</td><td class="r">${esc(t("spHQty"))}</td><td class="g">${esc(t("spHAvg"))}</td><td></td></tr>` +
+    spItemSources(iid).map(([mid, c, lo, hi]) => {
+      const m = mobs[mid];
+      return `<tr><td>${esc(m.name)}</td><td class="r">${m.level}</td><td class="a" title="${esc(spArea(m))}">${esc(spArea(m))}</td>
+        <td class="r">${fmtChance(c)}</td><td class="r">${lo === hi ? lo : lo + "–" + hi}</td>
+        <td class="g" title="${esc(t("spYieldTip"))}">${spYield(c, lo, hi).toFixed(2)}</td>
+        <td><button class="b" data-spmap="${mid}" data-spitem="${iid}" title="${esc(t("bmShow"))}" aria-label="${esc(t("bmShow"))}">🗺</button></td></tr>`;
+    }).join("") + `</table></div>`;
+}
+function spMobDetail(mid) {
+  const items = SPOIL.items;
+  return `<div class="spd"><table>` + SPOIL.mobs[mid].spoil.filter(([iid]) => spItemOk(iid))
+    .sort((a, b) => spYield(b[1], b[2], b[3]) - spYield(a[1], a[2], a[3]))
+    .map(([iid, c, lo, hi]) => `<tr><td>${spGradeBadge(items[iid] || {})}</td><td>${ico(iid)} ${esc((items[iid] || {}).name || iid)}</td>
+      <td class="k">${esc(t("spc_" + spCatOf(items[iid] || {})))}</td><td class="r">${fmtChance(c)}</td>
+      <td class="r">${lo === hi ? lo : lo + "–" + hi}</td><td class="g">${spYield(c, lo, hi).toFixed(2)}</td></tr>`).join("") + `</table></div>`;
+}
+// open or close one row where it is: redrawing a list of a thousand rows for one click is slow
+function spToggle(row) {
+  const box = $("#spList");
+  const prev = box.querySelector(".spi.open");
+  if (prev) {
+    prev.classList.remove("open");
+    const d = prev.nextElementSibling;
+    if (d && d.classList.contains("spd")) d.remove();
+    const n = prev.querySelector(".n");
+    if (n) n.setAttribute("aria-expanded", "false");
+  }
+  const id = row.dataset.spi;
+  spOpen = spOpen === id ? null : id;
+  if (spOpen) {
+    row.classList.add("open");
+    row.insertAdjacentHTML("afterend", spMode === "item" ? spItemDetail(id) : spMobDetail(id));
+    const n = row.querySelector(".n");
+    if (n) n.setAttribute("aria-expanded", "true");
+  }
+  box.dataset.sig = spSig();
+}
 async function renderSpoil() {
   if (!$("#p-spoil").classList.contains("sel")) return;
   await loadSpoil();
@@ -2344,14 +2675,11 @@ async function renderSpoil() {
   const q = $("#spQ").value.trim().toLowerCase(), sort = $("#spSort").value, group = $("#spGroup").value;
   $("#spGroup").style.display = spMode === "item" ? "" : "none";  // the monster list has no groups
   const box = $("#spList");
-  const sig = [LANG, spMode, q, spCat, spGrade, sort, group, $("#spMin").value, $("#spMax").value, spOpen, [...spCollapsed].join()].join("|");
+  const sig = spSig();
   if (box.dataset.sig === sig) return;
   box.dataset.sig = sig;
   const mobs = SPOIL.mobs, items = SPOIL.items;
-  const itemOk = iid => {
-    const it = items[iid] || {};
-    return (!spCat || spCatOf(it) === spCat) && (spGrade === "" || String(it.grade ?? 0) === spGrade);
-  };
+  const itemOk = spItemOk;
   let html = "";
   if (spMode === "item") {
     // items -> which monsters give them (only monsters in the level range)
@@ -2370,26 +2698,12 @@ async function renderSpoil() {
                      level: (a, b) => a.lo - b.lo || a.it.name.localeCompare(b.it.name),
                      grade: (a, b) => (b.it.grade ?? -1) - (a.it.grade ?? -1) || b.best - a.best || a.it.name.localeCompare(b.it.name) }[sort] || ((a, b) => b.best - a.best);
     rows.sort(sorter);
-    $("#spInfo").textContent = t("spInfoItems", { n: rows.length });
-    const rowHtml = r => {
-      let row = `<div class="spi ${spOpen === r.iid ? "open" : ""}" data-spi="${r.iid}">${spGradeBadge(r.it)}${ico(r.iid)}
+    setText($("#spInfo"), t("spInfoItems", { n: rows.length }));
+    const rowHtml = r => `<div class="spi ${spOpen === r.iid ? "open" : ""}" data-spi="${r.iid}">${spGradeBadge(r.it)}${ico(r.iid)}
         <span class="n">${esc(r.it.name)}${r.it.rate && r.it.rate < 100 && !/%/.test(r.it.name) ? ` <span class="rt">${r.it.rate}%</span>` : ""}</span>
         <span class="lv2" title="${esc(t("spLvTip"))}">${r.lo === r.hi ? r.lo : r.lo + "–" + r.hi}</span>
         <span class="bc" title="${esc(t("spBestTip"))}">${fmtChance(r.bestChance)}</span>
-        <span class="c">${esc(t("spMobs", { n: r.srcs.length }))}</span></div>`;
-      if (spOpen === r.iid) {
-        r.srcs.sort((a, b) => spYield(b[1], b[2], b[3]) - spYield(a[1], a[2], a[3]));
-        row += `<div class="spd"><table><tr class="small"><td>${esc(t("spHMob"))}</td><td class="r">${esc(t("spHLv"))}</td><td>${esc(t("spHArea"))}</td>
-          <td class="r">${esc(t("spHChance"))}</td><td class="r">${esc(t("spHQty"))}</td><td class="g">${esc(t("spHAvg"))}</td><td></td></tr>` + r.srcs.map(([mid, c, lo, hi]) => {
-          const m = mobs[mid];
-          return `<tr><td>${esc(m.name)}</td><td class="r">${m.level}</td><td class="a" title="${esc(spArea(m))}">${esc(spArea(m))}</td>
-            <td class="r">${fmtChance(c)}</td><td class="r">${lo === hi ? lo : lo + "–" + hi}</td>
-            <td class="g" title="${esc(t("spYieldTip"))}">${spYield(c, lo, hi).toFixed(2)}</td>
-            <td><button class="b" data-spmap="${mid}" data-spitem="${r.iid}" title="${esc(t("bmShow"))}">🗺</button></td></tr>`;
-        }).join("") + `</table></div>`;
-      }
-      return row;
-    };
+        <span class="c">${esc(t("spMobs", { n: r.srcs.length }))}</span></div>` + (spOpen === r.iid ? spItemDetail(r.iid) : "");
     // groups (closed until clicked); a search, or a filter that leaves one group, is a flat list
     const groups = q ? null
       : group === "cat" && !spCat ? SP_CATS.map(c => [c, t("spc_" + c), r => spCatOf(r.it) === c])
@@ -2417,32 +2731,18 @@ async function renderSpoil() {
     list.sort({ name: (a, b) => a[1].name.localeCompare(b[1].name),
                 best: (a, b) => mobBest(b[1]) - mobBest(a[1]) || byLevel(a, b),
                 grade: (a, b) => mobGrade(b[1]) - mobGrade(a[1]) || mobBest(b[1]) - mobBest(a[1]) || byLevel(a, b) }[sort] || byLevel);
-    $("#spInfo").textContent = t("spInfoMobs", { n: list.length });
+    setText($("#spInfo"), t("spInfoMobs", { n: list.length }));
+    const showT = esc(t("bmShow"));
     html = list.map(([mid, m]) => {
       // a preview of its best spoils (icons), so the list says something without opening each row
       const top = m.spoil.filter(([iid]) => itemOk(iid)).sort((a, b) => spYield(b[1], b[2], b[3]) - spYield(a[1], a[2], a[3])).slice(0, 4);
       const prev = top.map(([iid, c]) => `<span class="spv" title="${esc(((items[iid] || {}).name || iid) + " · " + fmtChance(c))}">${ico(iid)}</span>`).join("");
-      let row = `<div class="spi ${spOpen === mid ? "open" : ""}" data-spi="${mid}"><span class="c" style="width:18px">${m.level}</span>
+      return `<div class="spi ${spOpen === mid ? "open" : ""}" data-spi="${mid}"><span class="c" style="width:18px">${m.level}</span>
         <span class="n">${esc(m.name)}</span><span class="spvs">${prev}</span><span class="k">${esc(spArea(m))}</span>
-        <button class="b" data-spmap="${mid}" title="${esc(t("bmShow"))}">🗺</button></div>`;
-      if (spOpen === mid) {
-        row += `<div class="spd"><table>` + m.spoil.filter(([iid]) => itemOk(iid))
-          .sort((a, b) => spYield(b[1], b[2], b[3]) - spYield(a[1], a[2], a[3]))
-          .map(([iid, c, lo, hi]) => `<tr><td>${spGradeBadge(items[iid] || {})}</td><td>${ico(iid)} ${esc((items[iid] || {}).name || iid)}</td>
-            <td class="k">${esc(t("spc_" + spCatOf(items[iid] || {})))}</td><td class="r">${fmtChance(c)}</td>
-            <td class="r">${lo === hi ? lo : lo + "–" + hi}</td><td class="g">${spYield(c, lo, hi).toFixed(2)}</td></tr>`).join("") + `</table></div>`;
-      }
-      return row;
+        <button class="b" data-spmap="${mid}" title="${showT}" aria-label="${showT}">🗺</button></div>` + (spOpen === mid ? spMobDetail(mid) : "");
     }).join("");
   }
   box.innerHTML = html || `<div class="small" style="padding:6px">${esc(t("spNone"))}</div>`;
-  box.querySelectorAll("[data-spgrp]").forEach(el => el.onclick = () => {
-    const c = el.dataset.spgrp;
-    spCollapsed.has(c) ? spCollapsed.delete(c) : spCollapsed.add(c);
-    renderSpoil();
-  });
-  box.querySelectorAll("[data-spi]").forEach(el => el.onclick = () => { spOpen = spOpen === el.dataset.spi ? null : el.dataset.spi; renderSpoil(); });
-  box.querySelectorAll("[data-spmap]").forEach(el => el.onclick = e => { e.stopPropagation(); openSpoilMap(el.dataset.spitem || null, el.dataset.spmap); });
 }
 // open the side map on a monster's spawn spots (with every monster that gives the item, if one is chosen)
 function openSpoilMap(itemId, mobId) {
@@ -2520,6 +2820,20 @@ function initSpoil() {
   ["#spQ", "#spMin", "#spMax"].forEach(id => $(id).oninput = () => renderSpoil());
   $("#spSort").onchange = () => renderSpoil();
   $("#spGroup").onchange = () => renderSpoil();
+  // one handler for every row of the list (map buttons, group headers, rows)
+  $("#spList").addEventListener("click", e => {
+    const mapBtn = e.target.closest("[data-spmap]");
+    if (mapBtn) { openSpoilMap(mapBtn.dataset.spitem || null, mapBtn.dataset.spmap); return; }
+    const grp = e.target.closest("[data-spgrp]");
+    if (grp) {
+      const c = grp.dataset.spgrp;
+      spCollapsed.has(c) ? spCollapsed.delete(c) : spCollapsed.add(c);
+      renderSpoil();
+      return;
+    }
+    const row = e.target.closest("[data-spi]");
+    if (row) spToggle(row);
+  });
   document.querySelectorAll("[data-spm]").forEach(b => b.onclick = () => {
     spMode = b.dataset.spm; spOpen = null;
     document.querySelectorAll("[data-spm]").forEach(x => x.classList.toggle("on", x === b));
@@ -2560,6 +2874,7 @@ async function loadMapInfo() {
     if (!img.src) {
       img.onload = () => { if (!mapT) fitMap(); layoutMap(); };
       img.src = "/worldmap.png" + location.search;
+      img.hidden = false;
     }
   } else {
     $("#mapLoading").textContent = t("mapBuilding");
@@ -2618,12 +2933,12 @@ function layoutMap() {
   let svg = "";
   if (mapRoute && mapRoute.startXY) {
     let [px, py] = P(mapRoute.startXY.x, mapRoute.startXY.y);
-    svg += `<circle cx="${px}" cy="${py}" r="5" fill="#7fd36b" stroke="#000"/>`;
+    svg += `<circle cx="${px}" cy="${py}" r="5" style="fill:var(--good)" stroke="#000"/>`;
     mapRoute.steps.forEach(st => {
       const [nx, ny] = P(st.x, st.y);
       svg += st.kind !== "run"
-        ? `<line x1="${px}" y1="${py}" x2="${nx}" y2="${ny}" stroke="#7fd4e6" stroke-width="2" stroke-dasharray="5 4"/><circle cx="${nx}" cy="${ny}" r="4" fill="#7fd4e6" stroke="#000"/>`
-        : `<line x1="${px}" y1="${py}" x2="${nx}" y2="${ny}" stroke="#f0cf7e" stroke-width="3"/>`;
+        ? `<line x1="${px}" y1="${py}" x2="${nx}" y2="${ny}" style="stroke:var(--announce)" stroke-width="2" stroke-dasharray="5 4"/><circle cx="${nx}" cy="${ny}" r="4" style="fill:var(--announce)" stroke="#000"/>`
+        : `<line x1="${px}" y1="${py}" x2="${nx}" y2="${ny}" style="stroke:var(--gold-hi)" stroke-width="3"/>`;
       [px, py] = [nx, ny];
     });
   }
@@ -2740,7 +3055,7 @@ function renderBossMap(list) {
   }
   box.querySelectorAll("[data-bt]").forEach(el => {
     const b = all.find(x => x.id === el.dataset.bt);
-    el.textContent = b && b.remaining > 0 && !el.parentElement.classList.contains("faded") ? fmt(b.remaining) : "";
+    setText(el, b && b.remaining > 0 && !el.parentElement.classList.contains("faded") ? fmt(b.remaining) : "");
   });
   layoutMap();
   renderSideList(list);
@@ -2750,9 +3065,15 @@ function renderSideList(list) {
   const q = ($("#sideSearch").value || "").trim().toLowerCase();
   const rows = list.filter(b => b.x != null && (!q || b.name.toLowerCase().includes(q) || (b.zone || "").toLowerCase().includes(q)));
   const box = $("#sideBosses");
-  const sig = LANG + "|" + mapSel + "|" + q + "|" + rows.map(b => b.id + bossStatus(b).txt).join(",");
+  const sig = LANG + "|" + mapSel + "|" + q + "|" + rows.map(b => b.id + bossStatus(b).cls).join(",");
   if (box.dataset.sig === sig) return;
   box.dataset.sig = sig;
+  // the countdown is in the tooltip: filled in when the mouse gets there
+  box.onmouseover = e => {
+    const el = e.target.closest("[data-sb]");
+    const b = el && (S.bosses || []).find(x => x.id === el.dataset.sb);
+    if (b) setTitle(el, bossStatus(b).txt);
+  };
   box.innerHTML = rows.map(b => {
     const st = bossStatus(b);
     return `<div class="sb ${mapSel === b.id ? "sel" : ""}" data-sb="${esc(b.id)}" title="${esc(st.txt)}">
@@ -2916,11 +3237,12 @@ function renderBosses() {
   list.sort(sorters[bossView.sort] || sorters.respawn);
 
   const newest = all.length ? Math.min(...all.map(b => b.age)) : null;
-  $("#bInfo").innerHTML = all.length
+  setHTML($("#bInfo"), all.length
     ? t("bossInfo", { shown: t("bossShown", { shown: list.length, n: all.length }), age: fmt(newest) })
-    : t("bossEmpty");
+    : t("bossEmpty"));
 
   const box = $("#bosses");
+  if (isTab("boss")) {
   const sig = LANG + "|" + openBoss + "|" + bossView.sort + "|" + list.map(b => b.id + (b.fav ? "*" : "")).join(",");
   if (box.dataset.sig !== sig) {
     box.dataset.sig = sig;
@@ -2947,13 +3269,15 @@ function renderBosses() {
     const st = box.querySelector(`.boss[data-id="${b.id}"] .st`);
     if (!st) return;
     const s = bossStatus(b);
-    st.textContent = s.txt; st.className = "st " + s.cls; st.title = s.tip || "";
+    setText(st, s.txt); setClass(st, "st " + s.cls); setTitle(st, s.tip || "");
   });
   const det = box.querySelector(".bdetail");
   if (det) {
     const b = list.find(x => x.id === det.dataset.detail);
-    if (b) {
-      det.innerHTML = bossDetail(b);
+    const h = b ? bossDetail(b) : "";
+    if (b && det.dataset.h !== h) {
+      det.dataset.h = h;
+      det.innerHTML = h;
       det.querySelectorAll("[data-onmap]").forEach(btn => btn.onclick = e => {
         e.stopPropagation();
         mapSel = btn.dataset.onmap;
@@ -2966,9 +3290,10 @@ function renderBosses() {
       });
     }
   }
+  }
   if (bossMode === "map") renderBossMap(list);
   const next = all.filter(b => b.fav && b.remaining > 0).sort((a, b) => a.remaining - b.remaining)[0];
-  $("#sBoss").innerHTML = next ? `👑 ${esc(next.name)} <b>${fmt(next.remaining)}</b>` : "";
+  setHTML($("#sBoss"), next ? `👑 ${esc(next.name)} <b>${fmt(next.remaining)}</b>` : "");
 }
 
 // ================================================= craft
@@ -3014,6 +3339,7 @@ function renderCraftList() {
       ${r.power ? `<span class="pw ${r.power / best[r.pgroup] < .9 ? "lo" : ""}" title="${esc(t("pwTip"))}">${Math.round(r.power / best[r.pgroup] * 100)}%</span>` : ""}
       <span class="small">${r.npc || r.obtain ? "" : "Lv " + r.level}</span>${r.kind === "accessory" ? `<span class="rt acc">${esc(t("acc_" + r.cat))}</span>` : r.obtain ? `<span class="rt drop">DROP</span>` : r.mw ? `<span class="rt mw" title="${esc(t("cMwOnly"))}">MW ${r.mw.rate.toLocaleString(LOCALES[LANG])}%</span>` : r.npc ? `<span class="rt npc">NPC</span>` : `<span class="rt ${r.rate === 100 ? "r100" : "r60"}">${r.rate}%</span>`}`;
     row.querySelector(".nm").textContent = r.product;
+    row.dataset.rid = r.id;
     row.onclick = () => {
       openRecipe = openRecipe === r.id ? null : r.id; craftData = null; craftCmp = null; srcItem = null;
       if (craftView === "cmp") craftView = "plan";
@@ -3391,7 +3717,7 @@ function drawGraph(samples) {
     const y = H - ref / top * H;
     g.strokeStyle = "rgba(106,92,62,.35)"; g.setLineDash([4, 6]); g.lineWidth = 1;
     g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke();
-    g.setLineDash([]); g.fillStyle = "#5d5648"; g.fillText(ref, 4, y - 4);
+    g.setLineDash([]); g.fillStyle = cssVar("--ink-off"); g.fillText(ref, 4, y - 4);
   });
   const step = W / (N - 1), x0 = (N - samples.length) * step;
   g.beginPath();
@@ -3403,7 +3729,7 @@ function drawGraph(samples) {
     started ? g.lineTo(x, y) : (g.moveTo(x, y), started = true);
   });
   const grad = g.createLinearGradient(0, 0, 0, H);
-  grad.addColorStop(0, "#f0cf7e"); grad.addColorStop(1, "#8c6a2c");
+  grad.addColorStop(0, cssVar("--gold-hi")); grad.addColorStop(1, cssVar("--bronze-deep"));
   g.strokeStyle = grad; g.lineWidth = 3; g.stroke();
 }
 
@@ -3412,12 +3738,31 @@ async function loopNow() {
   try { S = await api.get_state(); render(); } catch (_) {}
 }
 
+let loopFails = 0, lastRenderErr = "";
+const withTimeout = (pr, ms) => Promise.race([pr, new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), ms))]);
 async function loop() {
+  let ok = false;
   try {
-    S = await api.get_state();
-    if (!built) build();
-    render();
-  } catch (e) { console.error(e); try { api.log_js("loop: " + (e && (e.stack || e.message) || e)); } catch (_) {} }
+    S = await withTimeout(api.get_state(), 8000);
+    ok = true;
+  } catch (e) {
+    console.error(e);
+    // say it once per outage, and show it after a few seconds (a single slow answer is not an outage)
+    if (++loopFails === 1) { try { api.log_js("loop: " + (e && (e.stack || e.message) || e)); } catch (_) {} }
+    if (loopFails >= 3) $("#conn").classList.add("show");
+  }
+  if (ok) {
+    loopFails = 0;
+    $("#conn").classList.remove("show");
+    try {
+      if (!built) build();
+      render();
+    } catch (e) {
+      const msg = "render: " + (e && (e.stack || e.message) || e);
+      console.error(e);
+      if (msg !== lastRenderErr) { lastRenderErr = msg; try { api.log_js(msg); } catch (_) {} }
+    }
+  }
   setTimeout(loop, 1000);
 }
 
