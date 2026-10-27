@@ -369,6 +369,7 @@
   .slot .movers button.b { height: 16px; min-width: 18px; padding: 0 4px; font-size: 10px; }
   .slot[draggable="true"] { cursor: grab; }
   .slot.dragging { opacity: .45; }
+  .slot.drop { background: rgba(240,207,126,.08); box-shadow: inset 0 0 0 1px var(--gold-hi); }
   .addrow { display: flex; width: 100%; align-items: center; justify-content: center; gap: 5px; height: 22px; margin-top: 4px;
             font: 11px Tahoma, sans-serif; color: var(--dim); background: none; border: 1px dashed var(--knob-hi); border-radius: 3px; cursor: pointer; }
   .addrow svg { width: 12px; height: 12px; }
@@ -1265,7 +1266,7 @@ const I18N = {
     stopped: "parado", opening: "abrindo…", runningInfo: "PID {pid} · RAM {ram} · aberto há {up}", auto: "auto",
     optBars: "Avisar quando um personagem morrer ou ficar com HP/MP baixo (só com a janela do jogo não minimizada)",
     stInGame: "no jogo", stLoading: "conectado, fora do jogo", stDc: "DESCONECTADO", stOnline: "online {t}",
-    tipDrag: "Arraste para um monitor", dropHere: "Solte num monitor para levar a janela",
+    tipDrag: "Arraste para um monitor, ou para a linha de outra conta se este jogo for dela", dropHere: "Solte num monitor para levar a janela, ou na linha da conta certa para trocar",
     accountTip: "Conta: {login}{auto}", autoLoginTag: " (login automático)",
     external: "{n} cliente(s) fora dos slots: PID {pids}",
     hwidWarn: "O servidor permite até {n} clientes por HWID — o 5º slot deve ser recusado no login.",
@@ -1441,7 +1442,7 @@ const I18N = {
     stopped: "stopped", opening: "opening…", runningInfo: "PID {pid} · RAM {ram} · up {up}", auto: "auto",
     optBars: "Warn when a character dies or runs low on HP/MP (only while its game window is not minimized)",
     stInGame: "in game", stLoading: "connected, not in game", stDc: "DISCONNECTED", stOnline: "online {t}",
-    tipDrag: "Drag onto a monitor", dropHere: "Drop on a monitor to move the window",
+    tipDrag: "Drag onto a monitor, or onto another account’s row if this game is that account", dropHere: "Drop on a monitor to move the window, or on the right account’s row to swap",
     accountTip: "Account: {login}{auto}", autoLoginTag: " (auto login)",
     external: "{n} client(s) outside the slots: PID {pids}",
     hwidWarn: "The server allows up to {n} clients per HWID — the 5th slot will likely be refused at login.",
@@ -1617,7 +1618,7 @@ const I18N = {
     stopped: "gestoppt", opening: "startet…", runningInfo: "PID {pid} · RAM {ram} · läuft seit {up}", auto: "auto",
     optBars: "Warnen, wenn ein Charakter stirbt oder wenig HP/MP hat (nur wenn das Spielfenster nicht minimiert ist)",
     stInGame: "im Spiel", stLoading: "verbunden, nicht im Spiel", stDc: "GETRENNT", stOnline: "online {t}",
-    tipDrag: "Auf einen Monitor ziehen", dropHere: "Auf einen Monitor ziehen, um das Fenster zu verschieben",
+    tipDrag: "Auf einen Monitor ziehen, oder auf die Zeile eines anderen Kontos, wenn dieses Spiel zu ihm gehört", dropHere: "Auf einen Monitor ziehen, um das Fenster zu verschieben, oder auf die Zeile des richtigen Kontos zum Tauschen",
     accountTip: "Konto: {login}{auto}", autoLoginTag: " (Auto-Login)",
     external: "{n} Client(s) außerhalb der Slots: PID {pids}",
     hwidWarn: "Der Server erlaubt bis zu {n} Clients pro HWID — der 5. Slot wird beim Login wahrscheinlich abgelehnt.",
@@ -2068,6 +2069,18 @@ function buildSlots() {
       startDrag(e, i);
     };
     d.ondragend = endDrag;
+    // drop an open game on another account's row: that game is this account's (swap them)
+    d.ondragover = e => { if (dragSlot != null && dragSlot !== i) { e.preventDefault(); d.classList.add("drop"); } };
+    d.ondragleave = () => d.classList.remove("drop");
+    d.ondrop = async e => {
+      e.preventDefault();
+      d.classList.remove("drop");
+      const from = dragSlot;
+      endDrag();
+      if (from == null || from === i) return;
+      await api.swap_clients(from, i);
+      loopNow();
+    };
     const inp = d.querySelector("input");
     inp.value = s.name;
     inp.addEventListener("change", async () => { inp.value = await api.rename(i, inp.value); });
@@ -2176,7 +2189,7 @@ function startDrag(e, i) {
 function endDrag() {
   dragSlot = null;
   document.querySelectorAll(".slot.dragging").forEach(x => x.classList.remove("dragging"));
-  document.querySelectorAll(".mon.drop").forEach(x => x.classList.remove("drop"));
+  document.querySelectorAll(".mon.drop, .slot.drop").forEach(x => x.classList.remove("drop"));
   $("#monMap").classList.remove("dragon");
 }
 

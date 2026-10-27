@@ -949,15 +949,17 @@ def capture_rect(hwnd, x, y, w, h):
         user32.ReleaseDC(hwnd, src)
 
 
-def read_bars(hwnd):
-    """{"cp", "hp", "mp"} in percent, or None if the status window is not where expected
-    (moved, interface hidden, loading screen...)."""
+def capture_status(hwnd):
+    """(raw BGRX bytes, width, height) of the status window's bars area, or None."""
     px, py = status_window_pos()
     w, h = _BAR_X1 + 4, max(_BAR_GAPS) + 2
     raw = capture_rect(hwnd, px, py, w, h)
-    if not raw:
-        return None
+    return (raw, w, h) if raw else None
 
+
+def parse_bars(raw, w):
+    """{"cp", "hp", "mp"} in percent read from capture_status(), or None when the picture is not
+    clearly the status window (moved, interface hidden, loading screen, half drawn, covered...)."""
     def px_at(x, y):
         o = (y * w + x) * 4
         return raw[o + 2], raw[o + 1], raw[o]  # r, g, b
@@ -972,14 +974,54 @@ def read_bars(hwnd):
             return None
     out = {}
     for name, y in _BAR_ROWS.items():
-        last = _BAR_X0 - 1
+        filled, text = [], 0
         for x in range(_BAR_X0, _BAR_X1):
-            r, g, b = px_at(x, y)
-            filled = (r > b + 50) if name != "mp" else (b > r + 50)
-            if filled:
-                last = x
-        out[name] = round(100 * (last + 1 - _BAR_X0) / (_BAR_X1 - _BAR_X0))
+            r, g, bl = px_at(x, y)
+            if min(r, g, bl) > 0xB0:  # the white numbers drawn over the bar: neither full nor empty
+                filled.append(None)
+                text += 1
+                continue
+            filled.append((r > bl + 50) if name != "mp" else (bl > r + 50))
+        last = max((i for i, f in enumerate(filled) if f), default=-1)
+        if last >= 0:
+            # a bar fills from the left: before its end, (almost) everything that is not text is filled
+            span = [f for f in filled[:last + 1] if f is not None]
+            if span and sum(span) / len(span) < 0.8:
+                return None
+        out[name] = round(100 * (last + 1) / (_BAR_X1 - _BAR_X0))
+    if out["hp"] == 0:
+        # an empty HP bar is an even dark track at both ends (the numbers are in the middle)
+        ends = [px_at(x, _BAR_ROWS["hp"]) for x in list(range(_BAR_X0 + 3, _BAR_X0 + 31)) + list(range(_BAR_X1 - 31, _BAR_X1 - 3))]
+        ends = [c for c in ends if min(c) <= 0xB0]
+        lum = [0.3 * r + 0.59 * g + 0.11 * bl for r, g, bl in ends]
+        if len(ends) < 30 or max(lum) - min(lum) > 40:
+            return None
     return out
+
+
+def read_bars(hwnd):
+    cap = capture_status(hwnd)
+    return parse_bars(cap[0], cap[1]) if cap else None
+
+
+# names the panel gives a new slot (any language, older versions too): replaced by the login once there is one
+GENERIC_SLOT = re.compile(r"^\s*(account|conta|konto|slot)\s*\d+\s*$", re.I)
+
+
+def slot_name_from_login(data, i):
+    """A slot still called "Conta 4" / "Account 4" takes its account's login as name. True if renamed."""
+    login = ((data.get("accounts", {}).get(str(i)) or {}).get("login") or "").strip()
+    if login and i < len(data["slots"]) and GENERIC_SLOT.match(data["slots"][i]):
+        data["slots"][i] = login[:20]
+        return True
+    return False
+
+
+def save_bmp(path, raw, w, h):
+    """A 32-bit top-down BMP of BGRX bytes (no imaging library needed)."""
+    import struct
+    head = struct.pack("<IiiHHIIiiII", 40, w, -h, 1, 32, 0, len(raw), 2835, 2835, 0, 0)
+    path.write_bytes(b"BM" + struct.pack("<IHHI", 14 + 40 + len(raw), 0, 0, 54) + head + raw)
 
 
 WM_LBUTTONDOWN, WM_LBUTTONUP, MK_LBUTTON = 0x0201, 0x0202, 0x0001
@@ -2467,6 +2509,7 @@ class WarpMonitor(threading.Thread):
 class Api:
     def __init__(self):
         self._data = load_data()
+        renamed = any([slot_name_from_login(self._data, i) for i in range(len(self._data["slots"]))])
         self._lock = threading.RLock()
         self._slot_pid = [None] * len(self._data["slots"])
         self._slot_start = [None] * len(self._data["slots"])
@@ -2484,7 +2527,10 @@ class Api:
         self._spoil = None
         self._board_points = load_board_teleports(self._data.get("board_points"))
         self._side_open, self._side_shift = False, 0
+        if renamed:
+            self._save()
         self._bars, self._bars_at, self._bar_armed = {}, {}, {}
+        self._bar_hist, self._shown_at = {}, {}  # recent good readings; when a window came back on screen
         self._gone_slot = {}
         self._last_watch = {}
         self._event_live = {}           # event key -> {"state", "at", "start"} from the announcements
@@ -2542,45 +2588,89 @@ class Api:
 
     def _check_bars(self, watch):
         """Read CP/HP/MP of the clients in game (window not minimized) and warn once per event:
-        dead, HP low, MP low. The warning re-arms when the bar is back up."""
+        dead, HP low, MP low. The warning re-arms when the bar is back up.
+        A single picture can be wrong (a window half drawn while it is restored, or covered by
+        another one), so a warning needs the same reading several times in a row."""
         if not self._data.get("bar_alerts", True):
             return
         now = time.time()
         for i, pid in enumerate(self._slot_pid):
             st = watch.get(pid) if pid else None
             if not st or not st.get("inWorld"):
+                if pid:
+                    self._bar_hist.pop(pid, None)
+                continue
+            hwnd = self._windows.get(pid)
+            if not hwnd or user32.IsIconic(hwnd) or not user32.IsWindowVisible(hwnd):
+                # minimized: nothing to read. Start over when it comes back
+                self._shown_at.pop(pid, None)
+                self._bar_hist.pop(pid, None)
+                self._bars[pid] = st["bars"] = None
+                continue
+            if now - self._shown_at.setdefault(pid, now) < 5:
+                st["bars"] = None  # just restored: the first pictures can be half drawn
                 continue
             last = self._bars_at.get(pid, 0)
             if now - last < 1.5:
                 st["bars"] = self._bars.get(pid)
                 continue
             self._bars_at[pid] = now
-            hwnd = self._windows.get(pid)
-            bars = read_bars(hwnd) if hwnd else None
+            cap = capture_status(hwnd)
+            bars = parse_bars(cap[0], cap[1]) if cap else None
             self._bars[pid] = bars
             st["bars"] = bars
+            hist = self._bar_hist.setdefault(pid, deque(maxlen=4))
             if not bars:
+                hist.clear()
                 continue
+            hist.append((now, bars))
+            recent = list(hist)
             name = self._data["slots"][i]
             armed = self._bar_armed.setdefault(pid, {"dead": True, "hp": True, "mp": True})
-            if bars["hp"] == 0 and (bars["mp"] > 0 or bars["cp"] > 0):  # all three empty = not a real reading
+
+            def seen(cond, n, span=0.0):
+                """cond held in the last n readings, over at least span seconds."""
+                last_n = recent[-n:]
+                return len(last_n) == n and all(cond(x) for _, x in last_n) and last_n[-1][0] - last_n[0][0] >= span
+
+            def steady(key, n):
+                vals = [x[key] for _, x in recent[-n:]]
+                return max(vals) - min(vals) <= 2
+
+            dead = lambda x: x["hp"] == 0 and (x["mp"] > 0 or x["cp"] > 0)  # all three empty = not a real reading
+            if seen(dead, 3, 2.9) and steady("mp", 3) and steady("cp", 3):  # a dead character does not regenerate
                 if armed["dead"]:
                     armed["dead"] = False
                     self._alert("dead", slot=name)
                     self._flows.set(i, name, "f_dead", "fail")
+                    self._keep_bar_picture(name, cap, recent)
             elif bars["hp"] > 5:
                 armed["dead"] = True
             hp_low = self._data.get("hp_alert", 30)
-            if 0 < bars["hp"] < hp_low and armed["hp"]:
+            if seen(lambda x: 0 < x["hp"] < hp_low, 2) and armed["hp"]:
                 armed["hp"] = False
                 self._alert("hpLow", slot=name, pct=bars["hp"])
             elif bars["hp"] >= min(100, hp_low + 20):
                 armed["hp"] = True
-            if bars["mp"] < 10 and armed["mp"] and bars["hp"] > 0:
+            if seen(lambda x: x["mp"] < 10 and x["hp"] > 0, 2) and armed["mp"]:
                 armed["mp"] = False
                 self._alert("mpLow", slot=name, pct=bars["mp"])
             elif bars["mp"] >= 30:
                 armed["mp"] = True
+
+    @staticmethod
+    def _keep_bar_picture(slot, cap, recent):
+        """What was read when a death was announced: diag/dead_<slot>_<time>.bmp (the last 20 are kept)."""
+        try:
+            folder = APP_DIR / "diag"
+            folder.mkdir(exist_ok=True)
+            safe = re.sub(r"[^A-Za-z0-9_-]", "_", slot)[:24] or "slot"
+            save_bmp(folder / f"dead_{safe}_{time.strftime('%Y%m%d_%H%M%S')}.bmp", *cap)
+            for old in sorted(folder.glob("dead_*.bmp"))[:-20]:
+                old.unlink()
+            log_error("bars", f"death alert {slot}: " + ", ".join(f"{x['cp']}/{x['hp']}/{x['mp']}" for _, x in recent))
+        except OSError:
+            pass
 
     def _chat_hwnd(self):
         """A client in game whose window is not minimized (any one: announcements are global)."""
@@ -2635,12 +2725,49 @@ class Api:
         return self._windows.get(pid) if pid else None
 
     def _adopt_running(self):
-        for pid in list_l2_pids():
+        """Clients already open when the panel starts go back to their own slots: the slot saved for
+        that process (same pid and start time), else the slot named in its window title
+        ("Name - Lineage II", set by the panel), else the first free one."""
+        pids = list_l2_pids()
+        saved = self._data.get("running") or {}
+        wins = main_windows_by_pid()
+
+        def take(i, pid):
+            self._slot_pid[i] = pid
+            self._slot_start[i] = process_created(pid) or time.time()
+
+        left = []
+        for pid in pids:
+            created = process_created(pid)
+            slot = next((int(k) for k, v in saved.items()
+                         if v and v[0] == pid and created and v[1] and abs(v[1] - created) < 2), None)
+            if slot is not None and slot < len(self._slot_pid) and not self._slot_pid[slot]:
+                take(slot, pid)
+            else:
+                left.append(pid)
+        for pid in list(left):
+            title = window_title(wins[pid]) if wins.get(pid) else ""
+            if title.endswith(" - Lineage II"):
+                name = title[:-len(" - Lineage II")]
+                slot = next((i for i, n in enumerate(self._data["slots"]) if n == name and not self._slot_pid[i]), None)
+                if slot is not None:
+                    take(slot, pid)
+                    left.remove(pid)
+        for pid in left:
             free = next((i for i in range(len(self._slot_pid)) if not self._slot_pid[i]), None)
             if free is not None:
-                self._slot_pid[free] = pid
-                self._slot_start[free] = time.time()
-            self._known.add(pid)
+                take(free, pid)
+        self._known.update(pids)
+        self._remember_running()
+
+    def _remember_running(self):
+        """Which client process belongs to which slot, saved so that a restart of the panel
+        puts every open client back in its own slot. Written only when it changes."""
+        if self._slot_pid == getattr(self, "_running_saved", None):
+            return
+        self._running_saved = list(self._slot_pid)
+        self._data["running"] = {str(i): [p, process_created(p)] for i, p in enumerate(self._slot_pid) if p}
+        self._save()
 
     def _refresh_clients(self):
         pids = list_l2_pids()
@@ -2666,6 +2793,7 @@ class Api:
                 self._slot_start[match[0]] = now
                 bound.add(pid)
         self._known = alive
+        self._remember_running()
 
         mons = monitors()
         watch, dropped = self._watch.poll([p for p in self._slot_pid if p])
@@ -3269,6 +3397,19 @@ class Api:
             self._save()
             return True
 
+    def swap_clients(self, i, j):
+        """The open game of slot i really belongs to slot j (or the other way round): swap them.
+        Only the running clients move; names, logins and settings stay with their slots."""
+        i, j = int(i), int(j)
+        with self._lock:
+            n = len(self._slot_pid)
+            if i == j or not (0 <= i < n and 0 <= j < n) or any(q[0] in (i, j) for q in self._pending):
+                return False
+            for lst in (self._slot_pid, self._slot_start, self._had_window):
+                lst[i], lst[j] = lst[j], lst[i]
+            self._remember_running()
+            return True
+
     def remove_slot(self, i):
         """Remove an account slot (its client must be closed). Later slots move up, with their
         saved login and window position."""
@@ -3323,6 +3464,7 @@ class Api:
             if password:
                 acc["pwd"] = dpapi_encrypt(password)
             self._data["accounts"][key] = acc
+            slot_name_from_login(self._data, int(i))
             self._save()
         return self._account_info(int(i))
 
@@ -4365,7 +4507,30 @@ class _FlowApi:
         self._flows.close()
 
 
+def already_running():
+    """Is a panel already open on this data file? Then show that one (two panels would beep twice and
+    overwrite each other's settings). Copies with their own data file are allowed."""
+    import hashlib
+    name = r"Local\L2AxisControl_" + hashlib.md5(str(DATA_FILE.resolve()).lower().encode()).hexdigest()[:12]
+    kernel32 = ctypes.windll.kernel32
+    kernel32.CreateMutexW.restype = wintypes.HANDLE
+    handle = kernel32.CreateMutexW(None, False, name)
+    err = kernel32.GetLastError()
+    if handle and err != 183:  # ERROR_ALREADY_EXISTS
+        already_running.handle = handle  # held for as long as this panel runs
+        return False
+    if err not in (183, 5):  # 5: the open panel runs as administrator and this one does not
+        return False
+    hwnd = user32.FindWindowW(None, "L2Axis Control")
+    if hwnd:
+        user32.ShowWindow(hwnd, 9)  # SW_RESTORE
+        user32.SetForegroundWindow(hwnd)
+    return True
+
+
 def main():
+    if already_running():
+        return
     try:
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(APP_ID)
     except (AttributeError, OSError):
