@@ -2750,6 +2750,10 @@ class Api:
             if title.endswith(" - Lineage II"):
                 name = title[:-len(" - Lineage II")]
                 slot = next((i for i, n in enumerate(self._data["slots"]) if n == name and not self._slot_pid[i]), None)
+                generic = GENERIC_SLOT.match(name)
+                if slot is None and generic:  # titled "Conta 4" before the slot took its login as name
+                    k = int(re.search(r"\d+", name).group()) - 1
+                    slot = k if 0 <= k < len(self._slot_pid) and not self._slot_pid[k] else None
                 if slot is not None:
                     take(slot, pid)
                     left.remove(pid)
