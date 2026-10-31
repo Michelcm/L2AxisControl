@@ -15,6 +15,7 @@ import operator
 import re
 import os
 import socket
+import shutil
 import struct
 import subprocess
 import threading
@@ -1104,6 +1105,71 @@ def l2_decrypt413(path):
         pos = 128 - size - ((124 - size) % 4)
         out += m[pos:pos + size]
     return zlib.decompress(bytes(out[4:]))
+
+
+# the private half of the same "modified" key: lets the panel write a .dat the client accepts
+_L2_PRIV = int("30b4c2d798d47086145c75063c8e841e719776e400291d7838d3e6c4405b504c6a07f8fca27f32b86643d2649d1d5f124cdd0bf272f0909dd7352fe10a77b34d831043d9ae541f8263c6fe3d1c14c2f04e43a7253a6dda9a8c1562cbd493c1b631a1957618ad5dfe5ca28553f746e2fc6f2db816c7db223ec91e955081c1de65", 16)
+
+
+def zlib_error():
+    import zlib
+    return zlib.error
+
+
+def l2_encrypt413(data):
+    """The reverse of l2_decrypt413: header, RSA blocks of up to 124 bytes, then a CRC32 footer."""
+    import zlib
+    payload = struct.pack("<I", len(data)) + zlib.compress(data, 9)
+    out = bytearray("Lineage2Ver413".encode("utf-16-le"))
+    for i in range(0, len(payload), 124):
+        chunk = payload[i:i + 124]
+        block = bytearray(128)
+        block[3] = len(chunk)
+        pos = 128 - len(chunk) - ((124 - len(chunk)) % 4)
+        block[pos:pos + len(chunk)] = chunk
+        out += pow(int.from_bytes(block, "big"), _L2_PRIV, _L2_MOD).to_bytes(128, "big")
+    out += b"\0" * 12 + struct.pack("<I", zlib.crc32(out) & 0xFFFFFFFF) + b"\0" * 4
+    return bytes(out)
+
+
+# Chat colours of the game: kinds of system message, the messages of each kind (ids in
+# systemmsg-e.dat) and a suggested colour that tells them apart at a glance.
+CHAT_KINDS = [
+    ("crit", "#FF8C2E", [44, 1280, 2266, 1017, 1028, 361], "Player landed a critical hit!"),
+    ("dmgOut", "#7EE36A", [35, 2261, 1015, 1026], "Player has done 2354 points of damage to Lilim Assassin."),
+    ("dmgIn", "#FF5A5A", [36, 37, 2262, 2263, 2281, 1016, 1027, 296, 297, 333, 686, 812, 2787],
+     "Player has received 412 damage from Lilim Assassin."),
+    ("miss", "#8E9AAB", [43, 2264, 2265, 139, 156, 157, 159, 2267, 2280, 111], "Lilim Assassin has evaded Player's attack."),
+    ("skill", "#E6E6E6", [46], "You use Stun Attack."),
+    ("adena", "#FFD84A", [28, 52, 1023, 1375, 1379], "You have obtained 1234 adena."),
+    ("item", "#4FE0C0", [29, 30, 299, 300, 369, 371, 376, 3073], "You have obtained Mold Glue."),
+    ("spoil", "#C792FF", [608, 609, 612], "Player has obtained 2 Animal Bone by using sweeper."),
+    ("exp", "#8FB4FF", [45, 95, 331, 1014], "You have earned 54321 experience and 3210 SP."),
+    ("buffOn", "#9EE0FF", [110], "Wind Walk's effect can be felt."),
+    ("buffOff", "#FF9EC7", [92, 749], "Haste has worn off."),
+    ("heal", "#7FD3FF", [1066, 1067, 1068, 1069], "1520 HP has been restored."),
+]
+SYSMSG = GAME_DIR / "systemmsg-e.dat"
+SYSMSG_BACKUP = GAME_DIR / "systemmsg-e.dat.l2axis"   # the file as it was before the panel's first change
+
+
+def sysmsg_colors(data):
+    """message id -> offset of its colour (4 bytes, B G R A) in the decrypted systemmsg-e.dat."""
+    r = _DatReader(data)
+    out = {}
+    for _ in range(r.u32()):
+        mid = r.u32()
+        r.u32()
+        r.ascf()          # the message
+        r.u32()           # group
+        out.setdefault(mid, r.p)
+        r.p += 4          # colour
+        r.ascf(), r.ascf()  # sound, voice
+        r.p += 20         # window, font, time, background, animation
+        r.ascf(), r.ascf()  # screen message, type
+    if data[r.p:r.p + 12] != b"\x0cSafePackage":
+        raise ValueError("unexpected systemmsg layout")
+    return out
 
 
 class _DatReader:
@@ -3400,6 +3466,75 @@ class Api:
             self._had_window.append(False)
             self._save()
             return True
+
+    # -------------------------------------------------- game chat colours
+    def chat_colors(self):
+        """Colour of each kind of message in the game's chat now, the suggestion, and whether the
+        file from before the panel's changes is kept."""
+        try:
+            data = l2_decrypt413(SYSMSG)
+            offs = sysmsg_colors(data)
+        except (OSError, ValueError, zlib_error()):
+            return {"ok": False}
+        cats = []
+        for key, suggest, ids, sample in CHAT_KINDS:
+            o = next((offs[i] for i in ids if i in offs), None)
+            if o is None:
+                continue
+            b, g, r = data[o], data[o + 1], data[o + 2]
+            cats.append({"key": key, "color": f"#{r:02X}{g:02X}{b:02X}", "suggest": suggest, "sample": sample})
+        return {"ok": True, "cats": cats, "backup": SYSMSG_BACKUP.exists()}
+
+    def apply_chat_colors(self, colors):
+        """Write the chosen colours into the game's message file. A copy of the file as it was
+        before the panel's first change is kept, and the new file is read back before it replaces
+        the old one. The game shows the new colours the next time it starts."""
+        wanted = {k: v for k, v in (colors or {}).items() if isinstance(v, str) and re.fullmatch(r"#[0-9A-Fa-f]{6}", v)}
+        try:
+            data = bytearray(l2_decrypt413(SYSMSG))
+            offs = sysmsg_colors(bytes(data))
+            changed = 0
+            for key, _suggest, ids, _sample in CHAT_KINDS:
+                if key not in wanted:
+                    continue
+                r, g, b = (int(wanted[key][k:k + 2], 16) for k in (1, 3, 5))
+                for i in ids:
+                    if i in offs:
+                        data[offs[i]:offs[i] + 4] = bytes((b, g, r, 0xFF))
+                        changed += 1
+            blob = l2_encrypt413(bytes(data))
+            tmp = SYSMSG.with_suffix(".dat.tmp")
+            tmp.write_bytes(blob)
+            if l2_decrypt413(tmp) != bytes(data):  # never put a file the game could not read
+                tmp.unlink()
+                return {"ok": False, "error": "verify"}
+            if not SYSMSG_BACKUP.exists():
+                shutil.copy2(SYSMSG, SYSMSG_BACKUP)
+            os.replace(tmp, SYSMSG)
+        except PermissionError:
+            return {"ok": False, "error": "locked"}
+        except (OSError, ValueError, zlib_error()) as exc:
+            log_error("chat colours", repr(exc))
+            return {"ok": False, "error": "other"}
+        with self._lock:
+            self._data["chat_colors"] = wanted
+            self._save()
+        return {"ok": True, "changed": changed}
+
+    def restore_chat_colors(self):
+        """Put back the message file as it was before the panel changed it."""
+        if not SYSMSG_BACKUP.exists():
+            return {"ok": False, "error": "nobackup"}
+        try:
+            shutil.copy2(SYSMSG_BACKUP, SYSMSG)
+        except PermissionError:
+            return {"ok": False, "error": "locked"}
+        except OSError:
+            return {"ok": False, "error": "other"}
+        with self._lock:
+            self._data.pop("chat_colors", None)
+            self._save()
+        return {"ok": True}
 
     def swap_clients(self, i, j):
         """The open game of slot i really belongs to slot j (or the other way round): swap them.
