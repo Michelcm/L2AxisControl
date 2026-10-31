@@ -224,7 +224,21 @@ A aba **Spoil** é para quem faz spoil (Bounty Hunter / Fortune Seeker):
 - **🗺** abre o mapa lateral com os pontos de spawn (◆ verde) de todos os mobs que dão aquele item, e o caminho mais
   rápido até o escolhido. Clique em outro ponto ou em outro mob à esquerda para trocar.
 
-As chances são as oficiais do High Five; no L2Axis drop, spoil e adena são x8, e o servidor tem mobs próprios (como os do Fafurion Temple) que não estão nessa lista. Use os números para comparar os mobs entre si.
+As chances vêm do High Five oficial e são corrigidas pelo que você olha no próprio servidor:
+
+- No jogo, **Alt+B > Database** mostra as listas reais do L2Axis (busca por item ou por mob). Com o painel aberto,
+  **cada página que você abrir ali fica guardada** no painel, sem nenhum clique a mais. O painel nunca abre página
+  nem faz busca sozinho: os dados crescem com o que você consulta enquanto joga.
+- Na aba Spoil, o que veio do servidor tem **✓** e substitui a chance do High Five daquele mob. Mobs que só existem
+  no L2Axis aparecem como *só no L2Axis* (sem 🗺, porque o painel não sabe onde nascem).
+- As listas do Database têm várias páginas. Enquanto faltar alguma, o item avisa *parte da lista do servidor*; quando
+  todas forem vistas (ou baterem com o total da busca por item), a lista do servidor substitui a do High Five.
+- Por mob, o card do Database também mostra se o mob é **agressivo**, HP e defesas.
+- No rodapé da aba ficam quantos itens já foram conferidos e as **mudanças** que o painel viu (chance que mudou, mob
+  que entrou ou saiu de uma lista).
+- A aba **Craft > Fontes** mostra o drop e o spoil do servidor antes dos dados do High Five.
+
+No L2Axis drop, spoil e adena são x8.
 
 ## 10. Atualizar para uma versão nova
 

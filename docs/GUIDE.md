@@ -222,7 +222,21 @@ The **Spoil** tab is for spoilers (Bounty Hunters / Fortune Seekers):
 - **🗺** opens the side map with the spawn spots (green ◆) of every monster that gives that item, and the fastest way
   to the chosen one. Click another spot or another monster on the left to change.
 
-The chances are the official High Five ones; on L2Axis drop, spoil and adena are x8, and the server has monsters of its own (such as those in Fafurion Temple) that are not in this list. Treat the numbers as a comparison between monsters.
+The chances come from the official High Five data and are corrected by what you look at on the server itself:
+
+- In game, **Alt+B > Database** shows the real L2Axis lists (search by item or by monster). With the panel open,
+  **every page you open there is kept** by the panel, with no extra click. The panel never opens a page or searches by
+  itself: the data grows with what you look up while playing.
+- In the Spoil tab, what came from the server has a **✓** and replaces the High Five chance for that monster. Monsters
+  that exist only on L2Axis show as *L2Axis only* (no 🗺: the panel does not know where they spawn).
+- Database lists have several pages. While some are missing, the item says *part of the server list*; once every
+  page has been seen (or the rows match the item search totals), the server list replaces the High Five one.
+- By monster, the Database card also tells whether the monster is **aggressive**, its HP and defences.
+- The bottom of the tab shows how many items were checked and the **changes** the panel saw (a chance that changed,
+  a monster that joined or left a list).
+- **Craft > Sources** shows the server's drop and spoil lists before the High Five data.
+
+On L2Axis drop, spoil and adena are x8.
 
 ## 10. Updating to a new version
 

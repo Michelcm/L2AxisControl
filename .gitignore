@@ -18,3 +18,7 @@ prints_gm/
 # python
 __pycache__/
 *.pyc
+
+# what the panel keeps from the Alt+B Database (tools/publish_server_db.py puts it in data/)
+server_db.json
+server_db.tmp

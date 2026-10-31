@@ -2456,13 +2456,366 @@ def clear_board_file():
         pass
 
 
-class BoardWatcher(threading.Thread):
-    """Read bd.ini whenever the game writes a new Alt+B page and hand over the bosses."""
+# ---------------------------------------------------------------- L2Axis Database (Alt+B > Database)
+# The server's own drop and spoil lists. The game writes every Alt+B page to bd.ini; when the player
+# opens a Database page there, the panel keeps what the page shows. The panel never opens a page or
+# sends a search by itself: the data grows only with what the player looks at while playing.
+SERVER_DB_FILE = APP_DIR / "server_db.json"              # what this player has seen (local)
+SERVER_DB_SHIPPED = APP_DIR / "data" / "l2axis_db.json"  # what comes with the panel (tools/publish_server_db.py)
+_SRV_LABELS = {"spawned count": "spawned", "minions": "minions", "exp reward": "exp", "max hp": "hp", "max mp": "mp",
+               "p atk": "pAtk", "m atk": "mAtk", "p def": "pDef", "m def": "mDef", "attack speed": "atkSpd",
+               "casting speed": "castSpd", "run speed": "speed"}
+# a card without labels: the last ten numbers are always these
+_SRV_ORDER = ("exp", "hp", "mp", "pAtk", "mAtk", "pDef", "mDef", "atkSpd", "castSpd", "speed")
 
-    def __init__(self, on_rows, on_teleports=None):
+
+def board_join(text):
+    """bd.ini keeps a page in parts (101=, 102=, ...) that can cut a word in two: the page in one piece."""
+    return re.sub(r"\r?\n(\d{3})=\1\x08", "", text)
+
+
+def _board_tokens(text):
+    """The page as a list of ("btn", command, label), ("img", source, "") and ("txt", text, "")."""
+    import html as _html
+    out = []
+    for m in re.finditer(r'<[^<>]*?action="bypass(?: -h)? ([^"]+)"[^<>]*>|<img src="([^"]+)"[^<>]*>|>([^<>]+)(?=<)', text):
+        if m.group(1):
+            label = re.search(r'value\s*=\s*"([^"]*)"', m.group(0))
+            out.append(("btn", m.group(1).strip(), label.group(1).strip() if label else ""))
+        elif m.group(2):
+            out.append(("img", m.group(2), ""))
+        else:
+            w = _html.unescape(m.group(3)).strip()
+            if w and w != "null":
+                out.append(("txt", w, ""))
+    return out
+
+
+def _srv_num(s):
+    try:
+        v = float(str(s).replace(",", "").rstrip("%"))
+    except ValueError:
+        return None
+    return int(v) if v == int(v) else v
+
+
+def _srv_int(s):
+    return int(s) if re.fullmatch(r"\d{1,9}", s or "") else None
+
+
+def parse_board_database(text):
+    """What a Database page of the Alt+B shows, or None for any other page:
+      {"item": id, "page": n, "more": bool, "rows": [{npc, name, level, kind, min, max, chance}]}   who gives an item
+      {"mobs": [{npc, name, level, aggro, drops, spoils}]}                                           a monster search
+      {"items": [{id, name, icon, drops, spoils}]}                                                    an item search
+      {"mob": {npc, name, level, (aggro, drops, spoils), stats}}                                      a monster's card
+    Only what describes the game is kept, never anything about the player."""
+    if "_bbsdrop" not in text:
+        return None
+    toks = _board_tokens(board_join(text))
+    out, cur = {}, []
+    item_rows, mob_rows, item_hits, links = [], [], [], []
+    card_id = None
+    for n, (kind, a, label) in enumerate(toks):
+        if kind != "btn":
+            cur.append((kind, a))
+            continue
+        txt = [x for k, x in cur if k == "txt"]
+        m = re.fullmatch(r"_bbsdropMonsterDetailsByItem_(\d+)", a)
+        if m and len(txt) >= 5:
+            name, lv, kd, rng, ch = txt[-5:]
+            r = re.fullmatch(r"\[([\d.,]+)\s*\.\.\.\s*([\d.,]+)\]", rng)
+            if _srv_int(lv) is not None and kd.lower() in ("drop", "spoil") and r and re.fullmatch(r"[\d.,]+%", ch):
+                item_rows.append({"npc": int(m.group(1)), "name": name, "level": int(lv), "kind": kd.lower(),
+                                  "min": _srv_num(r.group(1)), "max": _srv_num(r.group(2)), "chance": _srv_num(ch)})
+            cur = []
+            continue
+        m = re.fullmatch(r"_bbsdropMonsterDetailsByName_(\d+)", a)
+        if m and len(txt) >= 5:
+            name, lv, ag, dr, sp = txt[-5:]
+            if _srv_int(lv) is not None and ag.lower() in ("yes", "no") and _srv_int(dr) is not None and _srv_int(sp) is not None:
+                mob_rows.append({"npc": int(m.group(1)), "name": name, "level": int(lv), "aggro": ag.lower() == "yes",
+                                 "drops": int(dr), "spoils": int(sp)})
+            cur = []
+            continue
+        m = re.fullmatch(r"_bbsdropMonstersByItem_(\d+)", a)
+        if m:
+            imgs = [i for i, (k, _x) in enumerate(cur) if k == "img"]
+            after = [x for k, x in cur[imgs[-1] + 1:]] if imgs else txt
+            if len(after) in (3, 4) and _srv_int(after[-2]) is not None and _srv_int(after[-1]) is not None:
+                item_hits.append({"id": int(m.group(1)), "name": after[0], "icon": cur[imgs[-1]][1] if imgs else None,
+                                  "drops": int(after[-2]), "spoils": int(after[-1])})
+            cur = []
+            continue
+        m = re.fullmatch(r"_bbsdropMonstersByItem_(\d+)_(\d+)", a)
+        if m:
+            links.append((len(item_rows), int(m.group(1)), int(m.group(2)), label.lower()))
+            continue
+        m = re.fullmatch(r"_bbsdropMonsterDetailsBy(?:Name|Item)_(\d+)_[123]", a)
+        if m and card_id is None:
+            card_id = int(m.group(1))
+            out["mob"] = _parse_board_card(toks[:n], card_id)
+    if item_rows:
+        ids = {i for _r, i, _p, _l in links}
+        if len(ids) == 1:
+            nav = [(p, lab) for r, _i, p, lab in links if r == len(item_rows)]  # after the last row
+            nxt = [p for p, lab in nav if lab.startswith("next") or lab.startswith(">")]
+            prv = [p for p, lab in nav if not (lab.startswith("next") or lab.startswith(">"))]
+            head = [p for r, _i, p, _l in links if r == 0]
+            page = nxt[0] - 1 if nxt else prv[0] + 1 if prv else (max(set(head), key=head.count) if head else 1)
+            out.update(item=ids.pop(), page=max(1, page), more=bool(nxt), rows=item_rows)
+    if mob_rows:
+        out["mobs"] = mob_rows
+    if item_hits:
+        out["items"] = item_hits
+    if out.get("mob") is None:
+        out.pop("mob", None)
+    return out or None
+
+
+def _parse_board_card(toks, npc):
+    """A monster's card (the tokens before its Drop / Spoil buttons)."""
+    crest = next((i for i, (k, x, _l) in enumerate(toks) if k == "img" and x.lower().startswith("crest.")), None)
+    if crest is None:
+        return None
+    head = [x for k, x, _l in toks[:crest] if k == "txt"]
+    if len(head) < 4:
+        return None
+    mob = {"npc": npc}
+    if len(head) >= 5 and head[-3].lower() in ("yes", "no") and _srv_int(head[-4]) is not None:
+        name, lv, ag, dr, sp = head[-5:]
+        if _srv_int(dr) is None or _srv_int(sp) is None:
+            return None
+        mob.update(name=name, level=int(lv), aggro=ag.lower() == "yes", drops=int(dr), spoils=int(sp))
+    elif _srv_int(head[-3]) is not None:  # opened from an item: name, level, its drop %, its spoil %
+        mob.update(name=head[-4], level=int(head[-3]))
+    else:
+        return None
+    body = [x for k, x, _l in toks[crest + 1:] if k == "txt"]
+    stats = {}
+    for i, w in enumerate(body[:-1]):
+        key = _SRV_LABELS.get(w.rstrip(":").strip().lower())
+        if key and w.endswith(":") and _srv_num(body[i + 1]) is not None:
+            stats.setdefault(key, _srv_num(body[i + 1]))
+    if len(stats) < len(_SRV_ORDER):
+        nums = []
+        for w in body:
+            v = _srv_num(w)
+            if v is None:
+                break
+            nums.append(v)
+        if len(nums) >= len(_SRV_ORDER) + 1:
+            stats = dict(zip(_SRV_ORDER, nums[-len(_SRV_ORDER):]))
+            stats["spawned"] = nums[0]
+    if stats:
+        mob["stats"] = stats
+    return mob
+
+
+class ServerDB:
+    """The L2Axis Database as the player has seen it, and what changed in it over time.
+    items: {id: {name, icon, drops, spoils, seen, pages: {n: when}, last, rows: {"npc:kind": {chance, min, max, seen}}}}
+    mobs:  {id: {name, level, aggro, drops, spoils, stats, seen}}
+    log:   [{at, item, npc, kind, was, now}] (a value changed, a monster left or joined a complete list)"""
+    LOG_MAX = 400
+
+    def __init__(self, path=None, shipped=None):
+        self.path = path or SERVER_DB_FILE
+        self.lock = threading.Lock()
+        self.version = 0
+        self.db = self._read(self.path)
+        extra = self._read(shipped or SERVER_DB_SHIPPED)
+        if extra["items"] or extra["mobs"]:
+            merge_server_db(self.db, extra)
+
+    @staticmethod
+    def _read(path):
+        try:
+            d = json.loads(Path(path).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            d = {}
+        return {"items": d.get("items") or {}, "mobs": d.get("mobs") or {}, "log": d.get("log") or []}
+
+    def save(self):
+        try:
+            tmp = self.path.with_suffix(".tmp")
+            tmp.write_text(json.dumps(self.db, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+            os.replace(tmp, self.path)
+        except OSError:
+            log_error("server_db", traceback.format_exc())
+
+    def add(self, page, now=None):
+        """Keep what a Database page showed."""
+        now = int(now or time.time())
+        with self.lock:
+            if "item" in page:
+                self._item_page(page, now)
+            for m in page.get("mobs", []):
+                self._mob(m, now)
+            if page.get("mob"):
+                self._mob(page["mob"], now)
+            for it in page.get("items", []):
+                info = self.db["items"].setdefault(str(it["id"]), {})
+                info.update(name=it["name"], drops=it["drops"], spoils=it["spoils"], seen=now)
+                if it.get("icon"):
+                    info["icon"] = it["icon"]
+            self.version += 1
+            self.save()
+
+    def _item_page(self, page, now):
+        iid = str(page["item"])
+        it = self.db["items"].setdefault(iid, {})
+        was_complete = server_db_complete(it)
+        rows = it.setdefault("rows", {})
+        it.setdefault("pages", {})[str(page["page"])] = now
+        if page["more"]:
+            if it.get("last", 0) and it["last"] <= page["page"]:
+                it.pop("last")  # the list grew
+        else:
+            it["last"] = page["page"]
+        seen_here = {}
+        for r in page["rows"]:
+            base = f'{r["npc"]}:{r["kind"]}'
+            seen_here[base] = seen_here.get(base, 0) + 1
+            key = base if seen_here[base] == 1 else f"{base}#{seen_here[base]}"
+            new = {"chance": r["chance"], "min": r["min"], "max": r["max"]}
+            old = rows.get(key)
+            if old and any(old.get(k) != v for k, v in new.items()):
+                self._log(now, iid, r["npc"], r["kind"], old, new)
+            elif not old and was_complete:
+                self._log(now, iid, r["npc"], r["kind"], None, new)
+            rows[key] = {**new, "seen": now}
+            mob = self.db["mobs"].setdefault(str(r["npc"]), {})
+            mob.setdefault("name", r["name"])
+            mob["level"] = r["level"]
+            mob.setdefault("seen", now)
+        if page["page"] == 1 and not page["more"]:
+            gone = [k for k, r in rows.items() if r["seen"] < now]  # the whole list was on screen
+        else:
+            gone = server_db_stale(it)
+        for key in gone:
+            npc, kind = key.split("#")[0].split(":")
+            self._log(now, iid, int(npc), kind, rows.pop(key), None)
+
+    def _mob(self, m, now):
+        mob = self.db["mobs"].setdefault(str(m["npc"]), {})
+        for k in ("name", "level", "aggro", "drops", "spoils"):
+            if m.get(k) is not None:
+                mob[k] = m[k]
+        if m.get("stats"):
+            mob["stats"] = {**mob.get("stats", {}), **m["stats"]}
+        mob["seen"] = now
+
+    def _log(self, now, iid, npc, kind, was, new):
+        strip = lambda r: {k: r[k] for k in ("chance", "min", "max")} if r else None
+        self.db["log"].append({"at": now, "item": int(iid), "npc": int(npc), "kind": kind, "was": strip(was), "now": strip(new)})
+        del self.db["log"][:-self.LOG_MAX]
+
+    # -------------------------------------------------- views
+    def item_rows(self, iid):
+        """[(npc id, kind, row)] of an item, best chance first, and its list info."""
+        it = self.db["items"].get(str(iid))
+        if not it:
+            return [], None
+        rows = [(int(k.split(":")[0]), k.split("#")[0].split(":")[1], r) for k, r in it.get("rows", {}).items()]
+        rows.sort(key=lambda x: -x[2]["chance"])
+        info = {"seen": max([r["seen"] for _n, _k, r in rows] + [it.get("seen", 0)]) or None,
+                "complete": server_db_complete(it), "pages": len(it.get("pages", {})), "last": it.get("last"),
+                "completeSpoil": server_db_complete(it, "spoil"), "completeDrop": server_db_complete(it, "drop"),
+                "drops": it.get("drops"), "spoils": it.get("spoils")}
+        return rows, info
+
+    def summary(self):
+        items = [it for it in self.db["items"].values() if it.get("rows")]
+        return {"items": len(items), "complete": sum(1 for it in items if server_db_complete(it)),
+                "mobs": len(self.db["mobs"]), "rows": sum(len(it["rows"]) for it in items),
+                "seen": max([r["seen"] for it in items for r in it["rows"].values()] + [0]) or None,
+                "log": self.db["log"][-30:]}
+
+
+def server_db_cutoff(it):
+    """When every page of an item's list has been seen since: the moment of the oldest of those views.
+    None while the last page is unknown or a page is missing."""
+    last, pages = it.get("last"), it.get("pages", {})
+    if not last:
+        return None
+    seen = [pages.get(str(p)) for p in range(1, last + 1)]
+    return None if None in seen else min(seen)
+
+
+def _kind_counts(it):
+    out = {"drop": 0, "spoil": 0}
+    for k in it.get("rows", {}):
+        out[k.split("#")[0].split(":")[1]] += 1
+    return out
+
+
+def server_db_complete(it, kind=None):
+    """Is the whole list (or its drop / spoil part) known? With the totals of the item search
+    ("Number of Drop / Spoil Lists") the rows are counted; without them every page must have been seen."""
+    if it.get("drops") is not None and it.get("spoils") is not None:
+        have = _kind_counts(it)
+        kinds = [kind] if kind else ["drop", "spoil"]
+        return all(have[k] >= it[k + "s"] for k in kinds)
+    return server_db_cutoff(it) is not None
+
+
+def server_db_stale(it):
+    """Rows no longer on a list of several pages: only when every page was seen after them and there
+    are more rows than the item search counts (a page alone can be in a different order next time)."""
+    cut = server_db_cutoff(it)
+    if not cut or it.get("drops") is None or it.get("spoils") is None:
+        return []
+    out = []
+    for kind in ("drop", "spoil"):
+        mine = [(r["seen"], k) for k, r in it.get("rows", {}).items() if k.split("#")[0].endswith(":" + kind)]
+        fresh = sum(1 for seen, _k in mine if seen >= cut)
+        if fresh == it[kind + "s"]:  # the last full look found exactly what the search counts
+            out += [k for seen, k in mine if seen < cut]
+    return out
+
+
+def merge_server_db(dst, src, src_wins_ties=False):
+    """Put what `src` knows into `dst`; for each row, monster and item the newer view wins
+    (on the same time `dst` keeps its own, unless src_wins_ties)."""
+    newer = (lambda a, b: a >= b) if src_wins_ties else (lambda a, b: a > b)
+    for iid, s in src.get("items", {}).items():
+        d = dst["items"].setdefault(iid, {})
+        if newer(s.get("seen", 0), d.get("seen", 0)):
+            for k in ("name", "icon", "drops", "spoils", "seen"):
+                if k in s:
+                    d[k] = s[k]
+        sp, dp = s.get("pages", {}), d.setdefault("pages", {})
+        if s.get("last") and newer(max(sp.values() or [0]), max(dp.values() or [0])):
+            d["last"] = s["last"]
+        for p, when in sp.items():
+            dp[p] = max(when, dp.get(p, 0))
+        rows = d.setdefault("rows", {})
+        for k, r in s.get("rows", {}).items():
+            if newer(r["seen"], rows.get(k, {}).get("seen", -1)):
+                rows[k] = dict(r)
+        for k in server_db_stale(d):
+            rows.pop(k)
+    for mid, s in src.get("mobs", {}).items():
+        d = dst["mobs"].get(mid)
+        if d is None or newer(s.get("seen", 0), d.get("seen", 0)):
+            dst["mobs"][mid] = {**(d or {}), **s, "stats": {**(d or {}).get("stats", {}), **s.get("stats", {})}}
+            if not dst["mobs"][mid]["stats"]:
+                dst["mobs"][mid].pop("stats")
+    seen = {(e["at"], e["item"], e["npc"], e["kind"]) for e in dst["log"]}
+    dst["log"] = sorted(dst["log"] + [e for e in src.get("log", []) if (e["at"], e["item"], e["npc"], e["kind"]) not in seen],
+                        key=lambda e: e["at"])[-ServerDB.LOG_MAX:]
+
+
+class BoardWatcher(threading.Thread):
+    """Read bd.ini whenever the game writes a new Alt+B page and hand over what it shows
+    (bosses, teleports, Database pages)."""
+
+    def __init__(self, on_rows, on_teleports=None, on_database=None):
         super().__init__(daemon=True)
         self.on_rows = on_rows
         self.on_teleports = on_teleports
+        self.on_database = on_database
         self.last_read = None
 
     def run(self):
@@ -2482,7 +2835,7 @@ class BoardWatcher(threading.Thread):
         time.sleep(0.3)  # the game writes parts 101/102/103 in sequence
         mtime = BOARD_FILE.stat().st_mtime
         raw = BOARD_FILE.read_bytes()
-        text = raw.decode("utf-16le" if raw[:2] == b"\xff\xfe" else "utf-8", errors="replace")
+        text = board_join(raw.decode("utf-16le" if raw[:2] == b"\xff\xfe" else "utf-8", errors="replace"))
         rows = parse_board(text)
         details = parse_board_details(text)
         if rows or details:
@@ -2495,6 +2848,13 @@ class BoardWatcher(threading.Thread):
             pts = parse_board_teleports(text)
             if pts:
                 self.on_teleports(pts)
+        elif "_bbsdrop" in text and self.on_database:
+            try:
+                page = parse_board_database(text)
+                if page:
+                    self.on_database(page)
+            except Exception:  # a page laid out differently: keep going, the file is still cleared
+                log_error("server_db", traceback.format_exc())
         # clear it so old pages do not pile up (only if the game has not written again)
         if BOARD_FILE.stat().st_mtime == mtime and len(raw) > 64:
             BOARD_FILE.write_bytes(b"[B]\r\n")
@@ -2590,7 +2950,9 @@ class Api:
         self._worldmap = WorldMap()
         self._map_db = _load_map_db()
         self._zones = None
-        self._spoil = None
+        self._spoil = self._spoil_h5 = None
+        self._spoil_ver = -1
+        self._srv = ServerDB()  # the server's Alt+B Database, as far as the player has looked at it
         self._board_points = load_board_teleports(self._data.get("board_points"))
         self._side_open, self._side_shift = False, 0
         if renamed:
@@ -2642,7 +3004,7 @@ class Api:
             except Exception:
                 in_client = None
             self._recipes.add_accessory_entries(self._items, in_client)
-        self._board = BoardWatcher(self._on_board_rows, self._on_board_teleports)
+        self._board = BoardWatcher(self._on_board_rows, self._on_board_teleports, self._srv.add)
         self._board.start()
         self._adopt_running()
 
@@ -3077,20 +3439,98 @@ class Api:
         self._events_seen = time.time()
 
     def spoil_db(self):
-        """Monsters that can be spoiled, what they give and where they spawn (data/spoil_db.json)."""
-        if self._spoil is None:
+        """Monsters that can be spoiled, what they give and where they spawn: the official lists
+        (data/spoil_db.json) with what the player has seen in the server's Alt+B Database on top."""
+        with self._lock:
+            if self._spoil is not None and self._spoil_ver == self._srv.version:
+                return self._spoil
+            if self._spoil_h5 is None:
+                try:
+                    base = json.loads((APP_DIR / "data" / "spoil_db.json").read_text(encoding="utf-8"))
+                    for m in base.get("mobs", {}).values():
+                        for sp in m.get("spots", []):
+                            fl = tower_floor(sp[0], sp[1], sp[2])
+                            if fl:
+                                m["floor"] = fl
+                        self._move_spots_to_entrances(m)
+                except (OSError, ValueError):
+                    base = {"mobs": {}, "items": {}}
+                self._spoil_h5 = json.dumps(base)  # kept as text: each new server page starts from a fresh copy
+            self._spoil_ver = self._srv.version
+            self._spoil = json.loads(self._spoil_h5)
             try:
-                self._spoil = json.loads((APP_DIR / "data" / "spoil_db.json").read_text(encoding="utf-8"))
-                for m in self._spoil.get("mobs", {}).values():
-                    for sp in m.get("spots", []):
-                        fl = tower_floor(sp[0], sp[1], sp[2])
-                        if fl:
-                            m["floor"] = fl
-                    self._move_spots_to_entrances(m)
-                self._classify_spoil_items()
-            except (OSError, ValueError):
-                self._spoil = {"mobs": {}, "items": {}}
-        return self._spoil
+                self._add_server_spoils(self._spoil)
+            except Exception:
+                log_error("server_db", traceback.format_exc())
+            self._classify_spoil_items()
+            return self._spoil
+
+    def _item_names(self):
+        names = {}
+        if self._drops.db:
+            names.update(self._drops.db.get("names", {}))
+        if self._stats:
+            names.update({k: v["name"] for k, v in self._stats["items"].items()})
+        if self._recipes:
+            names.update({str(k): v for k, v in self._recipes.names.items()})
+        return names
+
+    def _server_mob(self, sp, npc, info):
+        """Key of a monster of the server in the spoil list, added when the spoil list does not have it:
+        with its official area when High Five has it (as a monster without spoils), else as a server one."""
+        m = sp["mobs"].get(npc)
+        name = info.get("name")
+        if m is not None and (not name or name.lower() == m["name"].lower()):
+            return npc
+        key = npc if m is None else "s" + npc  # an official id used by the server for another monster
+        if key not in sp["mobs"]:
+            h5 = (self._drops.db or {}).get("npcs", {}).get(npc) if m is None else None
+            same = bool(h5) and (not name or h5["name"].lower() == name.lower())
+            sp["mobs"][key] = {"name": name or (h5 or {}).get("name") or f"#{npc}",
+                               "level": info.get("level") or (h5 or {}).get("level", 0),
+                               "area": h5.get("area") if same else None, "spots": [], "spoil": []}
+            if not same:
+                sp["mobs"][key]["custom"] = True
+        return key
+
+    def _add_server_spoils(self, sp):
+        """The server's spoil lists on top of the official ones: a complete list replaces the official
+        one, a partial list corrects the monsters it shows. Entries from the server have a 5th value (1)."""
+        names = self._item_names()
+        with self._srv.lock:
+            srv = json.loads(json.dumps(self._srv.db))
+            summary = self._srv.summary()
+        mobs = srv["mobs"]
+        for iid, it in srv["items"].items():
+            spoils = [(k.split(":")[0], r) for k, r in it.get("rows", {}).items() if k.split("#")[0].endswith(":spoil")]
+            complete = server_db_complete(it, "spoil")
+            if not spoils and not complete:
+                continue
+            if complete:
+                for m in sp["mobs"].values():
+                    m["spoil"] = [e for e in m["spoil"] if str(e[0]) != iid or len(e) > 4]
+            for npc, r in spoils:
+                m = sp["mobs"][self._server_mob(sp, npc, mobs.get(npc, {}))]
+                m["spoil"] = [e for e in m["spoil"] if str(e[0]) != iid or len(e) > 4]
+                m["spoil"].append([int(iid), r["chance"], r["min"], r["max"], 1])
+            if spoils and iid not in sp["items"]:
+                sp["items"][iid] = {"name": it.get("name") or names.get(iid) or f"#{iid}", "kind": ""}
+            if iid in sp["items"]:
+                sp["items"][iid]["srv"] = {"complete": complete, "pages": len(it.get("pages", {})), "last": it.get("last"),
+                                           "spoils": it.get("spoils"), "seen": max([r["seen"] for _n, r in spoils] + [it.get("seen", 0)])}
+        # what the server says about the monsters themselves (from its cards and searches)
+        for npc, info in mobs.items():
+            m = sp["mobs"].get(npc)
+            if m is not None and info.get("name", "").lower() == m["name"].lower():
+                if info.get("level"):
+                    m["level"] = info["level"]  # the server's level (some differ from High Five)
+                m["srv"] = {k: info[k] for k in ("aggro", "drops", "spoils", "seen") if k in info}
+                st = info.get("stats", {})
+                m["srv"].update({k: st[k] for k in ("hp", "pDef", "mDef", "exp") if k in st})
+        sp["server"] = summary
+        for e in sp["server"]["log"]:
+            e["itemName"] = names.get(str(e["item"])) or srv["items"].get(str(e["item"]), {}).get("name") or f"#{e['item']}"
+            e["npcName"] = mobs.get(str(e["npc"]), {}).get("name") or f"#{e['npc']}"
 
     @staticmethod
     def _move_spots_to_entrances(m):
@@ -3153,7 +3593,7 @@ class Api:
                 grade = gear.get(str(i), {}).get("grade")
             elif kind == "dye":
                 cat = "dye"
-            elif kind == "material":
+            elif kind == "material" or (not kind and i in used_in):
                 uses = used_in.get(i, [])
                 if uses and len(set(uses)) <= 2 and all(str(u) in gear for u in uses):
                     cat = "part"
@@ -3256,7 +3696,32 @@ class Api:
             names = {str(k): v for k, v in self._recipes.names.items()}
         if self._stats:
             names = {**{k: v["name"] for k, v in self._stats["items"].items()}, **names}
-        return self._drops.sources(item_id, names)
+        out = self._drops.sources(item_id, names)
+        srv = self._server_sources(item_id)
+        if srv:
+            out = out or {"name": names.get(str(item_id)) or f"#{item_id}", "drop": [], "spoil": [], "buy": [], "into": []}
+            out["server"] = srv
+        return out
+
+    def _server_sources(self, item_id):
+        """Who drops / spoils an item on the server, as its Alt+B Database showed it."""
+        with self._srv.lock:
+            rows, info = self._srv.item_rows(int(item_id))
+            mobs = json.loads(json.dumps(self._srv.db["mobs"]))
+        if not info:
+            return None
+        npcs = (self._drops.db or {}).get("npcs", {})
+
+        def row(npc, r):
+            h5, m = npcs.get(str(npc)), mobs.get(str(npc), {})
+            same = bool(h5) and (not m.get("name") or m["name"].lower() == h5["name"].lower())
+            return {"npc": m.get("name") or (h5 or {}).get("name") or f"#{npc}",
+                    "level": m.get("level") or (h5 or {}).get("level"),
+                    "area": h5.get("area") if same else None, "custom": not same,
+                    "boss": same and h5["type"] in ("L2RaidBoss", "L2GrandBoss"), "aggro": m.get("aggro"),
+                    "chance": r["chance"], "min": r["min"], "max": r["max"]}
+        return {**info, "drop": [row(n, r) for n, k, r in rows if k == "drop"],
+                "spoil": [row(n, r) for n, k, r in rows if k == "spoil"]}
 
     def recipe_compare(self, recipe_id):
         return self._recipes.compare(recipe_id, self._stats, self._items) if self._recipes else None
@@ -3335,7 +3800,7 @@ class Api:
                 "chatReading": self._chat.active,
                 "scale": self._data.get("scale", 1.0), "char": self._data.get("char") or {},
                 "loginDelay": self._data["login_delay"], "admin": is_admin(), "bosses": bosses,
-                "lang": self._data["lang"], "bossView": self._data["boss_view"],
+                "lang": self._data["lang"], "bossView": self._data["boss_view"], "srvDb": self._srv.version,
                 "gm": load_gm(),
                 "links": LINKS,
             }

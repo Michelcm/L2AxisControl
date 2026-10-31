@@ -1,0 +1,240 @@
+{
+ "items": {
+  "14052": {
+   "drops": 45,
+   "icon": "icon.energy_condenser_i01",
+   "name": "Noble Enhancement Stone",
+   "pages": {
+    "1": 1793404800
+   },
+   "rows": {
+    "22831:spoil": {
+     "chance": 100,
+     "max": 10,
+     "min": 1,
+     "seen": 1793404800
+    },
+    "22832:spoil": {
+     "chance": 100,
+     "max": 15,
+     "min": 1,
+     "seen": 1793404800
+    },
+    "22833:spoil": {
+     "chance": 100,
+     "max": 10,
+     "min": 1,
+     "seen": 1793404800
+    },
+    "22834:spoil": {
+     "chance": 100,
+     "max": 15,
+     "min": 1,
+     "seen": 1793404800
+    },
+    "22846:spoil": {
+     "chance": 100,
+     "max": 15,
+     "min": 1,
+     "seen": 1793404800
+    },
+    "22849:spoil": {
+     "chance": 100,
+     "max": 10,
+     "min": 1,
+     "seen": 1793404800
+    },
+    "22857:spoil": {
+     "chance": 100,
+     "max": 125,
+     "min": 1,
+     "seen": 1793404800
+    },
+    "25636:drop": {
+     "chance": 100,
+     "max": 750,
+     "min": 110,
+     "seen": 1793404800
+    },
+    "7805:drop": {
+     "chance": 90,
+     "max": 250,
+     "min": 150,
+     "seen": 1793404800
+    },
+    "7844:drop": {
+     "chance": 80,
+     "max": 100,
+     "min": 50,
+     "seen": 1793404800
+    }
+   },
+   "seen": 1793404800,
+   "spoils": 8
+  }
+ },
+ "log": [],
+ "mobs": {
+  "22815": {
+   "aggro": true,
+   "drops": 28,
+   "level": 80,
+   "name": "Drakos",
+   "seen": 1793404800,
+   "spoils": 5
+  },
+  "22822": {
+   "aggro": true,
+   "drops": 18,
+   "level": 83,
+   "name": "Drakos Warrior",
+   "seen": 1793404800,
+   "spoils": 7
+  },
+  "22823": {
+   "aggro": true,
+   "drops": 16,
+   "level": 83,
+   "name": "Drakos Assassin",
+   "seen": 1793404800,
+   "spoils": 9
+  },
+  "22824": {
+   "aggro": true,
+   "drops": 22,
+   "level": 84,
+   "name": "Drakos Guardian",
+   "seen": 1793404800,
+   "spoils": 8
+  },
+  "22831": {
+   "level": 83,
+   "name": "Dragon Tracker of the Valley",
+   "seen": 1793404800
+  },
+  "22832": {
+   "level": 84,
+   "name": "Dragon Scout of the Valley",
+   "seen": 1793404800
+  },
+  "22833": {
+   "level": 84,
+   "name": "Sand Drake Tracker",
+   "seen": 1793404800
+  },
+  "22834": {
+   "level": 83,
+   "name": "Dust Dragon Tracker",
+   "seen": 1793404800
+  },
+  "22846": {
+   "level": 85,
+   "name": "Elite Dragon Knight",
+   "seen": 1793404800
+  },
+  "22849": {
+   "level": 85,
+   "name": "Drake Warrior",
+   "seen": 1793404800
+  },
+  "22857": {
+   "level": 85,
+   "name": "Knoriks",
+   "seen": 1793404800
+  },
+  "22862": {
+   "aggro": true,
+   "drops": 20,
+   "level": 83,
+   "name": "Drakos Hunter",
+   "seen": 1793404800,
+   "spoils": 7
+  },
+  "25636": {
+   "level": 81,
+   "name": "Ravenous Soul Devourer",
+   "seen": 1793404800
+  },
+  "40016": {
+   "aggro": true,
+   "drops": 7,
+   "level": 85,
+   "name": "Temple Elite Captain",
+   "seen": 1793404800,
+   "spoils": 0
+  },
+  "64012": {
+   "aggro": true,
+   "drops": 30,
+   "level": 85,
+   "name": "Temple Elite Captain",
+   "seen": 1793404800,
+   "spoils": 35
+  },
+  "64016": {
+   "aggro": true,
+   "drops": 30,
+   "level": 85,
+   "name": "Temple Elite Captain",
+   "seen": 1793404800,
+   "spoils": 35,
+   "stats": {
+    "atkSpd": 253,
+    "castSpd": 333,
+    "exp": 1243800,
+    "hp": 26000,
+    "mAtk": 9120,
+    "mDef": 304,
+    "mp": 478,
+    "pAtk": 12176,
+    "pDef": 306,
+    "speed": 120
+   }
+  },
+  "64018": {
+   "aggro": true,
+   "drops": 30,
+   "level": 85,
+   "name": "Blue Water Dragon",
+   "seen": 1793404800,
+   "spoils": 35,
+   "stats": {
+    "atkSpd": 253,
+    "castSpd": 333,
+    "exp": 1243800,
+    "hp": 22000,
+    "mAtk": 9120,
+    "mDef": 304,
+    "minions": 3,
+    "mp": 478,
+    "pAtk": 12176,
+    "pDef": 316,
+    "speed": 120
+   }
+  },
+  "7805": {
+   "level": 80,
+   "name": "Super Lucky Pig",
+   "seen": 1793404800
+  },
+  "7844": {
+   "level": 81,
+   "name": "Super Lucky Pig",
+   "seen": 1793404800,
+   "stats": {
+    "atkSpd": 300,
+    "castSpd": 333,
+    "exp": 10000000,
+    "hp": 1600000,
+    "mAtk": 1100,
+    "mDef": 540,
+    "mp": 25000,
+    "pAtk": 1700,
+    "pDef": 1200,
+    "speed": 170
+   }
+  }
+ },
+ "note": "Drop and spoil lists of the L2Axis server, kept by the panel while its players browse them. Times are the day the page was seen.",
+ "source": "L2Axis server, Alt+B > Database pages as shown in game"
+}

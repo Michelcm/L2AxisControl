@@ -477,6 +477,17 @@
   .spd td.r { text-align: right; }
   .spd td.g { color: var(--gold-hi); text-align: right; }
   .spd button.b { padding: 0 4px; height: 16px; font-size: 10px; }
+  /* seen in the server's Alt+B Database */
+  .sv { color: var(--good); font-size: 9px; font-weight: 700; }
+  .spi .sv { flex: none; width: 10px; text-align: center; }
+  .spd td.sv { width: 10px; padding: 1px 0; text-align: center; }
+  .spd .srvn { padding: 3px 3px 2px; font-size: 10px; color: var(--dim); line-height: 13px; white-space: normal; }
+  .spd .srvn b { color: var(--text-hi); font-weight: 400; }
+  .spsrv { margin-top: 3px; font-size: 10px; color: var(--dim); line-height: 13px; }
+  .spsrv summary { cursor: pointer; color: var(--gold); width: max-content; }
+  .spsrv summary:focus-visible { outline: 1px solid var(--gold-hi); outline-offset: 1px; }
+  .spsrv ol { margin: 2px 0 0; padding-left: 16px; max-height: 120px; overflow: auto; }
+  .srvhead { margin-top: 4px; font-size: 9px; color: var(--dim); line-height: 12px; }
   /* map markers */
   .bpin, .spot, .tpt { position: absolute; cursor: pointer; transform: translate(-50%, -50%); line-height: 0; }
   .bpin svg, .spot svg, .tpt svg, .lg .ic svg, .acct svg { display: block; filter: drop-shadow(0 0 1px #000) drop-shadow(0 0 1px #000) drop-shadow(0 1px 2px #000); }
@@ -996,6 +1007,7 @@
       </div>
       <div class="panel" style="padding:2px" id="spList"></div>
       <div class="small" style="margin-top:3px" data-i18n="spNote"></div>
+      <div class="spsrv" id="spSrv"></div>
     </div>
 
     <!-- CRAFT -->
@@ -1251,7 +1263,14 @@ const I18N = {
     spk_material: "material", spk_recipe: "receita", spk_other: "outro", spNone: "Nada encontrado.",
     spYieldTip: "Média de itens por spoil (chance × quantidade média)", spCount: "{n} pontos de spawn",
     spPick: "Clique num ponto verde para ver o caminho.", spHMob: "Mob", spHLv: "Nv", spHArea: "Área", spHChance: "Chance", spHQty: "Qtd", spHAvg: "Média", sideSpoil: "Mapa — spoil",
-    spNote: "Chances oficiais do High Five (datapack L2J); no L2Axis drop/spoil/adena são x8 e há mobs próprios que não estão aqui. A última coluna é a média de itens por spoil. 🗺 mostra onde o mob nasce e o caminho.",
+    spNote: "Chances oficiais do High Five (datapack L2J), corrigidas pelo que você abre em Alt+B > Database (✓ = visto no servidor). No L2Axis drop/spoil/adena são x8. A última coluna é a média de itens por spoil. 🗺 mostra onde o mob nasce e o caminho.",
+    spCustom: "só no L2Axis", spSrvTip: "Visto no Alt+B > Database do servidor", srvOn: "No servidor", srvAggro: "agressivo", srvPassive: "passivo", srvSpoils: "{n} itens de spoil",
+    spSrvFull: "Lista completa do servidor, vista no Alt+B em {d}. Ela substitui a do High Five.",
+    spSrvPart: "Parte da lista do servidor, vista no Alt+B em {d} (✓). Abra as outras páginas no jogo para completar; os mobs sem ✓ são do High Five.",
+    spSrvHow: "Abra Alt+B > Database no jogo: cada lista de drop e spoil que você olhar fica guardada aqui e corrige estes dados.",
+    spSrvSum: "Alt+B do servidor: {n} itens conferidos, {k} com a lista completa · última leitura {d}", spSrvSum1: "Alt+B do servidor: 1 item conferido, {k} com a lista completa · última leitura {d}", spSrvChanges: "Mudanças vistas ({n})",
+    srvNew: "entrou na lista ({v})", srvGone: "saiu da lista", srvDrop: "Drop no servidor", srvSpoil: "Spoil no servidor", srvH5: "High Five oficial",
+    srvFull: "Lista completa do servidor, vista no Alt+B em {d}.", srvPart: "Parte da lista do servidor, vista no Alt+B em {d}. Abra as outras páginas no jogo para completar.",
     mapFiltered: "Filtro da lista: {shown} de {n} em destaque", mapFilterClear: "Mostrar todos",
     lgTitle: "Legenda", lgAlive: "Boss vivo", lgDead: "Boss morto (tempo até nascer)", lgMaybe: "Talvez já nasceu", lgEpic: "Épico (coroa)",
     lgTp: "Teleporte do Alt+B", lgNames: "Nomes das áreas", lgAcc: "Região da sua conta", lgSpoil: "Onde o mob nasce",
@@ -1428,7 +1447,14 @@ const I18N = {
     spk_material: "material", spk_recipe: "recipe", spk_other: "other", spNone: "Nothing found.",
     spYieldTip: "Average items per spoil (chance × average amount)", spCount: "{n} spawn points",
     spPick: "Click a green spot to see the way.", spHMob: "Monster", spHLv: "Lv", spHArea: "Area", spHChance: "Chance", spHQty: "Qty", spHAvg: "Avg", sideSpoil: "Map — spoil",
-    spNote: "Official High Five chances (L2J datapack); on L2Axis drop/spoil/adena are x8 and it has its own monsters that are not listed here. The last column is the average items per spoil. 🗺 shows where the monster spawns and the way there.",
+    spNote: "Official High Five chances (L2J datapack), corrected by what you open in Alt+B > Database (✓ = seen on the server). On L2Axis drop/spoil/adena are x8. The last column is the average items per spoil. 🗺 shows where the monster spawns and the way there.",
+    spCustom: "L2Axis only", spSrvTip: "Seen in the server's Alt+B > Database", srvOn: "On the server", srvAggro: "aggressive", srvPassive: "passive", srvSpoils: "{n} spoil items",
+    spSrvFull: "Full server list, seen in the Alt+B on {d}. It replaces the High Five one.",
+    spSrvPart: "Part of the server list, seen in the Alt+B on {d} (✓). Open its other pages in game to complete it; monsters without ✓ come from High Five.",
+    spSrvHow: "Open Alt+B > Database in game: every drop and spoil list you look at is kept here and corrects this data.",
+    spSrvSum: "Server Alt+B: {n} items checked, {k} with the full list · last read {d}", spSrvSum1: "Server Alt+B: 1 item checked, {k} with the full list · last read {d}", spSrvChanges: "Changes seen ({n})",
+    srvNew: "joined the list ({v})", srvGone: "left the list", srvDrop: "Drop on the server", srvSpoil: "Spoil on the server", srvH5: "official High Five",
+    srvFull: "Full server list, seen in the Alt+B on {d}.", srvPart: "Part of the server list, seen in the Alt+B on {d}. Open its other pages in game to complete it.",
     mapFiltered: "List filter: {shown} of {n} highlighted", mapFilterClear: "Show all",
     lgTitle: "Legend", lgAlive: "Boss alive", lgDead: "Boss dead (time to respawn)", lgMaybe: "Maybe spawned", lgEpic: "Epic (crown)",
     lgTp: "Alt+B teleport", lgNames: "Area names", lgAcc: "Your account's area", lgSpoil: "Where the monster spawns",
@@ -1605,7 +1631,14 @@ const I18N = {
     spk_material: "Material", spk_recipe: "Rezept", spk_other: "anderes", spNone: "Nichts gefunden.",
     spYieldTip: "Durchschnittliche Items pro Spoil (Chance × durchschnittliche Menge)", spCount: "{n} Spawnpunkte",
     spPick: "Klick auf einen grünen Punkt zeigt den Weg.", spHMob: "Monster", spHLv: "Lv", spHArea: "Gebiet", spHChance: "Chance", spHQty: "Menge", spHAvg: "Ø", sideSpoil: "Karte — Spoil",
-    spNote: "Offizielle High-Five-Chancen (L2J-Datapack); auf L2Axis sind Drop/Spoil/Adena x8, und es gibt eigene Monster, die hier fehlen. Letzte Spalte = durchschnittliche Items pro Spoil. 🗺 zeigt, wo das Monster spawnt, und den Weg.",
+    spNote: "Offizielle High-Five-Chancen (L2J-Datapack), korrigiert durch das, was du in Alt+B > Database öffnest (✓ = auf dem Server gesehen). Auf L2Axis sind Drop/Spoil/Adena x8. Letzte Spalte = durchschnittliche Items pro Spoil. 🗺 zeigt, wo das Monster spawnt, und den Weg.",
+    spCustom: "nur auf L2Axis", spSrvTip: "Im Alt+B > Database des Servers gesehen", srvOn: "Auf dem Server", srvAggro: "aggressiv", srvPassive: "passiv", srvSpoils: "{n} Spoil-Items",
+    spSrvFull: "Vollständige Serverliste, im Alt+B gesehen am {d}. Sie ersetzt die High-Five-Liste.",
+    spSrvPart: "Teil der Serverliste, im Alt+B gesehen am {d} (✓). Öffne die anderen Seiten im Spiel, um sie zu vervollständigen; Monster ohne ✓ stammen aus High Five.",
+    spSrvHow: "Öffne im Spiel Alt+B > Database: jede Drop- und Spoil-Liste, die du ansiehst, wird hier gespeichert und korrigiert diese Daten.",
+    spSrvSum: "Alt+B des Servers: {n} Items geprüft, {k} mit vollständiger Liste · zuletzt gelesen {d}", spSrvSum1: "Alt+B des Servers: 1 Item geprüft, {k} mit vollständiger Liste · zuletzt gelesen {d}", spSrvChanges: "Gesehene Änderungen ({n})",
+    srvNew: "neu in der Liste ({v})", srvGone: "nicht mehr in der Liste", srvDrop: "Drop auf dem Server", srvSpoil: "Spoil auf dem Server", srvH5: "offizielles High Five",
+    srvFull: "Vollständige Serverliste, im Alt+B gesehen am {d}.", srvPart: "Teil der Serverliste, im Alt+B gesehen am {d}. Öffne die anderen Seiten im Spiel, um sie zu vervollständigen.",
     mapFiltered: "Listenfilter: {shown} von {n} hervorgehoben", mapFilterClear: "Alle zeigen",
     lgTitle: "Legende", lgAlive: "Boss lebt", lgDead: "Boss tot (Zeit bis Respawn)", lgMaybe: "Vielleicht erschienen", lgEpic: "Episch (Krone)",
     lgTp: "Alt+B-Teleport", lgNames: "Gebietsnamen", lgAcc: "Gebiet deines Kontos", lgSpoil: "Wo das Monster spawnt",
@@ -2490,7 +2523,18 @@ function build() {
 }
 
 // ================================================= refresh
+let srvDbVer;
 function render() {
+  if (S.srvDb !== srvDbVer) {  // a Database page was opened in the game: the lists changed
+    if (srvDbVer !== undefined) {
+      SPOIL = null;
+      srcData = {};
+      $("#spList").dataset.sig = "";
+      $("#spCats").dataset.sig = "";
+      if (srcItem && $("#p-craft").classList.contains("sel")) loadSources(srcItem);
+    }
+    srvDbVer = S.srvDb;
+  }
   const p = S.ping;
   if (p) {
     const last = p.last;
@@ -2709,7 +2753,8 @@ function spLevelOk(lv) {
   const lo = parseInt($("#spMin").value), hi = parseInt($("#spMax").value);
   return (isNaN(lo) || lv >= lo) && (isNaN(hi) || lv <= hi);
 }
-function spArea(m) { return m.floor ? t("dFloor", { zone: m.area, floor: m.floor }) : (m.area || "—"); }
+function spArea(m) { return m.custom ? t("spCustom") : m.floor ? t("dFloor", { zone: m.area, floor: m.floor }) : (m.area || "—"); }
+const spSrvMark = on => on ? `<span class="sv" title="${esc(t("spSrvTip"))}">✓</span>` : "";
 const SP_CATS = ["material", "craft", "part", "recipe", "enchant", "gear", "dye", "other"];
 const SP_GRADES = ["—", "D", "C", "B", "A", "S", "S80", "S84"];
 let spCat = "", spGrade = "", spCollapsed = new Set(["material", "craft", "part", "recipe", "enchant", "gear", "dye", "other",
@@ -2754,29 +2799,62 @@ function spItemSources(iid) {
   const out = [];
   for (const [mid, m] of Object.entries(SPOIL.mobs)) {
     if (!spLevelOk(m.level)) continue;
-    for (const [i, c, lo, hi] of m.spoil) if (String(i) === String(iid)) out.push([mid, c, lo, hi]);
+    for (const [i, c, lo, hi, srv] of m.spoil) if (String(i) === String(iid)) out.push([mid, c, lo, hi, srv]);
   }
   return out.sort((a, b) => spYield(b[1], b[2], b[3]) - spYield(a[1], a[2], a[3]));
 }
+// what the server's own list says about an item: complete, or only the pages seen so far
+function spSrvNote(it) {
+  const v = it && it.srv;
+  if (!v) return "";
+  const d = v.seen ? fmtDate(v.seen) : "";
+  return `<div class="srvn">${esc(t(v.complete ? "spSrvFull" : "spSrvPart", { d }))}</div>`;
+}
 function spItemDetail(iid) {
   const mobs = SPOIL.mobs;
-  return `<div class="spd"><table><tr class="small"><td>${esc(t("spHMob"))}</td><td class="r">${esc(t("spHLv"))}</td><td>${esc(t("spHArea"))}</td>
-    <td class="r">${esc(t("spHChance"))}</td><td class="r">${esc(t("spHQty"))}</td><td class="g">${esc(t("spHAvg"))}</td><td></td></tr>` +
-    spItemSources(iid).map(([mid, c, lo, hi]) => {
+  return `<div class="spd">${spSrvNote(SPOIL.items[iid])}<table><tr class="small"><td>${esc(t("spHMob"))}</td><td class="r">${esc(t("spHLv"))}</td><td>${esc(t("spHArea"))}</td>
+    <td class="r">${esc(t("spHChance"))}</td><td class="sv"></td><td class="r">${esc(t("spHQty"))}</td><td class="g">${esc(t("spHAvg"))}</td><td></td></tr>` +
+    spItemSources(iid).map(([mid, c, lo, hi, srv]) => {
       const m = mobs[mid];
       return `<tr><td>${esc(m.name)}</td><td class="r">${m.level}</td><td class="a" title="${esc(spArea(m))}">${esc(spArea(m))}</td>
-        <td class="r">${fmtChance(c)}</td><td class="r">${lo === hi ? lo : lo + "–" + hi}</td>
+        <td class="r">${fmtChance(c)}</td><td class="sv">${spSrvMark(srv)}</td><td class="r">${lo === hi ? lo : lo + "–" + hi}</td>
         <td class="g" title="${esc(t("spYieldTip"))}">${spYield(c, lo, hi).toFixed(2)}</td>
-        <td><button class="b" data-spmap="${mid}" data-spitem="${iid}" title="${esc(t("bmShow"))}" aria-label="${esc(t("bmShow"))}">🗺</button></td></tr>`;
+        <td>${m.spots && m.spots.length ? `<button class="b" data-spmap="${mid}" data-spitem="${iid}" title="${esc(t("bmShow"))}" aria-label="${esc(t("bmShow"))}">🗺</button>` : ""}</td></tr>`;
     }).join("") + `</table></div>`;
 }
+// what the server's card said about a monster: aggressive or not, HP, defences
+function spSrvMob(m) {
+  const v = m.srv;
+  if (!v || (v.aggro == null && v.hp == null)) return "";
+  const parts = [];
+  if (v.aggro != null) parts.push(t(v.aggro ? "srvAggro" : "srvPassive"));
+  if (v.hp != null) parts.push("HP " + fmtNum(v.hp));
+  if (v.pDef != null) parts.push("P.Def " + fmtNum(v.pDef));
+  if (v.mDef != null) parts.push("M.Def " + fmtNum(v.mDef));
+  if (v.spoils != null) parts.push(t("srvSpoils", { n: v.spoils }));
+  return `<div class="srvn">${spSrvMark(true)} <b>${esc(t("srvOn"))}:</b> ${esc(parts.join(" · "))}</div>`;
+}
 function spMobDetail(mid) {
-  const items = SPOIL.items;
-  return `<div class="spd"><table>` + SPOIL.mobs[mid].spoil.filter(([iid]) => spItemOk(iid))
+  const items = SPOIL.items, m = SPOIL.mobs[mid];
+  return `<div class="spd">${spSrvMob(m)}<table>` + m.spoil.filter(([iid]) => spItemOk(iid))
     .sort((a, b) => spYield(b[1], b[2], b[3]) - spYield(a[1], a[2], a[3]))
-    .map(([iid, c, lo, hi]) => `<tr><td>${spGradeBadge(items[iid] || {})}</td><td>${ico(iid)} ${esc((items[iid] || {}).name || iid)}</td>
-      <td class="k">${esc(t("spc_" + spCatOf(items[iid] || {})))}</td><td class="r">${fmtChance(c)}</td>
+    .map(([iid, c, lo, hi, srv]) => `<tr><td>${spGradeBadge(items[iid] || {})}</td><td>${ico(iid)} ${esc((items[iid] || {}).name || iid)}</td>
+      <td class="k">${esc(t("spc_" + spCatOf(items[iid] || {})))}</td><td class="r">${fmtChance(c)}</td><td class="sv">${spSrvMark(srv)}</td>
       <td class="r">${lo === hi ? lo : lo + "–" + hi}</td><td class="g">${spYield(c, lo, hi).toFixed(2)}</td></tr>`).join("") + `</table></div>`;
+}
+// the server's lists: how much of them was seen, and what changed in them
+function spSrvLine() {
+  const box = $("#spSrv"), v = SPOIL.server;
+  const sig = LANG + JSON.stringify(v || null);
+  if (box.dataset.sig === sig) return;
+  box.dataset.sig = sig;
+  if (!v || !v.items) { box.textContent = t("spSrvHow"); return; }
+  const kindName = k => t(k === "drop" ? "srcDrop" : "srcSpoil");
+  const val = r => r ? `${fmtChance(r.chance)} ${r.min === r.max ? r.min : r.min + "–" + r.max}` : "";
+  const log = (v.log || []).slice().reverse().map(e => `<li>${esc(fmtDate(e.at))} · ${esc(e.itemName)} · ${esc(e.npcName)} (${esc(kindName(e.kind))}): ` +
+    esc(e.was && e.now ? `${val(e.was)} → ${val(e.now)}` : e.now ? t("srvNew", { v: val(e.now) }) : t("srvGone")) + `</li>`).join("");
+  box.innerHTML = `${spSrvMark(true)} ${esc(t(v.items === 1 ? "spSrvSum1" : "spSrvSum", { n: v.items, k: v.complete, d: v.seen ? fmtDate(v.seen) : "—" }))}` +
+    (log ? `<details><summary>${esc(t("spSrvChanges", { n: v.log.length }))}</summary><ol>${log}</ol></details>` : "");
 }
 // open or close one row where it is: redrawing a list of a thousand rows for one click is slow
 function spToggle(row) {
@@ -2803,6 +2881,7 @@ async function renderSpoil() {
   if (!$("#p-spoil").classList.contains("sel")) return;
   await loadSpoil();
   spChips();
+  spSrvLine();
   const q = $("#spQ").value.trim().toLowerCase(), sort = $("#spSort").value, group = $("#spGroup").value;
   $("#spGroup").style.display = spMode === "item" ? "" : "none";  // the monster list has no groups
   const box = $("#spList");
@@ -2831,7 +2910,7 @@ async function renderSpoil() {
     rows.sort(sorter);
     setText($("#spInfo"), t("spInfoItems", { n: rows.length }));
     const rowHtml = r => `<div class="spi ${spOpen === r.iid ? "open" : ""}" data-spi="${r.iid}">${spGradeBadge(r.it)}${ico(r.iid)}
-        <span class="n">${esc(r.it.name)}${r.it.rate && r.it.rate < 100 && !/%/.test(r.it.name) ? ` <span class="rt">${r.it.rate}%</span>` : ""}</span>
+        <span class="sv"${r.it.srv ? ` title="${esc(t("spSrvTip"))}"` : ""}>${r.it.srv ? "✓" : ""}</span><span class="n">${esc(r.it.name)}${r.it.rate && r.it.rate < 100 && !/%/.test(r.it.name) ? ` <span class="rt">${r.it.rate}%</span>` : ""}</span>
         <span class="lv2" title="${esc(t("spLvTip"))}">${r.lo === r.hi ? r.lo : r.lo + "–" + r.hi}</span>
         <span class="bc" title="${esc(t("spBestTip"))}">${fmtChance(r.bestChance)}</span>
         <span class="c">${esc(t("spMobs", { n: r.srcs.length }))}</span></div>` + (spOpen === r.iid ? spItemDetail(r.iid) : "");
@@ -2870,7 +2949,7 @@ async function renderSpoil() {
       const prev = top.map(([iid, c]) => `<span class="spv" title="${esc(((items[iid] || {}).name || iid) + " · " + fmtChance(c))}">${ico(iid)}</span>`).join("");
       return `<div class="spi ${spOpen === mid ? "open" : ""}" data-spi="${mid}"><span class="c" style="width:18px">${m.level}</span>
         <span class="n">${esc(m.name)}</span><span class="spvs">${prev}</span><span class="k">${esc(spArea(m))}</span>
-        <button class="b" data-spmap="${mid}" title="${showT}" aria-label="${showT}">🗺</button></div>` + (spOpen === mid ? spMobDetail(mid) : "");
+        ${m.spots && m.spots.length ? `<button class="b" data-spmap="${mid}" title="${showT}" aria-label="${showT}">🗺</button>` : ""}</div>` + (spOpen === mid ? spMobDetail(mid) : "");
     }).join("");
   }
   box.innerHTML = html || `<div class="small" style="padding:6px">${esc(t("spNone"))}</div>`;
@@ -3565,11 +3644,16 @@ function sourcesBody(s, current) {
   const mobs = (title, list) => list.length ? `<div class="srch">${esc(title)}</div>` + list.map(m => `<div class="srow">
       <span class="who ${m.boss ? "boss" : ""}">${m.boss ? "♛ " : ""}${esc(m.npc)} <span class="small">Lv ${m.level}</span></span>
       <span class="pc">${fmtChance(m.chance)}</span>
-      <span class="where">${esc(m.area || t("srcNoArea"))}${m.max > 1 ? ` · ${m.min}–${m.max}` : ""}</span></div>`).join("") : "";
+      <span class="where">${esc(m.custom ? t("spCustom") : m.area || t("srcNoArea"))}${m.max > 1 ? ` · ${m.min}–${m.max}` : ""}${m.aggro != null ? " · " + esc(t(m.aggro ? "srvAggro" : "srvPassive")) : ""}</span></div>`).join("") : "";
   const deals = (title, list, into) => list.length ? `<div class="srch">${esc(title)}</div>` + list.map(d => `<div class="deal">
       <span class="who">${esc(d.npc.join(", "))}</span>${into ? ` → ${ico(d.productId)}<span data-src="${d.productId}">${esc(d.product)}</span>` : ""}
       <div class="cost">${d.cost.filter(c => !into || c.id !== current).map(c => `${fmtInt(c.count)} × <span data-src="${c.id}">${esc(c.name)}</span>`).join(" + ")}</div></div>`).join("") : "";
-  const body = mobs(t("srcDrop"), s.drop) + mobs(t("srcSpoil"), s.spoil) + deals(t("srcBuy"), s.buy, false) + deals(t("srcInto"), s.into, true);
+  const v = s.server;
+  const official = title => v ? `${title} · ${t("srvH5")}` : title;
+  const srv = v ? `<div class="srvhead">${spSrvMark(true)} ${esc(t(v.complete ? "srvFull" : "srvPart", { d: v.seen ? fmtDate(v.seen) : "—" }))}</div>` +
+    mobs(t("srvDrop"), v.drop) + mobs(t("srvSpoil"), v.spoil) : "";
+  const body = srv + mobs(official(t("srcDrop")), v && v.completeDrop ? [] : s.drop) +
+    mobs(official(t("srcSpoil")), v && v.completeSpoil ? [] : s.spoil) + deals(t("srcBuy"), s.buy, false) + deals(t("srcInto"), s.into, true);
   return (body || `<div class="small">${esc(t("srcNone"))}</div>`) +
     `<div class="small" style="margin-top:5px;line-height:13px">${esc(t("srcNote"))}</div>`;
 }
