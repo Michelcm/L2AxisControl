@@ -332,6 +332,17 @@
   .monmap .mon .chip2[draggable="true"] { cursor: grab; }
   .monmap .mon.drop { border-color: var(--gold-hi); box-shadow: inset 0 0 0 1px rgba(240,207,126,.6); background: linear-gradient(var(--mon-drop-hi), var(--mon-drop-lo)); }
   .monmap.dragon .mon { border-style: dashed; }
+  /* layout presets: each button draws the monitors as they are placed, split the way it puts the windows */
+  .lays { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; margin: 0 0 3px; }
+  .lays:empty { display: none; }
+  .lays .lbl { font-size: 9px; color: var(--dim); margin-right: 1px; }
+  .lays button.b.lay { height: auto; padding: 2px 4px; display: inline-flex; }
+  .lays .lmap { position: relative; display: block; }
+  .lays .lm { position: absolute; box-sizing: border-box; border: 1px solid var(--line); background: var(--well); }
+  .lays .lm b { position: absolute; box-sizing: border-box; background: var(--bevel-ring); box-shadow: inset 0 0 0 1px var(--well); }
+  .lays button.b.lay:hover .lm b { background: var(--gold); }
+  .lays button.b.lay.on { box-shadow: inset 0 0 0 1px var(--gold); }
+  .lays button.b.lay.on .lm b { background: var(--gold-hi); }
   #winMsg { line-height: 13px; }
   /* accounts: one row per client, like the game's party window; actions line up on the right */
   .slots { border: 1px solid #000; box-shadow: inset 0 0 0 1px rgba(106,92,62,.45);
@@ -904,6 +915,7 @@
         <button class="b" id="bRestoreLayout" data-i18n="btnRestorePos" data-i18n-title="tipRestoreLayout"></button>
       </div>
       <div class="monmap" id="monMap"></div>
+      <div class="lays" id="monLays"></div>
       <div class="small" id="winMsg" data-i18n="monHint"></div>
 
       <div class="sechead accs">
@@ -1288,7 +1300,7 @@ const I18N = {
     tabClients: "Clientes", tabNet: "Rede", tabBosses: "Bosses", tabVotes: "Votos", tabTimers: "Timers", tabEvents: "Eventos", tabOptions: "Opções",
     monTitle: "Monitores", monHint: "Clique num monitor para organizar as janelas nele, ou arraste uma conta até ele.",
     tipAllMon: "Espalhar as janelas por todos os monitores", tipSaveLayout: "Salvar a posição de cada janela", tipRestoreLayout: "Restaurar as posições salvas",
-    tipMonClick: "Organizar todas as janelas no monitor {n}", moveTo: "Monitor:", tipMove: "Levar esta janela para o monitor {n}",
+    tipMonClick: "Organizar todas as janelas no monitor {n}", moveTo: "Monitor:", tipMove: "Levar esta janela para o monitor {n}", layLbl: "Organizar:", layMon: "Monitor {n}: {names}", layOther: "outro client", layChanged: "Os clients mudaram; escolha de novo.",
     addAccount: "Nova conta", tipRemove: "Remover esta conta da lista", confirmRemove: "Remover {name} da lista? (O login salvo dela também é apagado.)",
     winTitle: "Janelas do jogo", winWhere: "Organizar em", winAll: "Todos os monitores ({n})", winMon: "Monitor {n} ({res})",
     winSave: "Salvar posições", winRestore: "Restaurar posições",
@@ -1472,7 +1484,7 @@ const I18N = {
     tabClients: "Clients", tabNet: "Network", tabBosses: "Bosses", tabVotes: "Votes", tabTimers: "Timers", tabEvents: "Events", tabOptions: "Options",
     monTitle: "Monitors", monHint: "Click a monitor to arrange the windows on it, or drag an account onto it.",
     tipAllMon: "Spread the windows over all monitors", tipSaveLayout: "Save each window's position", tipRestoreLayout: "Restore the saved positions",
-    tipMonClick: "Arrange all windows on monitor {n}", moveTo: "Monitor:", tipMove: "Send this window to monitor {n}",
+    tipMonClick: "Arrange all windows on monitor {n}", moveTo: "Monitor:", tipMove: "Send this window to monitor {n}", layLbl: "Arrange:", layMon: "Monitor {n}: {names}", layOther: "other client", layChanged: "The clients changed; pick again.",
     addAccount: "New account", tipRemove: "Remove this account from the list", confirmRemove: "Remove {name} from the list? (Its saved login is deleted too.)",
     winTitle: "Game windows", winWhere: "Arrange on", winAll: "All monitors ({n})", winMon: "Monitor {n} ({res})",
     winSave: "Save positions", winRestore: "Restore positions",
@@ -1656,7 +1668,7 @@ const I18N = {
     tabClients: "Clients", tabNet: "Netzwerk", tabBosses: "Bosse", tabVotes: "Votes", tabTimers: "Timer", tabEvents: "Events", tabOptions: "Optionen",
     monTitle: "Monitore", monHint: "Klick auf einen Monitor ordnet die Fenster darauf an; zieh ein Konto darauf, um es dorthin zu schicken.",
     tipAllMon: "Fenster auf alle Monitore verteilen", tipSaveLayout: "Position jedes Fensters speichern", tipRestoreLayout: "Gespeicherte Positionen wiederherstellen",
-    tipMonClick: "Alle Fenster auf Monitor {n} anordnen", moveTo: "Monitor:", tipMove: "Dieses Fenster auf Monitor {n} schicken",
+    tipMonClick: "Alle Fenster auf Monitor {n} anordnen", moveTo: "Monitor:", tipMove: "Dieses Fenster auf Monitor {n} schicken", layLbl: "Anordnen:", layMon: "Monitor {n}: {names}", layOther: "anderer Client", layChanged: "Die Clients haben sich geändert; bitte neu wählen.",
     addAccount: "Neues Konto", tipRemove: "Dieses Konto aus der Liste entfernen", confirmRemove: "{name} aus der Liste entfernen? (Der gespeicherte Login wird auch gelöscht.)",
     winTitle: "Spielfenster", winWhere: "Anordnen auf", winAll: "Alle Monitore ({n})", winMon: "Monitor {n} ({res})",
     winSave: "Positionen speichern", winRestore: "Positionen wiederherstellen",
@@ -1807,6 +1819,7 @@ function applyI18n() {
   // dynamically built content
   applySlotTexts();
   if ($("#monMap")) $("#monMap").dataset.sig = "";
+  if ($("#monLays")) $("#monLays").dataset.sig = "";
   document.querySelectorAll(".vote").forEach(r => {
     const [bv, ba, br] = r.querySelectorAll("button");
     bv.textContent = t("btnVote"); ba.title = t("tipVotedAgo"); br.title = t("tipVoteReset");
@@ -2274,6 +2287,71 @@ function renderMonitors() {
   });
 }
 
+// layout presets: the ways to put the open game windows on the monitors (counts[k] = windows on monitor k,
+// at most 4 on one so none gets tiny). Even spreads first, then all on one monitor, then the rest.
+const LAY_CAP = 4, LAY_MAX = 10;
+function layoutCounts(n, m) {
+  if (!n || m < 2) return [];
+  const out = [];
+  const rec = (acc, left) => {
+    if (acc.length === m - 1) { if (left <= LAY_CAP) out.push([...acc, left]); return; }
+    for (let c = Math.min(LAY_CAP, left); c >= 0; c--) rec([...acc, c], left - c);
+  };
+  rec([], n);
+  if (!out.length) out.push(Array.from({ length: m }, (_, k) => Math.floor(n / m) + (k < n % m ? 1 : 0)));
+  const spread = c => Math.max(...c) - Math.min(...c);
+  const rank = c => spread(c) <= 1 ? 0 : c.filter(x => x).length === 1 ? 1 : 2;
+  return out.map((c, k) => ({ c, k }))
+    .sort((a, b) => rank(a.c) - rank(b.c) || spread(a.c) - spread(b.c) || a.k - b.k)
+    .slice(0, LAY_MAX).map(x => x.c);
+}
+// the cells of grid() in the panel: [col, row, cols, rows] of each window on a monitor
+function layoutCells(m, count) {
+  if (!count) return [];
+  let cols = Math.ceil(Math.sqrt(count)), rows = Math.ceil(count / cols);
+  if (m.w < m.h && cols > rows) [cols, rows] = [rows, cols];
+  return Array.from({ length: count }, (_, k) => [k % cols, Math.floor(k / cols), cols, rows]);
+}
+function renderLayouts() {
+  const box = $("#monLays");
+  const mons = S.monitors || [], wins = S.wins || [];
+  const names = wins.map(w => w.slot == null ? t("layOther") : (S.slots[w.slot] || {}).name || "");
+  const sig = JSON.stringify([mons, wins, names, LANG]);
+  if (box.dataset.sig === sig) return;
+  box.dataset.sig = sig;
+  const all = layoutCounts(wins.length, mons.length);
+  if (!all.length) { box.innerHTML = ""; return; }
+  // the monitors drawn as they are placed, like the map above: 15 px tall, 2 px apart
+  const minX = Math.min(...mons.map(m => m.x)), minY = Math.min(...mons.map(m => m.y));
+  const maxX = Math.max(...mons.map(m => m.x + m.w)), maxY = Math.max(...mons.map(m => m.y + m.h));
+  const k = 15 / Math.min(...mons.map(m => m.h)), gap = 2;
+  const order = {};
+  mons.map((m, i) => i).sort((a, b) => mons[a].x - mons[b].x).forEach((i, o) => { order[i] = o; });
+  const W = Math.round((maxX - minX) * k + gap * (mons.length - 1)), H = Math.round((maxY - minY) * k);
+  box.innerHTML = `<span class="lbl">${esc(t("layLbl"))}</span>` + all.map(counts => {
+    // windows go in slot order to monitor 1 (the main one), then 2...: the same order as the panel's list
+    const plan = counts.flatMap((c, i) => Array(c).fill(i));
+    const on = wins.every((w, j) => w.monitor === plan[j]);
+    let at = 0;
+    const tip = counts.map((c, i) => {
+      const who = names.slice(at, at += c);
+      return c ? t("layMon", { n: i + 1, names: who.join(" + ") }) : "";
+    }).filter(Boolean).join(" · ");
+    const draw = mons.map((m, i) =>
+      `<i class="lm" style="left:${Math.round((m.x - minX) * k + order[i] * gap)}px;top:${Math.round((m.y - minY) * k)}px;width:${Math.round(m.w * k)}px;height:${Math.round(m.h * k)}px">` +
+      layoutCells(m, counts[i]).map(([cx, cy, cols, rows]) =>
+        `<b style="left:${cx * 100 / cols}%;top:${cy * 100 / rows}%;width:${100 / cols}%;height:${100 / rows}%"></b>`).join("") +
+      `</i>`).join("");
+    return `<button class="b lay${on ? " on" : ""}" data-plan="${plan.join(",")}" title="${esc(tip)}" aria-label="${esc(tip)}" aria-pressed="${on}">` +
+      `<span class="lmap" style="width:${W}px;height:${H}px">${draw}</span></button>`;
+  }).join("");
+  box.querySelectorAll("[data-plan]").forEach(b => b.onclick = async () => {
+    const ok = await api.arrange(b.dataset.plan.split(",").map(Number));
+    $("#winMsg").textContent = ok ? t("winTiled") : t("layChanged");
+    loopNow();
+  });
+}
+
 // drag a client (its card, or its chip on the monitor map) onto a monitor
 let dragSlot = null;
 function startDrag(e, i) {
@@ -2565,6 +2643,7 @@ function render() {
   // clients
   if (builtSlots !== S.slots.length) buildSlots();
   renderMonitors();
+  renderLayouts();
   const add = $("#addCard");
   if (add) add.style.display = S.slots.length >= S.slotCap ? "none" : "";
   setText($("#accCount"), t("accCount", { open: S.slots.filter(x => x.pid).length, n: S.slots.length }));

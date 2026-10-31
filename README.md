@@ -15,7 +15,7 @@ server events, votes, timers and a crafting guide.
 
 | Tab | What it does |
 |---|---|
-| **Clients** | Account cards (up to 10): open, focus, minimize and close each game window. Each card shows whether the character is in game, the region, time online and HP/MP. A **monitor map** draws your monitors as they are: click one to arrange the windows on it, or drag an account onto a monitor to move its window there. Save and restore the layout. Optional **auto-login** (see below). |
+| **Clients** | Account cards (up to 10): open, focus, minimize and close each game window. Each card shows whether the character is in game, the region, time online and HP/MP. A **monitor map** draws your monitors as they are: click one to arrange the windows on it, or drag an account onto a monitor to move its window there. Layout presets (one per monitor, two side by side, two plus one...) follow the clients you have open. Save and restore the layout. Optional **auto-login** (see below). |
 | **Network** | Live ping and packet loss to the game server with a 2-minute graph. Cloudflare WARP status and on/off toggle. |
 | **Bosses** | Respawn countdowns with date and time, filters, search, sort and level ranges, level/area/coordinates from the game's own data files. A **map** in a side pane attached to the panel (the game's own world map, read from your client) shows every boss, area names, the server's Alt+B teleports, the area each of your accounts is in, the Tower of Insolence floor of each boss, and the fastest way there: the nearest Alt+B teleport (or Gatekeeper), then the run. |
 | **Craft** | Step-by-step guide for every top-tier item (Dynasty, Icarus, Moirai, Vesper): crafting order, material tree, shopping list, masterworks, a plan for your class, gear without a recipe and accessories, with where everything drops. |
@@ -102,7 +102,8 @@ Painel flutuante para quem joga no **L2Axis**, com o visual das janelas do jogo.
 [docs/GUIA.md](docs/GUIA.md).**
 
 - **Clientes:** cartões por conta (até 10) com status (no jogo, região, tempo online, HP/MP), mapa dos monitores
-  (clique para organizar, arraste a conta para levar a janela) e login automático opcional.
+  (clique para organizar, arraste a conta para levar a janela), arranjos prontos (uma por monitor, duas lado a
+  lado, duas + uma...) que acompanham os clients abertos e login automático opcional.
 - **Avisos:** caiu/fechou, morreu, HP baixo, MP baixo, evento abrindo inscrição ou começando.
 - **Eventos:** todos os eventos do servidor com o próximo horário no seu fuso, como participar e recompensas;
   status ao vivo lido dos anúncios do chat.

@@ -710,6 +710,8 @@ def monitor_of(hwnd, mons):
 
 def grid(area, count):
     """Split an area into an even grid for `count` windows: (x, y, w, h) each, row by row."""
+    if count <= 0:
+        return []
     cols = math.ceil(math.sqrt(count))
     rows = math.ceil(count / cols)
     if area["w"] < area["h"] and cols > rows:  # portrait monitor: stack instead
@@ -3803,9 +3805,13 @@ class Api:
 
             bosses = self._boss_list(now)
             alerts, self._alerts = self._alerts, []
+            mons = monitors()
             return {
                 "slots": slots, "external": external, "running": running, "slotCap": SLOT_CAP,
-                "monitors": [{k: m[k] for k in ("x", "y", "w", "h", "primary", "res")} for m in monitors()],
+                "monitors": [{k: m[k] for k in ("x", "y", "w", "h", "primary", "res")} for m in mons],
+                # the game windows in the order the layout presets place them, and the monitor of each
+                "wins": [{"slot": i, "monitor": None if user32.IsIconic(h) else monitor_of(h, mons)}
+                         for i, h in self._client_windows(external)],
                 "hwidLimit": HWID_LIMIT, "ping": self._ping.stats(), "pingHistory": PING_HISTORY,
                 "server": SERVER_IP, "warp": self._warp.state, "votes": votes, "timers": timers,
                 "alerts": alerts, "topmost": self._data["topmost"], "compact": self._data["compact"],
@@ -3882,11 +3888,17 @@ class Api:
             if pid in self._windows:
                 user32.ShowWindow(self._windows[pid], SW_MINIMIZE)
 
+    def _client_windows(self, external=None):
+        """(slot, window) of every game window in slot order (slot 1 first), then the clients not
+        opened from the panel (slot None). `external`: those clients' pids, when already known."""
+        out = [(i, self._windows[p]) for i, p in enumerate(self._slot_pid) if p and p in self._windows]
+        if external is None:
+            bound = set(self._slot_pid)
+            external = [p for p in list_l2_pids() if p not in bound]
+        return out + [(None, self._windows[p]) for p in external if p in self._windows]
+
     def _client_hwnds(self):
-        """Game windows in slot order (slot 1 first), then clients not opened from the panel."""
-        bound = [p for p in self._slot_pid if p]
-        order = bound + [p for p in list_l2_pids() if p not in bound]
-        return [self._windows[p] for p in order if p in self._windows]
+        return [h for _i, h in self._client_windows()]
 
     def tile(self, target="all"):
         """target "all": split the clients over every monitor (slot order, primary monitor first)
@@ -3900,6 +3912,25 @@ class Api:
         per = math.ceil(len(hwnds) / len(mons))
         groups = [hwnds[i * per:(i + 1) * per] for i in range(len(mons))]
         for area, group in zip(mons, groups):
+            for hwnd, (x, y, w, h) in zip(group, grid(area, len(group))):
+                user32.ShowWindow(hwnd, SW_RESTORE)
+                user32.MoveWindow(hwnd, x, y, w, h, True)
+        return True
+
+    def arrange(self, plan):
+        """A layout preset of the Clients tab: plan[k] is the monitor of the k-th game window (the
+        order of _client_windows). Each monitor is split in an even grid (two windows side by side).
+        False when the windows changed since the panel drew the preset (one opened or closed)."""
+        hwnds = self._client_hwnds()
+        mons = monitors()
+        try:
+            plan = [int(k) for k in plan]
+        except (TypeError, ValueError):
+            return False
+        if not hwnds or len(plan) != len(hwnds) or any(not 0 <= k < len(mons) for k in plan):
+            return False
+        for k, area in enumerate(mons):
+            group = [h for h, on in zip(hwnds, plan) if on == k]
             for hwnd, (x, y, w, h) in zip(group, grid(area, len(group))):
                 user32.ShowWindow(hwnd, SW_RESTORE)
                 user32.MoveWindow(hwnd, x, y, w, h, True)

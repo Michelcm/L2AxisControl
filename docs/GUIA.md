@@ -108,6 +108,10 @@ O **mapa de monitores** mostra seus monitores na posição real (★ = monitor p
 
 - **Clique num monitor** para organizar lado a lado todas as janelas do jogo nele.
 - **Arraste uma conta** (o cartão, ou o nome dela no mapa) **até um monitor** para levar aquela janela para lá.
+- **Organizar:** botões prontos com cada jeito de dividir os clients abertos entre os monitores (uma por monitor,
+  duas lado a lado num monitor, duas num e uma no outro...). Cada botão é um desenho dos seus monitores com as
+  janelas; passe o mouse para ver qual conta vai para qual monitor. A lista muda sozinha quando você abre ou fecha um
+  client, e o arranjo atual fica aceso. Aparece com 2 monitores ou mais.
 - Os botões à direita: espalhar as janelas por **todos** os monitores, **salvar** a posição atual, **restaurar** a
   posição salva.
 

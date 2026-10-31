@@ -106,6 +106,10 @@ The **monitor map** shows your monitors as they are placed (★ = main monitor),
 
 - **Click a monitor** to arrange all the game windows on it side by side.
 - **Drag an account** (its card, or its name on the map) **onto a monitor** to move that window there.
+- **Arrange:** ready-made buttons for each way to split the open clients over the monitors (one per monitor, two side
+  by side on one monitor, two on one and one on the other...). Each button draws your monitors with the windows; hover
+  it to see which account goes to which monitor. The list changes by itself when you open or close a client, and the
+  current layout is lit. Shown with 2 monitors or more.
 - The buttons on the right: spread the windows over **all** monitors, **save** the current layout, **restore** the saved
   layout.
 
