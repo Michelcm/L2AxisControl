@@ -222,7 +222,7 @@ The **Spoil** tab is for spoilers (Bounty Hunters / Fortune Seekers):
 - **🗺** opens the side map with the spawn spots (green ◆) of every monster that gives that item, and the fastest way
   to the chosen one. Click another spot or another monster on the left to change.
 
-The chances are the official High Five ones; L2Axis has spoil x15, so treat them as a comparison between monsters.
+The chances are the official High Five ones; on L2Axis drop, spoil and adena are x8, and the server has monsters of its own (such as those in Fafurion Temple) that are not in this list. Treat the numbers as a comparison between monsters.
 
 ## 10. Updating to a new version
 

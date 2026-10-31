@@ -224,7 +224,7 @@ A aba **Spoil** é para quem faz spoil (Bounty Hunter / Fortune Seeker):
 - **🗺** abre o mapa lateral com os pontos de spawn (◆ verde) de todos os mobs que dão aquele item, e o caminho mais
   rápido até o escolhido. Clique em outro ponto ou em outro mob à esquerda para trocar.
 
-As chances são as oficiais do High Five; o L2Axis tem spoil x15, então use para comparar os mobs entre si.
+As chances são as oficiais do High Five; no L2Axis drop, spoil e adena são x8, e o servidor tem mobs próprios (como os do Fafurion Temple) que não estão nessa lista. Use os números para comparar os mobs entre si.
 
 ## 10. Atualizar para uma versão nova
 
