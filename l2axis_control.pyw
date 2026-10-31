@@ -2733,6 +2733,14 @@ class ServerDB:
                 "log": self.db["log"][-30:]}
 
 
+def same_mob(a, b):
+    """Two names for the monster with the same id: equal, or written a little differently
+    ("Alpen Buffalo" on the server, "Alpine Buffalo" in High Five)."""
+    import difflib
+    a, b = (a or "").lower(), (b or "").lower()
+    return a == b or difflib.SequenceMatcher(None, a, b).ratio() >= 0.8
+
+
 def server_db_cutoff(it):
     """When every page of an item's list has been seen since: the moment of the oldest of those views.
     None while the last page is unknown or a page is missing."""
@@ -2824,7 +2832,7 @@ class BoardWatcher(threading.Thread):
                 self.check()
             except Exception:
                 log_error("bosses", traceback.format_exc())
-            time.sleep(1)
+            time.sleep(0.25)  # a player can click through Database pages in about a second
 
     def check(self):
         if not BOARD_FILE.exists():
@@ -2953,6 +2961,7 @@ class Api:
         self._spoil = self._spoil_h5 = None
         self._spoil_ver = -1
         self._srv = ServerDB()  # the server's Alt+B Database, as far as the player has looked at it
+        self._client_names = {}  # item names read from the client for items only the server lists
         self._board_points = load_board_teleports(self._data.get("board_points"))
         self._side_open, self._side_shift = False, 0
         if renamed:
@@ -3465,7 +3474,8 @@ class Api:
             self._classify_spoil_items()
             return self._spoil
 
-    def _item_names(self):
+    def _known_item_names(self, wanted=()):
+        """Item names from the panel's lists; ids still unknown are read from the client (itemname-e.dat)."""
         names = {}
         if self._drops.db:
             names.update(self._drops.db.get("names", {}))
@@ -3473,6 +3483,17 @@ class Api:
             names.update({k: v["name"] for k, v in self._stats["items"].items()})
         if self._recipes:
             names.update({str(k): v for k, v in self._recipes.names.items()})
+        names.update(self._client_names)
+        missing = [int(i) for i in wanted if str(i) not in names and str(i).isdigit()]
+        if missing and (GAME_DIR / "itemname-e.dat").exists():
+            try:
+                found = _item_names(l2_decrypt413(GAME_DIR / "itemname-e.dat"), missing)
+            except Exception:
+                log_error("server_db", traceback.format_exc())
+                found = {}
+            for i in missing:  # remembered even when not found, so the file is read once per id
+                self._client_names[str(i)] = found.get(i) or f"#{i}"
+            names.update(self._client_names)
         return names
 
     def _server_mob(self, sp, npc, info):
@@ -3480,12 +3501,12 @@ class Api:
         with its official area when High Five has it (as a monster without spoils), else as a server one."""
         m = sp["mobs"].get(npc)
         name = info.get("name")
-        if m is not None and (not name or name.lower() == m["name"].lower()):
+        if m is not None and (not name or same_mob(name, m["name"])):
             return npc
         key = npc if m is None else "s" + npc  # an official id used by the server for another monster
         if key not in sp["mobs"]:
             h5 = (self._drops.db or {}).get("npcs", {}).get(npc) if m is None else None
-            same = bool(h5) and (not name or h5["name"].lower() == name.lower())
+            same = bool(h5) and (not name or same_mob(h5["name"], name))
             sp["mobs"][key] = {"name": name or (h5 or {}).get("name") or f"#{npc}",
                                "level": info.get("level") or (h5 or {}).get("level", 0),
                                "area": h5.get("area") if same else None, "spots": [], "spoil": []}
@@ -3496,10 +3517,10 @@ class Api:
     def _add_server_spoils(self, sp):
         """The server's spoil lists on top of the official ones: a complete list replaces the official
         one, a partial list corrects the monsters it shows. Entries from the server have a 5th value (1)."""
-        names = self._item_names()
         with self._srv.lock:
             srv = json.loads(json.dumps(self._srv.db))
             summary = self._srv.summary()
+        names = self._known_item_names(list(srv["items"]) + [e["item"] for e in summary["log"]])
         mobs = srv["mobs"]
         for iid, it in srv["items"].items():
             spoils = [(k.split(":")[0], r) for k, r in it.get("rows", {}).items() if k.split("#")[0].endswith(":spoil")]
@@ -3519,9 +3540,14 @@ class Api:
                 sp["items"][iid]["srv"] = {"complete": complete, "pages": len(it.get("pages", {})), "last": it.get("last"),
                                            "spoils": it.get("spoils"), "seen": max([r["seen"] for _n, r in spoils] + [it.get("seen", 0)])}
         # what the server says about the monsters themselves (from its cards and searches)
+        names_in = {m["name"].lower() for m in sp["mobs"].values()}
+        for npc, info in sorted(mobs.items(), key=lambda x: "stats" not in x[1]):  # the one with a card first
+            if info.get("spoils") and info.get("name") and info["name"].lower() not in names_in and npc not in sp["mobs"]:
+                self._server_mob(sp, npc, info)
+                names_in.add(info["name"].lower())
         for npc, info in mobs.items():
             m = sp["mobs"].get(npc)
-            if m is not None and info.get("name", "").lower() == m["name"].lower():
+            if m is not None and same_mob(info.get("name"), m["name"]):
                 if info.get("level"):
                     m["level"] = info["level"]  # the server's level (some differ from High Five)
                 m["srv"] = {k: info[k] for k in ("aggro", "drops", "spoils", "seen") if k in info}
@@ -3714,7 +3740,7 @@ class Api:
 
         def row(npc, r):
             h5, m = npcs.get(str(npc)), mobs.get(str(npc), {})
-            same = bool(h5) and (not m.get("name") or m["name"].lower() == h5["name"].lower())
+            same = bool(h5) and (not m.get("name") or same_mob(m["name"], h5["name"]))
             return {"npc": m.get("name") or (h5 or {}).get("name") or f"#{npc}",
                     "level": m.get("level") or (h5 or {}).get("level"),
                     "area": h5.get("area") if same else None, "custom": not same,
