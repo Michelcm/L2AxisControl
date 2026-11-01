@@ -175,6 +175,9 @@
   .tbtn:hover { color: #fff; background: linear-gradient(var(--knob-hover-hi), var(--knob-hover-lo)); }
   .tbtn.on { color: var(--gold-hi); box-shadow: inset 0 0 0 1px var(--gold); }
   .tbtn.x:hover { background: linear-gradient(var(--close-hover-hi), var(--close-hover-lo)); }
+  .tbtn svg { width: 9px; height: 9px; display: block; }
+  .tbtn.txt { width: auto; padding: 0 5px; letter-spacing: .3px; }
+  .compact #bCompact svg { transform: rotate(180deg); }  /* collapsed: the arrow says "expand" */
 
   /* ------------------------------------------------ summary (status window style) */
   .status { flex: none; padding: 6px 8px 5px; border-bottom: 1px solid rgba(106,92,62,.5); }
@@ -941,11 +944,11 @@
 <div class="wnd" id="wnd">
   <div class="title drag">
     <div class="name"><b>L2Axis</b> Control</div>
-    <div class="tbtn" id="bSide" data-i18n-title="tipSide">🗺</div>
-    <div class="tbtn" id="bPin" data-i18n-title="tipPin">▲</div>
-    <div class="tbtn" id="bCompact" data-i18n-title="tipCompact">▬</div>
-    <div class="tbtn" id="bMin" data-i18n-title="tipMinimize">_</div>
-    <div class="tbtn x" id="bClose" data-i18n-title="tipClose">✕</div>
+    <div class="tbtn txt" id="bSide" data-i18n-title="tipSide" data-i18n="tbMap"></div>
+    <div class="tbtn" id="bPin" data-i18n-title="tipPin"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M3 .8h4L6.4 4l1.8 2H1.8L3.6 4z" fill="currentColor"/><path d="M5 6v3.4" stroke="currentColor" stroke-width="1.3"/></svg></div>
+    <div class="tbtn" id="bCompact" data-i18n-title="tipCompact"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1.6 6.8 5 3.4l3.4 3.4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></div>
+    <div class="tbtn" id="bMin" data-i18n-title="tipMinimize"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1.8 7.8h6.4" stroke="currentColor" stroke-width="1.6"/></svg></div>
+    <div class="tbtn x" id="bClose" data-i18n-title="tipClose"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="m2 2 6 6M8 2 2 8" stroke="currentColor" stroke-width="1.5"/></svg></div>
   </div>
 
   <div class="status drag">
@@ -1378,7 +1381,7 @@
 // ================================================= translations
 const I18N = {
   pt: {
-    tipPin: "Sempre por cima", tipCompact: "Modo compacto", tipMinimize: "Minimizar", tipClose: "Fechar",
+    tipPin: "Sempre por cima", tbMap: "Mapa", tipCompact: "Modo compacto", tipMinimize: "Minimizar", tipClose: "Fechar",
     gPing: "Ping", gLoss: "Perda", gClients: "Clientes", chipVotes: "Votos",
     evTitle: "Eventos do servidor", evRestart: "Último restart:", evNow: "agora",
     evSource: "Clique num evento para ver como participar e as recompensas. Horários dos posts do fórum (no seu fuso) e, ao vivo, dos anúncios lidos no chat.",
@@ -1562,7 +1565,7 @@ const I18N = {
     a_bossSpawn: "Boss nasceu: {name}",
   },
   en: {
-    tipPin: "Always on top", tipCompact: "Compact mode", tipMinimize: "Minimize", tipClose: "Close",
+    tipPin: "Always on top", tbMap: "Map", tipCompact: "Compact mode", tipMinimize: "Minimize", tipClose: "Close",
     gPing: "Ping", gLoss: "Loss", gClients: "Clients", chipVotes: "Votes",
     evTitle: "Server events", evRestart: "Last restart:", evNow: "now",
     evSource: "Click an event to see how to take part and the rewards. Times from the forum posts (in your time zone) and, live, from the announcements read in the chat.",
@@ -1746,7 +1749,7 @@ const I18N = {
     a_bossSpawn: "Boss spawned: {name}",
   },
   de: {
-    tipPin: "Immer im Vordergrund", tipCompact: "Kompaktmodus", tipMinimize: "Minimieren", tipClose: "Schließen",
+    tipPin: "Immer im Vordergrund", tbMap: "Karte", tipCompact: "Kompaktmodus", tipMinimize: "Minimieren", tipClose: "Schließen",
     gPing: "Ping", gLoss: "Verlust", gClients: "Clients", chipVotes: "Votes",
     evTitle: "Server-Events", evRestart: "Letzter Restart:", evNow: "jetzt",
     evSource: "Klick auf ein Event zeigt Teilnahme und Belohnungen. Zeiten aus den Forum-Posts (deine Zeitzone) und live aus den im Chat gelesenen Ankündigungen.",
