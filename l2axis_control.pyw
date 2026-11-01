@@ -1146,7 +1146,11 @@ CHAT_KINDS = [
     {"key": "dmgIn", "color": "#FF5A5A", "ids": [36, 37, 2262, 2263, 2281, 1016, 1027, 296, 297, 333, 686, 812, 2787],
      "sample": (2262, {"c1": "Player", "s3": "412", "c2": "Lilim Assassin"})},
     {"key": "skill", "color": "#E6E6E6", "ids": [46], "sample": (46, {"s1": "Bluff"})},
-    # The game sends nothing when a skill lands: these two kinds are the only sign that it did not.
+    # A debuff with a chance that landed: L2Axis sends "$s1 has succeeded." (1595, seen in game with
+    # Critical Wound; the High Five servers studied send nothing).
+    {"key": "land", "color": "#4BFF4B", "ids": [1595], "sample": (1595, {"s1": "Bluff"}),
+     "alert": [1595], "sound": "ItemSound3.sys_enchant_success"},
+    # When a skill does not land:
     # Resisted: debuffs (Bluff, Stun, Critical Wound...) and magic fully resisted (139, with the skill's
     # name). "Your attack has failed" (158) comes without the skill's name: in L2J and L2jMobius a
     # damage magic that hit for half (Formulas.calcMagicDam), and on L2Axis also a blow that failed
@@ -1188,11 +1192,13 @@ SCREEN_TEXT = {
     531: {"pt": "SEM SPIRITSHOT!", "en": "NO SPIRITSHOTS!", "de": "KEINE SPIRITSHOTS!", "es": "¡SIN SPIRITSHOT!"},
     749: {"pt": "REMOVIDO: $s1", "en": "REMOVED: $s1", "de": "ENTFERNT: $s1", "es": "QUITADO: $s1"},
     612: {"pt": "SPOIL!", "en": "SPOIL!", "de": "SPOIL!", "es": "¡SPOIL!"},
+    1595: {"pt": "ENTROU: $s1", "en": "LANDED: $s1", "de": "GETROFFEN: $s1", "es": "ENTRÓ: $s1"},
 }
 # Short chat lines for the common combat messages, in the panel's language (the same values, some
 # left out). A language missing for a message keeps the game's line.
 SHORT_TEXT = {
     46: {"pt": "Usou $s1", "en": "Used $s1", "de": "$s1 benutzt", "es": "Usaste $s1"},
+    1595: {"pt": "$s1 ENTROU", "en": "$s1 LANDED", "de": "$s1 GETROFFEN", "es": "$s1 ENTRÓ"},
     35: {"pt": "$s1 de dano", "en": "$s1 dmg", "de": "$s1 Schaden", "es": "$s1 de daño"},
     2261: {"pt": "$s3 de dano em $c2", "en": "$s3 dmg to $c2", "de": "$s3 Schaden an $c2", "es": "$s3 de daño a $c2"},
     36: {"pt": "Levou $s2 de $c1", "en": "Took $s2 from $c1", "de": "$s2 von $c1 erlitten", "es": "Recibiste $s2 de $c1"},
