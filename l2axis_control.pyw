@@ -1148,9 +1148,9 @@ CHAT_KINDS = [
     {"key": "skill", "color": "#E6E6E6", "ids": [46], "sample": (46, {"s1": "Bluff"})},
     # The game sends nothing when a skill lands: these two kinds are the only sign that it did not.
     # Resisted: debuffs (Bluff, Stun, Critical Wound...) and magic fully resisted (139, with the skill's
-    # name). "Your attack has failed" (158) is a damage magic that hit for half: the server sends it
-    # without the skill's name (L2J and L2jMobius High Five, Formulas.calcMagicDam). A blow that fails
-    # sends nothing; one that is dodged is 1999.
+    # name). "Your attack has failed" (158) comes without the skill's name: in L2J and L2jMobius a
+    # damage magic that hit for half (Formulas.calcMagicDam), and on L2Axis also a blow that failed
+    # (seen in game with a dagger). A dodged skill is 1999.
     {"key": "resist", "color": "#FF3CE6", "ids": [139, 158, 2268, 566, 567],
      "sample": (139, {"c1": "Lilim Assassin", "s2": "Bluff"}),
      "alert": [139, 158, 2268, 566, 567], "sound": "ItemSound3.sys_enchant_failed"},
@@ -1167,7 +1167,7 @@ CHAT_KINDS = [
      "alert": [749], "sound": "ItemSound3.sys_denial"},
     {"key": "adena", "color": "#FFD84A", "ids": [28, 52, 1023, 1375, 1379], "sample": (28, {"s1": "1234"})},
     {"key": "item", "color": "#4FE0C0", "ids": [29, 30, 299, 300, 369, 371, 376, 3073], "sample": (30, {"s1": "Mold Glue"})},
-    {"key": "spoil", "color": "#C792FF", "ids": [608, 609, 612],
+    {"key": "spoil", "color": "#C792FF", "ids": [608, 609, 612, 53, 54, 343, 357],
      "sample": (608, {"c1": "Player", "s3": "2", "s2": "Animal Bone"}),
      "alert": [612], "sound": "orig"},
     {"key": "exp", "color": "#8FB4FF", "ids": [45, 95, 331, 1014], "sample": (95, {"s1": "54321", "s2": "3210"})},
@@ -1178,7 +1178,7 @@ CHAT_KINDS = [
 # The big text at the top of the screen, in the panel's language ($s1, $s2: the skill or item).
 SCREEN_TEXT = {
     139: {"pt": "RESISTIU: $s2", "en": "RESISTED: $s2", "de": "ABGEWEHRT: $s2"},
-    158: {"pt": "MEIO DANO!", "en": "HALF DAMAGE!", "de": "HALBER SCHADEN!"},
+    158: {"pt": "FALHOU!", "en": "FAILED!", "de": "FEHLGESCHLAGEN!"},
     2268: {"pt": "FALHOU!", "en": "FAILED!", "de": "FEHLGESCHLAGEN!"},
     566: {"pt": "RESISTIU!", "en": "RESISTED!", "de": "ABGEWEHRT!"},
     567: {"pt": "RESISTIU!", "en": "RESISTED!", "de": "ABGEWEHRT!"},
@@ -1204,7 +1204,7 @@ SHORT_TEXT = {
     1667: {"pt": "LETHAL!", "en": "LETHAL!", "de": "LETHAL!"},
     1668: {"pt": "LETHAL!", "en": "LETHAL!", "de": "LETHAL!"},
     139: {"pt": "$s2 RESISTIDO por $c1", "en": "$s2 RESISTED by $c1", "de": "$s2 von $c1 ABGEWEHRT"},
-    158: {"pt": "Magia pela metade (½ dano)", "en": "Magic at half damage", "de": "Magie mit halbem Schaden"},
+    158: {"pt": "Ataque FALHOU", "en": "Attack FAILED", "de": "Angriff FEHLGESCHLAGEN"},
     2268: {"pt": "Ataque de $c1 FALHOU", "en": "$c1's attack FAILED", "de": "Angriff von $c1 FEHLGESCHLAGEN"},
     1999: {"pt": "$c1 ESQUIVOU", "en": "$c1 DODGED", "de": "$c1 AUSGEWICHEN"},
     2265: {"pt": "$c1 errou", "en": "$c1 missed", "de": "$c1 verfehlt"},
@@ -1232,6 +1232,10 @@ SHORT_TEXT = {
     608: {"pt": "Sweep: +$s3 $s2 ($c1)", "en": "Sweep: +$s3 $s2 ($c1)", "de": "Sweep: +$s3 $s2 ($c1)"},
     609: {"pt": "Sweep: +$s2 ($c1)", "en": "Sweep: +$s2 ($c1)", "de": "Sweep: +$s2 ($c1)"},
     612: {"pt": "SPOIL ATIVO!", "en": "SPOIL ON!", "de": "SPOIL AKTIV!"},
+    53: {"pt": "Sweep: +$s2 $s1", "en": "Sweep: +$s2 $s1", "de": "Sweep: +$s2 $s1"},
+    54: {"pt": "Sweep: +$s1", "en": "Sweep: +$s1", "de": "Sweep: +$s1"},
+    343: {"pt": "Sweep falhou: não tinha spoil", "en": "Sweep failed: not spoiled", "de": "Sweep fehlgeschlagen: kein Spoil"},
+    357: {"pt": "Já tem spoil", "en": "Already spoiled", "de": "Schon gespoilt"},
     338: {"pt": "SEM SOULSHOT", "en": "OUT OF SOULSHOTS", "de": "KEINE SOULSHOTS"},
     531: {"pt": "SEM SPIRITSHOT", "en": "OUT OF SPIRITSHOTS", "de": "KEINE SPIRITSHOTS"},
     1435: {"pt": "$s1 ACABOU (auto desligado)", "en": "$s1 RAN OUT (auto off)", "de": "$s1 LEER (Auto aus)"},
@@ -4518,6 +4522,8 @@ class Api:
         out = {}
         for key, path in (("npc", NPCNAME), ("item", ITEMNAME)):
             bk = game_backup(path)
+            if not bk.exists() and file_sha(path) == written.get(key):
+                raise FileNotFoundError("nobackup")  # the game's file has the panel's marks: never keep it as the original
             if not bk.exists() or file_sha(path) != written.get(key):
                 shutil.copy2(path, bk)
                 if key == "item":
@@ -4531,6 +4537,13 @@ class Api:
             src = game_backup(ITEMNAME) if game_backup(ITEMNAME).exists() else ITEMNAME
             lay = itemname_layout(l2_decrypt413(src))
             self._items_cat = {i: (v["name"], v["add"]) for i, v in lay.items()}
+            applied = self._data.get("marks_applied")
+            if src == ITEMNAME and applied and applied.get("tag"):  # no copy kept: take the panel's mark off
+                mark = applied["tag"] + " "
+                for m in applied.get("marks", []):
+                    name, add = self._items_cat.get(m["id"], ("", ""))
+                    if m.get("tag") and name.startswith(mark):
+                        self._items_cat[m["id"]] = (name[len(mark):], add)
         return self._items_cat
 
     def _spoil_sources(self):
@@ -4656,6 +4669,11 @@ class Api:
                 return {"ok": False, "error": "verify"}
         except PermissionError:
             return {"ok": False, "error": "locked"}
+        except FileNotFoundError as exc:
+            if str(exc) == "nobackup":
+                return {"ok": False, "error": "nobackup"}
+            log_error("marks", repr(exc))
+            return {"ok": False, "error": "other"}
         except (OSError, ValueError, zlib_error()) as exc:
             log_error("marks", repr(exc))
             return {"ok": False, "error": "other"}
