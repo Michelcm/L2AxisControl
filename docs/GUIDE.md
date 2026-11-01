@@ -72,7 +72,7 @@ Basics of the window:
 - **Resize:** drag the right edge, the bottom edge or the bottom-right corner.
 - **▲ (compact):** shows only ping, loss and clients. Click again to expand.
 - **_ and ✕:** minimize and close.
-- **Language:** Options tab → PT-BR / EN / DE.
+- **Language:** Options tab → Panel → PT-BR / EN / DE.
 
 ## 5. Clients: your game windows
 
@@ -134,7 +134,7 @@ From now on, **▶ Open** on that card:
 
 A small window in the bottom-right corner shows each step for each account (yellow = in progress, green = done,
 red = failed, with the reason). It never takes the keyboard from the game, so you can do other things meanwhile.
-In **Options → Auto login** you can choose to stop on the server list instead.
+In **Options → Panel → Auto login** you can choose to stop on the server list instead.
 
 **Your password** is encrypted by Windows: only your Windows user on this PC can read it. It is never shown again in the
 panel and never leaves your PC.
@@ -153,7 +153,7 @@ The panel beeps and shows a notice (at the top of the panel and in the small cor
 | **registration open / started** | A server event opened registration or started (read in the chat). |
 
 Each alert fires once and re-arms when things are back to normal. HP/MP/death alerts need the game window
-**not minimized**. You can turn the HP/MP and event alerts off in **Options → Alerts**.
+**not minimized**. You can turn the HP/MP and event alerts off in **Options → Panel → Alerts**.
 
 ![Alerts window](img/alerts.png)
 
@@ -184,7 +184,7 @@ sees them announced once; after that it calculates the next ones.
 | ![Craft](img/craft.png) | **Craft:** choose your race and class at the top. **Recipes** lists the top items; click one for the step-by-step, the materials and where they drop. **My plan** shows the best item for each slot of your class. |
 | ![Votes](img/votes.png) | **Votes:** click **Vote** on a site to open it and start its 12-hour timer. **Open available ★** opens the main ones. Then type **.vote** in game. Vote with WARP/VPN **off**: the vote sites check your IP. |
 | ![Timers](img/timers.png) | **Timers:** type a name and a time (`1:30` = 1 h 30 min) and click **Add**, or use a preset. It beeps when it ends. |
-| ![Options](img/options.png) | **Options:** language, always on top, transparency, text size, auto-login and alert settings, L2Axis links and shortcuts to the game folders. **About** shows the credits. |
+| ![Options](img/options.png) | **Options**, in three parts. **Panel:** language, always on top, transparency, text size, auto-login and alert settings. **In game:** ready-made profiles (Game default, PvP, Farm, Spoil) for the chat colours, short messages and alerts at the top of the screen with a sound (skill resisted or dodged, shots running out, buff removed, spoil activated), with a preview and **Customise** to set each item; it shows the next time the game starts. **Links:** L2Axis links and shortcuts to the game folders. **About** shows the credits. |
 
 ### Bosses map
 

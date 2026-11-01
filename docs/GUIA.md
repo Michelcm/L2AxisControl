@@ -18,7 +18,7 @@ English version: [GUIDE.md](GUIDE.md).
 11. [Problemas e respostas](#11-problemas-e-respostas)
 12. [Desinstalar](#12-desinstalar)
 
-> As imagens estão em inglês; no painel, escolha **PT-BR** na aba Opções.
+> As imagens estão em inglês; no painel, escolha **PT-BR** em Opções → Painel.
 
 ---
 
@@ -74,7 +74,7 @@ Básico da janela:
 - **Tamanho:** arraste a borda direita, a de baixo ou o canto inferior direito.
 - **▲ (compacto):** mostra só ping, perda e clientes. Clique de novo para expandir.
 - **_ e ✕:** minimizar e fechar.
-- **Idioma:** aba Opções → PT-BR / EN / DE.
+- **Idioma:** aba Opções → Painel → PT-BR / EN / DE.
 
 ## 5. Clientes: suas janelas do jogo
 
@@ -136,7 +136,7 @@ A partir daí, o **▶ Abrir** daquele cartão:
 
 Uma janelinha no canto inferior direito mostra cada etapa de cada conta (amarelo = andando, verde = pronto,
 vermelho = falhou, com o motivo). Ela nunca tira o teclado do jogo, então dá para mexer em outras coisas enquanto isso.
-Em **Opções → Login automático** dá para escolher parar na lista de servidores.
+Em **Opções → Painel → Login automático** dá para escolher parar na lista de servidores.
 
 **Sua senha** fica criptografada pelo Windows: só o seu usuário do Windows neste PC consegue abrir. Ela nunca mais
 aparece no painel e nunca sai do seu PC.
@@ -155,7 +155,7 @@ O painel apita e mostra um aviso (no topo do painel e na janelinha do canto) qua
 | **inscrições abertas / começou** | Um evento do servidor abriu inscrição ou começou (lido no chat). |
 
 Cada aviso aparece uma vez e só volta depois que tudo normalizar. Os avisos de HP/MP/morte precisam da janela do jogo
-**não minimizada**. Dá para desligar os avisos de HP/MP e de eventos em **Opções → Avisos**.
+**não minimizada**. Dá para desligar os avisos de HP/MP e de eventos em **Opções → Painel → Avisos**.
 
 ![Janelinha de avisos](img/alerts.png)
 
@@ -186,7 +186,7 @@ anúncio deles uma vez; depois disso ele calcula os próximos.
 | ![Craft](img/craft.png) | **Craft:** escolha raça e classe no topo. **Receitas** lista os itens top; clique num para ver o passo a passo, os materiais e onde dropam. **Meu plano** mostra o melhor item de cada slot para a sua classe. |
 | ![Votos](img/votes.png) | **Votos:** clique em **Votar** num site para abrir e iniciar o timer de 12 h. **Abrir ★ disponíveis** abre os principais. Depois digite **.vote** no jogo. Vote com o WARP/VPN **desligado**: os sites conferem o seu IP. |
 | ![Timers](img/timers.png) | **Timers:** digite um nome e um tempo (`1:30` = 1 h 30 min, ou só minutos) e clique em **Adicionar**, ou use um atalho pronto. Apita quando acaba. |
-| ![Opções](img/options.png) | **Opções:** idioma, sempre no topo, transparência, tamanho do texto, login automático e avisos, links do L2Axis e atalhos para as pastas do jogo. **Sobre** mostra os créditos. |
+| ![Opções](img/options.png) | **Opções**, em três partes. **Painel:** idioma, sempre no topo, transparência, tamanho do texto, login automático e avisos. **No jogo:** perfis prontos (Jogo original, PvP, Farm, Spoil) para as cores do chat, mensagens curtas e avisos no alto da tela com som (skill resistida ou esquivada, shots acabando, buff removido, spoil ativado), com prévia e **Personalizar** para ajustar item por item; vale quando o jogo é aberto de novo. **Links:** links do L2Axis e atalhos para as pastas do jogo. **Sobre** mostra os créditos. |
 
 ### Mapa dos bosses
 

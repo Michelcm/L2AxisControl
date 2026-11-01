@@ -385,19 +385,49 @@
             font: 11px Tahoma, sans-serif; color: var(--dim); background: none; border: 1px dashed var(--knob-hi); border-radius: 3px; cursor: pointer; }
   .addrow svg { width: 12px; height: 12px; }
   .addrow:hover { color: var(--gold-hi); border-color: var(--gold); background: rgba(201,165,90,.06); }
-  /* game chat colours: a swatch, the kind, and a line as the game shows it */
-  .chatcolors { display: grid; grid-template-columns: 1fr; gap: 2px; padding: 4px 6px; background: #0d0c0a;
-                border: 1px solid #000; box-shadow: inset 0 0 0 1px var(--line-dim); }
-  .chatc { display: grid; grid-template-columns: 26px 118px minmax(0, 1fr); align-items: center; gap: 6px; min-height: 18px; }
-  .chatx { grid-column: 2 / -1; display: flex; align-items: center; gap: 6px; margin: -1px 0 3px; }
-  .chatx label.chk { margin: 0 4px 0 0; font-size: 10px; white-space: nowrap; }
-  .chatx .lbl { font-size: 10px; color: var(--dim); }
-  .chatx select.e { height: 16px; font-size: 10px; width: 118px; }
-  .chatx button.b.ico { height: 16px; width: 20px; }
-  .chatx button.b.ico svg { width: 9px; height: 9px; }
-  .chatc input[type=color] { width: 26px; height: 15px; padding: 0; border: 1px solid #000; background: none; cursor: pointer; }
-  .chatc .lbl { font-size: 10px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .chatc .smp { font: 11px Tahoma, sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* Options > In game: profiles, a preview drawn like the game, and the fine tuning */
+  .opane[hidden] { display: none; }
+  .gprof { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; }
+  .gprof button.b { width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .gprof button.b.on { color: var(--gold-hi); box-shadow: inset 0 0 0 1px var(--gold); }
+  .gdesc { min-height: 26px; margin: 4px 1px 0; font-size: 10px; line-height: 13px; color: var(--text-soft); }
+  .gprev { margin-top: 2px; background: rgba(0,0,0,.6); border: 1px solid #000; box-shadow: inset 0 0 0 1px var(--line-dim);
+           font: 11px Tahoma, Verdana, sans-serif; text-shadow: 1px 1px 0 #000; }
+  .gscr { display: flex; flex-wrap: wrap; justify-content: center; align-items: baseline; gap: 2px 14px; padding: 7px 8px 6px;
+          background: linear-gradient(90deg, transparent, rgba(0,0,0,.75) 18%, rgba(0,0,0,.75) 82%, transparent);
+          border-bottom: 1px solid var(--line-dim); }
+  .gscr b { font-size: 13px; letter-spacing: .3px; text-shadow: 0 0 3px #000, 1px 1px 0 #000; }
+  .gscr .none { font-size: 10px; color: var(--dim); text-shadow: none; }
+  .gcap { padding: 3px 8px 0; font-size: 9px; color: var(--dim); text-shadow: none; }
+  .gchat { padding: 3px 8px 5px; line-height: 14px; }
+  .gchat div { overflow-wrap: anywhere; }
+  .gcustom { margin-top: 5px; }
+  .gcustom > summary { display: flex; align-items: center; gap: 5px; width: max-content; padding: 2px 1px; cursor: pointer;
+                       color: var(--gold); list-style: none; }
+  .gcustom > summary::-webkit-details-marker { display: none; }
+  .gcustom > summary svg { width: 8px; height: 8px; transition: transform .16s cubic-bezier(.25, 1, .5, 1); }
+  .gcustom[open] > summary svg { transform: rotate(90deg); }
+  .gcustom > summary:hover { color: var(--gold-hi); }
+  .gcustom > summary:focus-visible { outline: 1px solid var(--focus); outline-offset: 1px; }
+  .gsub { margin: 5px 1px 2px; font-size: 10px; color: var(--text-soft); }
+  .gbox { padding: 3px 6px; background: #0d0c0a; border: 1px solid #000; box-shadow: inset 0 0 0 1px var(--line-dim); }
+  .galert { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto auto 118px 20px; align-items: center; gap: 6px; min-height: 21px; }
+  .galert .nm, .gcol .nm { font-size: 10px; color: var(--text); line-height: 12px; }
+  .galert label.chk { margin: 0; font-size: 10px; white-space: nowrap; }
+  .galert .lbl { font-size: 10px; color: var(--dim); }
+  .galert select.e { height: 16px; font-size: 10px; width: 118px; }
+  .galert button.b.ico { height: 16px; width: 20px; }
+  .galert button.b.ico svg { width: 9px; height: 9px; }
+  .galert.nosnd { grid-template-columns: 26px minmax(0, 1fr) auto; }
+  .gcolors { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 10px; }
+  .gcol { display: grid; grid-template-columns: 26px minmax(0, 1fr); align-items: center; gap: 6px; min-height: 19px; }
+  .gbox input[type=color] { width: 26px; height: 15px; padding: 0; border: 1px solid #000; background: none; cursor: pointer; }
+  .gcustom label.chk.gshort { margin: 5px 0 0; }
+  .gapply { margin-top: 6px; }
+  .gapply button.b { width: 100%; }
+  #chatMsg { margin-top: 3px; min-height: 13px; }
+  .gnote { margin-top: 2px; font-size: 9px; color: var(--dim); line-height: 12px; }
+  @media (prefers-reduced-motion: reduce) { .gcustom > summary svg { transition: none; } }
   .warn { color: var(--note); font-size: 10px; margin-top: 3px; white-space: pre-line; }
 
   /* votes */
@@ -1131,9 +1161,15 @@
       <div class="panel" style="padding:2px" id="timers"></div>
     </div>
 
-    <!-- OPTIONS / LINKS -->
+    <!-- OPTIONS / LINKS: three parts -->
     <div class="page" id="p-lnk">
-      <div class="panel">
+      <div class="ctabs" role="tablist" id="optTabs" style="margin-top:0">
+        <button class="b on" role="tab" id="ot-panel" data-opane="panel" aria-controls="op-panel" aria-selected="true" data-i18n="optTabPanel"></button>
+        <button class="b" role="tab" id="ot-game" data-opane="game" aria-controls="op-game" aria-selected="false" tabindex="-1" data-i18n="optTabGame"></button>
+        <button class="b" role="tab" id="ot-links" data-opane="links" aria-controls="op-links" aria-selected="false" tabindex="-1" data-i18n="optTabLinks"></button>
+      </div>
+
+      <div class="panel opane" id="op-panel" role="tabpanel" aria-labelledby="ot-panel">
         <div class="osec" data-i18n="optLang"></div>
         <div class="ogrid three">
           <button class="b" data-lang="pt">PT-BR</button>
@@ -1158,18 +1194,41 @@
         <div class="osec" data-i18n="secAlerts"></div>
         <label class="chk"><input type="checkbox" id="oBars"><i></i><span data-i18n="optBars"></span></label>
         <label class="chk"><input type="checkbox" id="oEvAlerts"><i></i><span data-i18n="optEvAlerts"></span></label>
+      </div>
 
-        <div class="osec" data-i18n="secChat"></div>
-        <div class="small" data-i18n="chatNote" style="margin-bottom:4px;line-height:13px"></div>
-        <label class="chk" data-i18n-title="chatShortTip"><input type="checkbox" id="oChatShort"><i></i><span data-i18n="chatShort"></span></label>
-        <div id="chatColors" class="chatcolors"></div>
-        <div class="ogrid three" style="margin-top:4px">
-          <button class="b gold" id="bChatApply" data-i18n="btnChatApply"></button>
-          <button class="b" id="bChatSuggest" data-i18n="btnChatSuggest"></button>
-          <button class="b" id="bChatRestore" data-i18n="btnChatRestore"></button>
+      <div class="panel opane" id="op-game" role="tabpanel" aria-labelledby="ot-game" hidden>
+        <div class="osec" id="gProfLbl" data-i18n="secProfile"></div>
+        <div class="gprof" role="radiogroup" aria-labelledby="gProfLbl">
+          <button class="b" role="radio" aria-checked="false" data-prof="orig" data-i18n="prof_orig"></button>
+          <button class="b" role="radio" aria-checked="false" data-prof="pvp" data-i18n="prof_pvp"></button>
+          <button class="b" role="radio" aria-checked="false" data-prof="farm" data-i18n="prof_farm"></button>
+          <button class="b" role="radio" aria-checked="false" data-prof="spoil" data-i18n="prof_spoil"></button>
         </div>
-        <div class="small" id="chatMsg" role="status" style="margin-top:3px"></div>
+        <div class="gdesc" id="gDesc"></div>
 
+        <div class="osec" data-i18n="secPreview"></div>
+        <div class="gprev" id="gPrev" role="img">
+          <div class="gcap" data-i18n="prevScreen"></div>
+          <div class="gscr" id="gScr"></div>
+          <div class="gcap" data-i18n="prevChat"></div>
+          <div class="gchat" id="gChat"></div>
+        </div>
+
+        <details class="gcustom" id="gCustom">
+          <summary><svg viewBox="0 0 8 8" aria-hidden="true"><path d="M2 1 L6 4 L2 7 Z" fill="currentColor"/></svg><span data-i18n="custom"></span></summary>
+          <div class="gsub" data-i18n="secGameAlerts"></div>
+          <div class="gbox" id="gAlerts"></div>
+          <div class="gsub" data-i18n="secGameColors"></div>
+          <div class="gbox gcolors" id="gColors"></div>
+          <label class="chk gshort" data-i18n-title="chatShortTip"><input type="checkbox" id="oChatShort"><i></i><span data-i18n="chatShort"></span></label>
+        </details>
+
+        <div class="gapply"><button class="b gold" id="bChatApply" data-i18n="btnChatApply"></button></div>
+        <div class="small" id="chatMsg" role="status"></div>
+        <div class="gnote" data-i18n="chatNote"></div>
+      </div>
+
+      <div class="panel opane" id="op-links" role="tabpanel" aria-labelledby="ot-links" hidden>
         <div class="osec" data-i18n="secLinks"></div>
         <div class="ogrid two" id="links"></div>
 
@@ -1420,7 +1479,7 @@ const I18N = {
     connLost: "Sem resposta do painel. Tentando de novo…", aTabs: "Seções", aLvMin: "Nível mínimo", aLvMax: "Nível máximo", aSort: "Ordenar", aGroup: "Agrupar", aRace: "Raça", aClass: "Classe", aKind: "Tipo de item", aSlot: "Slot do acessório", aSrc: "Origem", aRate: "Chance de sucesso", aAccName: "Nome da conta", aFav: "Só favoritos", aZoomIn: "Aproximar", aZoomOut: "Afastar", aZoomFit: "Mapa inteiro",
     accListTitle: "Contas", accCount: "{open} de {n} abertas", btnSpread: "Espalhar", btnSavePos: "Salvar posições", btnRestorePos: "Restaurar", btnMinAll: "Minimizar todos", btnCloseAll: "Fechar todos", tipFocus: "Trazer a janela do jogo para a frente", tipMinGame: "Minimizar o jogo", tipCloseGame: "Fechar o jogo", stLobby: "aberto, no login ou na seleção", noLogin: "sem login salvo", loginIs: "login {login}",
     rInside: "O teleporte já te deixa dentro de {zone}; os mobs ficam nas salas (veja o mapa interno)", rEnter: "Fale com o Gatekeeper Ziggurat na entrada para entrar em {zone}", dInside: "Dentro de {zone}", btnInnerMap: "Mapa interno", btnInnerPart: "Andar {n}", tipInnerMap: "Abre no navegador o mapa de dentro de {zone}", innerSrc: "mapa do site l2j.ru",
-    secChat: "Chat e avisos do jogo", chatNote: "Cor, aviso na tela e som de cada tipo de mensagem do sistema. Valem quando o jogo é aberto de novo; o painel guarda uma cópia do arquivo antes da primeira mudança.", chatShort: "Mensagens de combate curtas, em português", chatShortTip: "Troca as mensagens mais comuns de combate, loot e buff por versões curtas no idioma do painel (ex.: Bluff RESISTIDO por Lilim Assassin). Desmarcado, volta o texto do jogo.", ccSound: "Som:", ccSoundOrig: "o do jogo", ccSoundNone: "sem som (o do jogo)", ccPlay: "Ouvir", btnChatApply: "Aplicar no jogo", btnChatSuggest: "Usar sugestão", btnChatRestore: "Voltar às de antes", chatApplied: "Gravado no arquivo do jogo. Abra o jogo de novo para ver.", chatRestored: "Cores de antes de volta. Abra o jogo de novo para ver.", chatSuggested: "Sugestão carregada. Ajuste o que quiser e aplique.", chatRestoreAsk: "Voltar o arquivo de mensagens do jogo para como estava antes do painel mudar as cores?", chatErr: "Não deu para gravar: {why}", chatErr_locked: "o arquivo está em uso; feche o jogo e tente de novo", chatErr_verify: "a conferência do arquivo falhou, nada foi trocado", chatErr_nobackup: "não há cópia guardada", chatErr_other: "erro ao ler ou gravar o arquivo", chatMissing: "Arquivo de mensagens do jogo não encontrado na pasta system.", cc_crit: "Crítico", cc_dmgOut: "Seu dano", cc_dmgIn: "Dano recebido", cc_miss: "Você esquivou, defendeu", cc_skill: "Skill usada", cc_resist: "Skill resistida, falhou", cc_dodge: "Skill esquivada, errou", cc_shots: "Soulshot/spiritshot acabou", cc_cancel: "Buff removido (cancel)", ccScreen: "Na tela", ccScreenTip: "Também em letras grandes no alto da tela do jogo, com o efeito animado do jogo, por 2 s. Numa skill: o jogo não avisa quando ela entra, então sem esse aviso ela entrou.", cc_adena: "Adena", cc_item: "Itens", cc_spoil: "Spoil e sweep", cc_exp: "EXP e SP", cc_buffOn: "Buff ativo", cc_buffOff: "Buff acabou", cc_heal: "HP e MP recuperados",
+    secChat: "Chat e avisos do jogo", chatNote: "Vale quando o jogo é aberto de novo. O painel guarda uma cópia do arquivo de mensagens antes da primeira mudança.", optTabPanel: "Painel", optTabGame: "No jogo", optTabLinks: "Links", secProfile: "Perfil", prof_orig: "Jogo original", prof_pvp: "PvP", prof_farm: "Farm", prof_spoil: "Spoil", prof_custom: "personalizado", profDesc_orig: "As cores, mensagens e sons que vieram com o jogo.", profDesc_pvp: "Uma cor por tipo de mensagem, mensagens curtas, e na tela com som: skill resistida, skill esquivada, buff removido e shots acabando.", profDesc_farm: "Uma cor por tipo de mensagem, mensagens curtas, e na tela com som só quando os shots acabam.", profDesc_spoil: "Uma cor por tipo de mensagem, mensagens curtas, e na tela com som: spoil ativado, skill resistida (um Spoil que falhou) e shots acabando.", profDesc_custom: "Personalizado: ajustado item por item em Personalizar.", secPreview: "Prévia", prevScreen: "No alto da tela", prevChat: "No chat", prevNone: "nenhum aviso na tela", custom: "Personalizar", secGameAlerts: "Avisos", secGameColors: "Cores do chat", chatPending: "Mudanças ainda não aplicadas no jogo.", chatNow: "No arquivo do jogo agora: {p}.", chatSaving: "Gravando…", chatShort: "Mensagens de combate curtas, em português", chatShortTip: "Troca as mensagens mais comuns de combate, loot e buff por versões curtas no idioma do painel (ex.: Bluff RESISTIDO por Lilim Assassin). Desmarcado, volta o texto do jogo.", ccSound: "Som:", ccSoundOrig: "o do jogo", ccSoundNone: "sem som (o do jogo)", ccPlay: "Ouvir", btnChatApply: "Aplicar no jogo", chatApplied: "Gravado no arquivo do jogo. Abra o jogo de novo para ver.", chatRestored: "Arquivo original do jogo de volta. Abra o jogo de novo para ver.", chatErr: "Não deu para gravar: {why}", chatErr_locked: "o arquivo está em uso; feche o jogo e tente de novo", chatErr_verify: "a conferência do arquivo falhou, nada foi trocado", chatErr_nobackup: "não há cópia guardada", chatErr_other: "erro ao ler ou gravar o arquivo", chatMissing: "Arquivo de mensagens do jogo não encontrado na pasta system.", cc_crit: "Crítico", cc_dmgOut: "Seu dano", cc_dmgIn: "Dano recebido", cc_miss: "Você esquivou, defendeu", cc_skill: "Skill usada", cc_resist: "Skill resistida, falhou", cc_dodge: "Skill esquivada, errou", cc_shots: "Soulshot/spiritshot acabou", cc_cancel: "Buff removido (cancel)", ccScreen: "Na tela", ccScreenTip: "Também em letras grandes no alto da tela do jogo, com o efeito animado do jogo, por 2 s. Numa skill: o jogo não avisa quando ela entra, então sem esse aviso ela entrou.", cc_adena: "Adena", cc_item: "Itens", cc_spoil: "Spoil e sweep", cc_exp: "EXP e SP", cc_buffOn: "Buff ativo", cc_buffOff: "Buff acabou", cc_heal: "HP e MP recuperados",
     optScale: "Tamanho do texto", tipResize: "Arraste para redimensionar",
     secWindow: "Janela", secLogin: "Login automático", secLinks: "Links do L2Axis", secFolders: "Pastas",
     optTop: "Sempre por cima dos outros programas", optAbout: "Sobre o painel e créditos",
@@ -1604,7 +1663,7 @@ const I18N = {
     connLost: "The panel is not responding. Retrying…", aTabs: "Sections", aLvMin: "Minimum level", aLvMax: "Maximum level", aSort: "Sort", aGroup: "Group", aRace: "Race", aClass: "Class", aKind: "Item type", aSlot: "Accessory slot", aSrc: "Source", aRate: "Success chance", aAccName: "Account name", aFav: "Favourites only", aZoomIn: "Zoom in", aZoomOut: "Zoom out", aZoomFit: "Whole map",
     accListTitle: "Accounts", accCount: "{open} of {n} open", btnSpread: "Spread", btnSavePos: "Save positions", btnRestorePos: "Restore", btnMinAll: "Minimize all", btnCloseAll: "Close all", tipFocus: "Bring the game window to the front", tipMinGame: "Minimize the game", tipCloseGame: "Close the game", stLobby: "open, at login or character select", noLogin: "no saved login", loginIs: "login {login}",
     rInside: "The teleport drops you inside {zone}; the monsters are in its rooms (see the interior map)", rEnter: "Talk to the Gatekeeper Ziggurat at the entrance to go into {zone}", dInside: "Inside {zone}", btnInnerMap: "Interior map", btnInnerPart: "Floor {n}", tipInnerMap: "Opens the map of the inside of {zone} in the browser", innerSrc: "map from l2j.ru",
-    secChat: "Game chat and alerts", chatNote: "Colour, on-screen alert and sound of each kind of system message. They show the next time the game starts; the panel keeps a copy of the file before its first change.", chatShort: "Short combat messages, in English", chatShortTip: "Replaces the most common combat, loot and buff messages with short ones in the panel\u2019s language (e.g. Bluff RESISTED by Lilim Assassin). Unticked, the game\u2019s text comes back.", ccSound: "Sound:", ccSoundOrig: "the game\u2019s", ccSoundNone: "none (the game\u2019s)", ccPlay: "Listen", btnChatApply: "Apply to the game", btnChatSuggest: "Use suggestion", btnChatRestore: "Back to before", chatApplied: "Saved in the game's file. Start the game again to see it.", chatRestored: "Previous colours back. Start the game again to see them.", chatSuggested: "Suggestion loaded. Adjust anything and apply.", chatRestoreAsk: "Put the game\u2019s message file back as it was before the panel changed its colours?", chatErr: "Could not save: {why}", chatErr_locked: "the file is in use; close the game and try again", chatErr_verify: "the file check failed, nothing was replaced", chatErr_nobackup: "there is no saved copy", chatErr_other: "error reading or writing the file", chatMissing: "The game\u2019s message file was not found in the system folder.", cc_crit: "Critical", cc_dmgOut: "Your damage", cc_dmgIn: "Damage taken", cc_miss: "You evaded, blocked", cc_skill: "Skill used", cc_resist: "Skill resisted, failed", cc_dodge: "Skill dodged, missed", cc_shots: "Soulshots/spiritshots ran out", cc_cancel: "Buff removed (cancel)", ccScreen: "On screen", ccScreenTip: "Also in big letters at the top of the game screen, with the game\u2019s animated effect, for 2 s. For a skill: the game says nothing when it lands, so no warning means it landed.", cc_adena: "Adena", cc_item: "Items", cc_spoil: "Spoil and sweep", cc_exp: "EXP and SP", cc_buffOn: "Buff on", cc_buffOff: "Buff ended", cc_heal: "HP and MP restored",
+    secChat: "Game chat and alerts", chatNote: "Shows the next time the game starts. The panel keeps a copy of the message file before its first change.", optTabPanel: "Panel", optTabGame: "In game", optTabLinks: "Links", secProfile: "Profile", prof_orig: "Game default", prof_pvp: "PvP", prof_farm: "Farm", prof_spoil: "Spoil", prof_custom: "custom", profDesc_orig: "The colours, messages and sounds the game came with.", profDesc_pvp: "A colour per kind of message, short messages, and on screen with a sound: skill resisted, skill dodged, buff removed and shots running out.", profDesc_farm: "A colour per kind of message, short messages, and on screen with a sound only when shots run out.", profDesc_spoil: "A colour per kind of message, short messages, and on screen with a sound: spoil activated, skill resisted (a Spoil that failed) and shots running out.", profDesc_custom: "Custom: set item by item under Customise.", secPreview: "Preview", prevScreen: "Top of the screen", prevChat: "In the chat", prevNone: "no on-screen alerts", custom: "Customise", secGameAlerts: "Alerts", secGameColors: "Chat colours", chatPending: "Changes not applied to the game yet.", chatNow: "In the game\u2019s file now: {p}.", chatSaving: "Saving…", chatShort: "Short combat messages, in English", chatShortTip: "Replaces the most common combat, loot and buff messages with short ones in the panel\u2019s language (e.g. Bluff RESISTED by Lilim Assassin). Unticked, the game\u2019s text comes back.", ccSound: "Sound:", ccSoundOrig: "the game\u2019s", ccSoundNone: "none (the game\u2019s)", ccPlay: "Listen", btnChatApply: "Apply to the game", chatApplied: "Saved in the game's file. Start the game again to see it.", chatRestored: "The game\u2019s own file is back. Start the game again to see it.", chatErr: "Could not save: {why}", chatErr_locked: "the file is in use; close the game and try again", chatErr_verify: "the file check failed, nothing was replaced", chatErr_nobackup: "there is no saved copy", chatErr_other: "error reading or writing the file", chatMissing: "The game\u2019s message file was not found in the system folder.", cc_crit: "Critical", cc_dmgOut: "Your damage", cc_dmgIn: "Damage taken", cc_miss: "You evaded, blocked", cc_skill: "Skill used", cc_resist: "Skill resisted, failed", cc_dodge: "Skill dodged, missed", cc_shots: "Soulshots/spiritshots ran out", cc_cancel: "Buff removed (cancel)", ccScreen: "On screen", ccScreenTip: "Also in big letters at the top of the game screen, with the game\u2019s animated effect, for 2 s. For a skill: the game says nothing when it lands, so no warning means it landed.", cc_adena: "Adena", cc_item: "Items", cc_spoil: "Spoil and sweep", cc_exp: "EXP and SP", cc_buffOn: "Buff on", cc_buffOff: "Buff ended", cc_heal: "HP and MP restored",
     optScale: "Text size", tipResize: "Drag to resize",
     secWindow: "Window", secLogin: "Auto login", secLinks: "L2Axis links", secFolders: "Folders",
     optTop: "Always on top of other programs", optAbout: "About the panel & credits",
@@ -1788,7 +1847,7 @@ const I18N = {
     connLost: "Das Panel antwortet nicht. Neuer Versuch…", aTabs: "Bereiche", aLvMin: "Mindestlevel", aLvMax: "Höchstlevel", aSort: "Sortieren", aGroup: "Gruppieren", aRace: "Rasse", aClass: "Klasse", aKind: "Itemtyp", aSlot: "Accessoire-Slot", aSrc: "Herkunft", aRate: "Erfolgschance", aAccName: "Kontoname", aFav: "Nur Favoriten", aZoomIn: "Vergrößern", aZoomOut: "Verkleinern", aZoomFit: "Ganze Karte",
     accListTitle: "Konten", accCount: "{open} von {n} offen", btnSpread: "Verteilen", btnSavePos: "Positionen speichern", btnRestorePos: "Wiederherstellen", btnMinAll: "Alle minimieren", btnCloseAll: "Alle schließen", tipFocus: "Spielfenster nach vorne holen", tipMinGame: "Spiel minimieren", tipCloseGame: "Spiel schließen", stLobby: "offen, im Login oder in der Charakterauswahl", noLogin: "kein gespeicherter Login", loginIs: "Login {login}",
     rInside: "Der Teleport bringt dich direkt in {zone}; die Monster sind in den Räumen (siehe Innenkarte)", rEnter: "Sprich mit dem Gatekeeper Ziggurat am Eingang, um nach {zone} zu gelangen", dInside: "In {zone}", btnInnerMap: "Innenkarte", btnInnerPart: "Etage {n}", tipInnerMap: "Öffnet die Karte des Inneren von {zone} im Browser", innerSrc: "Karte von l2j.ru",
-    secChat: "Chat und Hinweise im Spiel", chatNote: "Farbe, Bildschirmhinweis und Ton je Art von Systemnachricht. Sie gelten beim nächsten Spielstart; das Panel behält vor der ersten Änderung eine Kopie der Datei.", chatShort: "Kurze Kampfnachrichten, auf Deutsch", chatShortTip: "Ersetzt die häufigsten Kampf-, Beute- und Buff-Nachrichten durch kurze in der Sprache des Panels (z. B. Bluff von Lilim Assassin ABGEWEHRT). Abgewählt kommt der Text des Spiels zurück.", ccSound: "Ton:", ccSoundOrig: "der des Spiels", ccSoundNone: "keiner (der des Spiels)", ccPlay: "Anhören", btnChatApply: "Im Spiel anwenden", btnChatSuggest: "Vorschlag nutzen", btnChatRestore: "Zurück zu vorher", chatApplied: "In der Spieldatei gespeichert. Starte das Spiel neu, um es zu sehen.", chatRestored: "Vorherige Farben wiederhergestellt. Starte das Spiel neu, um sie zu sehen.", chatSuggested: "Vorschlag geladen. Anpassen und anwenden.", chatRestoreAsk: "Die Nachrichtendatei des Spiels auf den Stand vor den Farbänderungen des Panels zurücksetzen?", chatErr: "Speichern nicht möglich: {why}", chatErr_locked: "die Datei ist in Benutzung; schließe das Spiel und versuche es erneut", chatErr_verify: "die Dateiprüfung ist fehlgeschlagen, nichts wurde ersetzt", chatErr_nobackup: "es gibt keine gespeicherte Kopie", chatErr_other: "Fehler beim Lesen oder Schreiben der Datei", chatMissing: "Die Nachrichtendatei des Spiels wurde im Ordner system nicht gefunden.", cc_crit: "Kritisch", cc_dmgOut: "Dein Schaden", cc_dmgIn: "Erlittener Schaden", cc_miss: "Du bist ausgewichen, geblockt", cc_skill: "Fertigkeit benutzt", cc_resist: "Fertigkeit abgewehrt, fehlgeschl.", cc_dodge: "Fertigkeit ausgewichen, verfehlt", cc_shots: "Soulshots/Spiritshots leer", cc_cancel: "Buff entfernt (Cancel)", ccScreen: "Auf dem Schirm", ccScreenTip: "Auch in großer Schrift oben im Spielbild, mit dem animierten Effekt des Spiels, 2 s lang. Bei einer Fertigkeit: Trifft sie, meldet das Spiel nichts, also heißt keine Warnung, sie hat getroffen.", cc_adena: "Adena", cc_item: "Gegenstände", cc_spoil: "Spoil und Sweep", cc_exp: "EXP und SP", cc_buffOn: "Buff aktiv", cc_buffOff: "Buff vorbei", cc_heal: "HP und MP wiederhergestellt",
+    secChat: "Chat und Hinweise im Spiel", chatNote: "Gilt beim nächsten Spielstart. Das Panel behält vor der ersten Änderung eine Kopie der Nachrichtendatei.", optTabPanel: "Panel", optTabGame: "Im Spiel", optTabLinks: "Links", secProfile: "Profil", prof_orig: "Spielstandard", prof_pvp: "PvP", prof_farm: "Farm", prof_spoil: "Spoil", prof_custom: "eigene", profDesc_orig: "Die Farben, Nachrichten und Töne, mit denen das Spiel kam.", profDesc_pvp: "Eine Farbe je Nachrichtenart, kurze Nachrichten, und auf dem Schirm mit Ton: Fertigkeit abgewehrt, ausgewichen, Buff entfernt und Shots gehen aus.", profDesc_farm: "Eine Farbe je Nachrichtenart, kurze Nachrichten, und auf dem Schirm mit Ton nur, wenn die Shots ausgehen.", profDesc_spoil: "Eine Farbe je Nachrichtenart, kurze Nachrichten, und auf dem Schirm mit Ton: Spoil aktiv, Fertigkeit abgewehrt (ein gescheiterter Spoil) und Shots gehen aus.", profDesc_custom: "Eigene: einzeln unter Anpassen eingestellt.", secPreview: "Vorschau", prevScreen: "Oben im Bild", prevChat: "Im Chat", prevNone: "keine Hinweise auf dem Schirm", custom: "Anpassen", secGameAlerts: "Hinweise", secGameColors: "Chatfarben", chatPending: "Änderungen noch nicht im Spiel angewendet.", chatNow: "Jetzt in der Spieldatei: {p}.", chatSaving: "Speichern…", chatShort: "Kurze Kampfnachrichten, auf Deutsch", chatShortTip: "Ersetzt die häufigsten Kampf-, Beute- und Buff-Nachrichten durch kurze in der Sprache des Panels (z. B. Bluff von Lilim Assassin ABGEWEHRT). Abgewählt kommt der Text des Spiels zurück.", ccSound: "Ton:", ccSoundOrig: "der des Spiels", ccSoundNone: "keiner (der des Spiels)", ccPlay: "Anhören", btnChatApply: "Im Spiel anwenden", chatApplied: "In der Spieldatei gespeichert. Starte das Spiel neu, um es zu sehen.", chatRestored: "Die Originaldatei des Spiels ist zurück. Starte das Spiel neu, um es zu sehen.", chatErr: "Speichern nicht möglich: {why}", chatErr_locked: "die Datei ist in Benutzung; schließe das Spiel und versuche es erneut", chatErr_verify: "die Dateiprüfung ist fehlgeschlagen, nichts wurde ersetzt", chatErr_nobackup: "es gibt keine gespeicherte Kopie", chatErr_other: "Fehler beim Lesen oder Schreiben der Datei", chatMissing: "Die Nachrichtendatei des Spiels wurde im Ordner system nicht gefunden.", cc_crit: "Kritisch", cc_dmgOut: "Dein Schaden", cc_dmgIn: "Erlittener Schaden", cc_miss: "Du bist ausgewichen, geblockt", cc_skill: "Fertigkeit benutzt", cc_resist: "Fertigkeit abgewehrt, fehlgeschl.", cc_dodge: "Fertigkeit ausgewichen, verfehlt", cc_shots: "Soulshots/Spiritshots leer", cc_cancel: "Buff entfernt (Cancel)", ccScreen: "Auf dem Schirm", ccScreenTip: "Auch in großer Schrift oben im Spielbild, mit dem animierten Effekt des Spiels, 2 s lang. Bei einer Fertigkeit: Trifft sie, meldet das Spiel nichts, also heißt keine Warnung, sie hat getroffen.", cc_adena: "Adena", cc_item: "Gegenstände", cc_spoil: "Spoil und Sweep", cc_exp: "EXP und SP", cc_buffOn: "Buff aktiv", cc_buffOff: "Buff vorbei", cc_heal: "HP und MP wiederhergestellt",
     optScale: "Textgröße", tipResize: "Ziehen, um die Größe zu ändern",
     secWindow: "Fenster", secLogin: "Auto-Login", secLinks: "L2Axis-Links", secFolders: "Ordner",
     optTop: "Immer über anderen Programmen", optAbout: "Über das Panel & Credits",
@@ -2066,80 +2125,179 @@ document.querySelectorAll(".tab").forEach(tb => {
   pg.setAttribute("aria-labelledby", tb.id);
   tb.onclick = () => selectTab(tb);
 });
-// ---- game chat colours (Options)
-let CHATC = null;
+// ---- Options: its three parts
+let optPane = "panel";
+function selectOptPane(name, focus) {
+  optPane = name;
+  document.querySelectorAll("#optTabs [data-opane]").forEach(b => {
+    const on = b.dataset.opane === name;
+    b.classList.toggle("on", on);
+    b.setAttribute("aria-selected", on ? "true" : "false");
+    b.tabIndex = on ? 0 : -1;
+    if (on && focus) b.focus();
+  });
+  document.querySelectorAll("#p-lnk .opane").forEach(p => p.hidden = p.id !== "op-" + name);
+  if (name === "game" && !CHATC) loadChatColors();
+}
+document.querySelectorAll("#optTabs [data-opane]").forEach(b => b.onclick = () => selectOptPane(b.dataset.opane));
+$("#optTabs").addEventListener("keydown", e => {
+  const tabs = [...document.querySelectorAll("#optTabs [data-opane]")];
+  const i = tabs.indexOf(document.activeElement);
+  const j = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 }[e.key];
+  if (i < 0 || j == null) return;
+  e.preventDefault();
+  selectOptPane(tabs[(j + tabs.length) % tabs.length].dataset.opane, true);
+});
+
+// ---- Options > In game: what the game's message file holds (CHATC, read from it) and the
+// draft being set up here (GD). A profile only fills the draft; "Apply" writes it.
+let CHATC = null, GD = null;
+const PROFILES = ["orig", "pvp", "farm", "spoil"];
+// per profile, the alert kinds: [on screen, its sound] (sound off = the game's own)
+const PROF_ALERTS = {
+  pvp: { resist: [1, 1], dodge: [1, 1], cancel: [1, 1], shots: [1, 1], spoil: [0, 0] },
+  farm: { resist: [0, 0], dodge: [0, 0], cancel: [0, 0], shots: [1, 1], spoil: [0, 0] },
+  spoil: { resist: [1, 1], dodge: [0, 0], cancel: [0, 0], shots: [1, 1], spoil: [1, 1] },
+};
+// the preview reads like a fight, then the loot
+const CHAT_ORDER = ["skill", "dmgOut", "crit", "resist", "dodge", "dmgIn", "miss", "cancel", "buffOn", "buffOff",
+  "heal", "shots", "spoil", "item", "adena", "exp"];
+const alertCats = () => CHATC.cats.filter(c => c.screen !== null);
+function fileState() {
+  const st = { colors: {}, screen: {}, sound: {}, short: !!CHATC.short };
+  CHATC.cats.forEach(c => {
+    st.colors[c.key] = c.color.toUpperCase();
+    if (c.screen !== null) { st.screen[c.key] = c.screen; st.sound[c.key] = c.sound || "orig"; }
+  });
+  return st;
+}
+function profileState(p) {
+  const st = { colors: {}, screen: {}, sound: {}, short: p !== "orig" };
+  CHATC.cats.forEach(c => {
+    st.colors[c.key] = (p === "orig" ? c.colorOrig : c.suggest).toUpperCase();
+    if (c.screen === null) return;
+    const [scr, snd] = p === "orig" ? [0, 0] : PROF_ALERTS[p][c.key] || [0, 0];
+    st.screen[c.key] = !!scr;
+    st.sound[c.key] = snd ? c.soundSuggest : "orig";
+  });
+  return st;
+}
+function sameState(a, b) {
+  return a.short === b.short && CHATC.cats.every(c => a.colors[c.key] === b.colors[c.key]
+    && (c.screen === null || (a.screen[c.key] === b.screen[c.key] && a.sound[c.key] === b.sound[c.key])));
+}
+const profileOf = st => PROFILES.find(p => sameState(st, profileState(p))) || "custom";
+
 async function loadChatColors() {
   CHATC = await api.chat_colors();
-  renderChatColors();
+  GD = CHATC.ok ? fileState() : null;
+  renderGame(true);
 }
-function renderChatColors() {
-  const box = $("#chatColors");
+function renderChatColors() { renderGame(true); }  // after a language change
+async function refreshChatTexts() {  // new sample lines, the draft kept
+  if (!CHATC || !CHATC.ok) return;
+  const r = await api.chat_colors();
+  if (r.ok) { CHATC = r; renderGame(true); }
+}
+function renderGame(rebuild) {
   if (!CHATC) return;
   const ok = CHATC.ok;
-  ["#bChatApply", "#bChatSuggest"].forEach(s => setDisabled($(s), !ok));
-  $("#bChatRestore").style.display = ok && CHATC.backup ? "" : "none";
-  if (!ok) { box.innerHTML = `<div class="small">${esc(t("chatMissing"))}</div>`; return; }
-  $("#oChatShort").checked = !!CHATC.short;
+  document.querySelectorAll("#op-game .gprof button, #oChatShort").forEach(el => setDisabled(el, !ok));
+  ["#gPrev", "#gCustom"].forEach(s => $(s).hidden = !ok);
+  if (!ok) { setDisabled($("#bChatApply"), true); setText($("#gDesc"), t("chatMissing")); return; }
+  if (rebuild) buildGameControls();
+  // profile and its line
+  const prof = profileOf(GD);
+  document.querySelectorAll("#op-game [data-prof]").forEach(b => {
+    const on = b.dataset.prof === prof;
+    b.classList.toggle("on", on);
+    b.setAttribute("aria-checked", on ? "true" : "false");
+  });
+  setText($("#gDesc"), t("profDesc_" + prof));
+  // preview: the top of the screen, then the chat
+  const by = Object.fromEntries(CHATC.cats.map(c => [c.key, c]));
+  const shown = alertCats().filter(c => GD.screen[c.key]);
+  $("#gScr").innerHTML = shown.length
+    ? shown.map(c => `<b style="color:${GD.colors[c.key]}">${esc(c.screenSample)}</b>`).join("")
+    : `<span class="none">${esc(t("prevNone"))}</span>`;
+  $("#gChat").innerHTML = CHAT_ORDER.filter(k => by[k]).map(k =>
+    `<div style="color:${GD.colors[k]}">${esc(GD.short ? by[k].sampleShort : by[k].sampleOrig)}</div>`).join("");
+  $("#gPrev").setAttribute("aria-label", t("secPreview"));
+  // apply: only when the draft differs from the file
+  const pending = !sameState(GD, fileState());
+  setDisabled($("#bChatApply"), !pending);
+  if (!$("#chatMsg").dataset.keep) {
+    const now = profileOf(fileState());
+    setText($("#chatMsg"), pending ? t("chatPending") : t("chatNow", { p: t("prof_" + now) }));
+  }
+}
+function buildGameControls() {
   const sndName = n => n.split(".")[1].replace(/^sys_/, "").replace(/_01$/, "").replace(/_/g, " ");
-  const sndOpts = c => `<option value="orig">${esc(t(c.soundOrig ? "ccSoundOrig" : "ccSoundNone"))}</option>`
-    + CHATC.sounds.map(n => `<option value="${esc(n)}">${esc(sndName(n))}</option>`).join("");
-  box.innerHTML = CHATC.cats.map(c => `<div class="chatc"><input type="color" data-cc="${c.key}" value="${c.color.toLowerCase()}"
-      aria-label="${esc(t("cc_" + c.key))}" title="${esc(t("cc_" + c.key))}"><span class="lbl">${esc(t("cc_" + c.key))}</span>
-      <span class="smp" style="color:${c.color}"></span>${c.screen === null ? "" : `<div class="chatx">
-      <label class="chk" title="${esc(t("ccScreenTip"))}"><input type="checkbox" data-scr="${c.key}"${c.screen ? " checked" : ""}><i></i><span>${esc(t("ccScreen"))}</span></label>
-      <span class="lbl">${esc(t("ccSound"))}</span><select class="e" data-snd="${c.key}" data-orig="${esc(c.soundOrig || "")}" aria-label="${esc(t("ccSound") + " " + t("cc_" + c.key))}">${sndOpts(c)}</select>
-      <button class="b ico" data-play="${c.key}" title="${esc(t("ccPlay"))}" aria-label="${esc(t("ccPlay"))}"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M2 1 L9 5 L2 9 Z" fill="currentColor"/></svg></button></div>`}</div>`).join("");
-  box.querySelectorAll("[data-cc]").forEach(inp => inp.oninput = () => { inp.parentElement.querySelector(".smp").style.color = inp.value; });
-  CHATC.cats.forEach(c => { const sel = box.querySelector(`[data-snd="${c.key}"]`); if (sel) sel.value = c.sound || "orig"; });
-  box.querySelectorAll("[data-play]").forEach(b => b.onclick = () => {
-    const sel = box.querySelector(`[data-snd="${b.dataset.play}"]`);
-    const name = sel.value === "orig" ? sel.dataset.orig : sel.value;
-    if (name) api.play_game_sound(name);
+  const sounds = CHATC.soundsFound;
+  const swatch = c => `<input type="color" data-cc="${c.key}" aria-label="${esc(t("cc_" + c.key))}" title="${esc(t("cc_" + c.key))}">`;
+  $("#gAlerts").innerHTML = alertCats().map(c => `<div class="galert${sounds ? "" : " nosnd"}">${swatch(c)}
+    <span class="nm">${esc(t("cc_" + c.key))}</span>
+    <label class="chk" title="${esc(t("ccScreenTip"))}"><input type="checkbox" data-scr="${c.key}"><i></i><span>${esc(t("ccScreen"))}</span></label>
+    ${sounds ? `<span class="lbl">${esc(t("ccSound"))}</span>
+    <select class="e" data-snd="${c.key}" aria-label="${esc(t("ccSound") + " " + t("cc_" + c.key))}">
+      <option value="orig">${esc(t(c.soundOrig ? "ccSoundOrig" : "ccSoundNone"))}</option>
+      ${CHATC.sounds.map(n => `<option value="${esc(n)}">${esc(sndName(n))}</option>`).join("")}</select>
+    <button class="b ico" data-play="${c.key}" title="${esc(t("ccPlay"))}" aria-label="${esc(t("ccPlay") + ": " + t("cc_" + c.key))}"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M2 1 L9 5 L2 9 Z" fill="currentColor"/></svg></button>` : ""}</div>`).join("");
+  $("#gColors").innerHTML = CHATC.cats.filter(c => c.screen === null).map(c =>
+    `<div class="gcol">${swatch(c)}<span class="nm">${esc(t("cc_" + c.key))}</span></div>`).join("");
+  const by = Object.fromEntries(CHATC.cats.map(c => [c.key, c]));
+  const soundOf = key => { const v = GD.sound[key]; return v === "orig" ? by[key].soundOrig : v; };
+  document.querySelectorAll("#op-game [data-cc]").forEach(inp => inp.oninput = () => {
+    GD.colors[inp.dataset.cc] = inp.value.toUpperCase(); renderGame();
   });
-  box.querySelectorAll("[data-snd]").forEach(sel => {
-    const sync = () => setDisabled(box.querySelector(`[data-play="${sel.dataset.snd}"]`), sel.value === "orig" && !sel.dataset.orig);
-    sel.onchange = ev => { sync(); const n = sel.value === "orig" ? sel.dataset.orig : sel.value; if (n && ev.isTrusted) api.play_game_sound(n); };
-    sync();
+  document.querySelectorAll("#op-game [data-scr]").forEach(inp => inp.onchange = () => {
+    GD.screen[inp.dataset.scr] = inp.checked; renderGame();
   });
-  chatSamples();
+  document.querySelectorAll("#op-game [data-snd]").forEach(sel => sel.onchange = () => {
+    GD.sound[sel.dataset.snd] = sel.value; syncGameControls(); renderGame();
+    const n = soundOf(sel.dataset.snd); if (n) api.play_game_sound(n);
+  });
+  document.querySelectorAll("#op-game [data-play]").forEach(b => b.onclick = () => {
+    const n = soundOf(b.dataset.play); if (n) api.play_game_sound(n);
+  });
+  syncGameControls();
 }
-function chatSamples() {
-  const short = $("#oChatShort").checked;
-  (CHATC && CHATC.cats || []).forEach(c => {
-    const el = document.querySelector(`[data-cc="${c.key}"]`);
-    if (el) setText(el.parentElement.querySelector(".smp"), short ? c.sampleShort : c.sampleOrig);
+function syncGameControls() {  // the fine-tuning controls show the draft
+  const by = Object.fromEntries(CHATC.cats.map(c => [c.key, c]));
+  document.querySelectorAll("#op-game [data-cc]").forEach(inp => inp.value = GD.colors[inp.dataset.cc].toLowerCase());
+  document.querySelectorAll("#op-game [data-scr]").forEach(inp => inp.checked = !!GD.screen[inp.dataset.scr]);
+  document.querySelectorAll("#op-game [data-snd]").forEach(sel => {
+    sel.value = GD.sound[sel.dataset.snd];
+    setDisabled($(`#op-game [data-play="${sel.dataset.snd}"]`), sel.value === "orig" && !by[sel.dataset.snd].soundOrig);
   });
+  $("#oChatShort").checked = GD.short;
 }
-function chatMsg(text) { setText($("#chatMsg"), text); }
+function chatMsg(text) {
+  const el = $("#chatMsg");
+  setText(el, text);
+  el.dataset.keep = "1";  // shown until the draft changes again
+}
 function initChatColors() {
-  $("#oChatShort").onchange = chatSamples;
-  $("#bChatSuggest").onclick = () => {
-    (CHATC && CHATC.cats || []).forEach(c => {
-      const inp = document.querySelector(`[data-cc="${c.key}"]`);
-      if (inp) { inp.value = c.suggest.toLowerCase(); inp.oninput(); }
-      const scr = document.querySelector(`[data-scr="${c.key}"]`);
-      if (scr) scr.checked = true;
-      const snd = document.querySelector(`[data-snd="${c.key}"]`);
-      if (snd && c.soundSuggest) { snd.value = c.soundSuggest; snd.dispatchEvent(new Event("change")); }
-    });
-    chatMsg(t("chatSuggested"));
-  };
+  document.querySelectorAll("#op-game [data-prof]").forEach(b => b.onclick = () => {
+    if (!CHATC || !CHATC.ok) return;
+    GD = profileState(b.dataset.prof);
+    syncGameControls();
+    delete $("#chatMsg").dataset.keep;
+    renderGame();
+  });
+  $("#oChatShort").onchange = () => { GD.short = $("#oChatShort").checked; delete $("#chatMsg").dataset.keep; renderGame(); };
+  $("#op-game").addEventListener("input", () => delete $("#chatMsg").dataset.keep, true);
+  $("#op-game").addEventListener("change", () => delete $("#chatMsg").dataset.keep, true);
   $("#bChatApply").onclick = async () => {
-    const colors = {};
-    document.querySelectorAll("[data-cc]").forEach(inp => colors[inp.dataset.cc] = inp.value.toUpperCase());
-    const screen = {};
-    document.querySelectorAll("[data-scr]").forEach(inp => screen[inp.dataset.scr] = inp.checked);
-    const sounds = {};
-    document.querySelectorAll("[data-snd]").forEach(sel => sounds[sel.dataset.snd] = sel.value);
-    const r = await api.apply_chat_colors(colors, screen, sounds, $("#oChatShort").checked);
-    chatMsg(r.ok ? t("chatApplied") : t("chatErr", { why: t("chatErr_" + r.error) }));
-    if (r.ok) loadChatColors();
-  };
-  $("#bChatRestore").onclick = async () => {
-    if (!await confirmDlg(t("chatRestoreAsk"), t("btnChatRestore"))) return;
-    const r = await api.restore_chat_colors();
-    chatMsg(r.ok ? t("chatRestored") : t("chatErr", { why: t("chatErr_" + r.error) }));
-    loadChatColors();
+    if (!GD) return;
+    setDisabled($("#bChatApply"), true);
+    chatMsg(t("chatSaving"));
+    const toOrig = profileOf(GD) === "orig" && CHATC.backup;
+    const r = toOrig ? await api.restore_chat_colors()
+      : await api.apply_chat_colors(GD.colors, GD.screen, GD.sound, GD.short);
+    await loadChatColors();
+    chatMsg(r.ok ? t(toOrig ? "chatRestored" : "chatApplied") : t("chatErr", { why: t("chatErr_" + r.error) }));
+    if (!r.ok) setDisabled($("#bChatApply"), false);
   };
 }
 
@@ -2153,7 +2311,7 @@ function selectTab(tb, focus) {
   document.querySelectorAll(".page").forEach(p => p.classList.toggle("sel", p.id === "p-" + tb.dataset.p));
   if (focus) tb.focus();
   if (S && built) render();  // hidden tabs are not kept up to date: refresh the one now shown
-  if (tb.dataset.p === "lnk" && S && built && !CHATC) loadChatColors();
+  if (tb.dataset.p === "lnk" && S && built && !CHATC && optPane === "game") loadChatColors();
 }
 selectTab(document.querySelector(".tab.sel"));
 tabList.addEventListener("keydown", e => {
@@ -2459,7 +2617,8 @@ function build() {
   document.querySelectorAll("[data-folder]").forEach(b => b.onclick = () => api.open_folder(b.dataset.folder));
   document.querySelectorAll("[data-lang]").forEach(b => b.onclick = () => {
     LANG = b.dataset.lang;
-    api.set_option("lang", LANG);
+    // the game file's sample lines come in the panel's language: read them again once it is saved
+    Promise.resolve(api.set_option("lang", LANG)).then(refreshChatTexts);
     applyI18n();
     render();
     if (CLASSES.length) fillCharSelects();

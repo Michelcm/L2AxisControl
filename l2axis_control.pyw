@@ -4195,9 +4195,9 @@ class Api:
         return data
 
     def chat_colors(self):
-        """For each kind of message in the game's chat: its colour now, the suggestion, sample
-        lines (as the game has it and short), and for the alert kinds whether it shows on screen
-        and its sound ("orig": the game's own). Also whether the short lines are on, and whether
+        """For each kind of message in the game's chat: its colour now, the game's own and the
+        suggestion, sample lines (as the game has it and short), and for the alert kinds whether it
+        shows on screen (and its sample there) and its sound ("orig": the game's own). Also whether the short lines are on, and whether
         the file from before the panel's changes is kept."""
         try:
             data = l2_decrypt413(SYSMSG)
@@ -4214,10 +4214,13 @@ class Api:
             if o is None:
                 continue
             b, g, r = data[o], data[o + 1], data[o + 2]
+            oo = next((olay[i]["color"] for i in k["ids"] if i in olay), None)
+            ob, og, orr = (orig[oo], orig[oo + 1], orig[oo + 2]) if oo is not None else (b, g, r)
             sid, vals = k["sample"]
             original = text(orig, olay, sid, "msg")
             short = SHORT_TEXT.get(sid, {}).get(lang, original)
-            cat = {"key": k["key"], "color": f"#{r:02X}{g:02X}{b:02X}", "suggest": k["color"],
+            cat = {"key": k["key"], "color": f"#{r:02X}{g:02X}{b:02X}", "colorOrig": f"#{orr:02X}{og:02X}{ob:02X}",
+                   "suggest": k["color"],
                    "sampleOrig": fill_message(original, vals), "sampleShort": fill_message(short, vals),
                    "screen": None, "sound": None}
             first = next((i for i in k.get("alert", []) if i in lay), None)
@@ -4227,6 +4230,7 @@ class Api:
                 cat["sound"] = "orig" if now == text(orig, olay, first, "sound") else now
                 cat["soundSuggest"] = k["sound"]
                 cat["soundOrig"] = text(orig, olay, first, "sound")
+                cat["screenSample"] = fill_message(SCREEN_TEXT[first].get(lang, SCREEN_TEXT[first]["en"]), vals)
             cats.append(cat)
         short_on = any(i in lay and i in olay and text(data, lay, i, "msg") != text(orig, olay, i, "msg")
                        for i in SHORT_TEXT)

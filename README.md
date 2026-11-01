@@ -23,7 +23,7 @@ server events, votes, timers and a crafting guide.
 | **Votes** | All vote sites with a 12-hour timer each, a beep when you can vote again and one button to open every available site. |
 | **Events** | Every server event from the forum (Border Blitz, Battle Royale, Fight the Fakes, Giant Rats, Zombie Apocalypse, Lucky Pig, the Spirits, Treasure Hunt): next start in **your** time zone, how to take part and rewards. Live status (registration open, started, ended, cancelled) from the server announcements in the chat, plus the latest announcements. |
 | **Timers** | Your own countdowns (instances, raids, buffs…). |
-| **Options** | Language (English / Português / Deutsch), always on top, transparency, text size, auto-login and alert settings, L2Axis links and game folders. |
+| **Options** | Language (English / Português / Deutsch), always on top, transparency, text size, auto-login and alert settings. In game: chat colours, short messages and on-screen alerts with a sound (skill resisted or dodged, shots running out), from ready-made PvP / Farm / Spoil profiles. L2Axis links and game folders. |
 
 **Alerts** (sound + a small notice in the corner that never takes the keyboard from the game): a client
 disconnected or closed by itself, a character died, HP below 30 %, MP below 10 %, an event opened registration or started.
