@@ -4740,7 +4740,37 @@ class Api:
         for npc, e in out.items():
             card = db["mobs"].get(str(npc), {})
             e["card"] = {"spoil": card["spoils"], "drop": card["drops"]} if "spoils" in card and "drops" in card else None
+            e["name"] = card.get("name") or f"#{npc}"
         return out
+
+    @staticmethod
+    def _info_counts(mob_info):
+        """npc id -> [spoil rows, drop rows] known: kept with each Apply, to say what Alt+B brought since."""
+        return {str(npc): [len(e["spoil"]), len(e["drop"])] for npc, e in mob_info.items()}
+
+    @staticmethod
+    def _info_news(mob_info, before):
+        """What the Alt+B pages brought since the last Apply: totals and the monsters that gained the most."""
+        rows, new_mobs, grown, completed, lst = 0, 0, 0, 0, []
+        for npc, e in mob_info.items():
+            s_now, d_now = len(e["spoil"]), len(e["drop"])
+            s_was, d_was = before.get(str(npc), [0, 0])
+            ds, dd = max(0, s_now - s_was), max(0, d_now - d_was)
+            if not (ds or dd):
+                continue
+            rows += ds + dd
+            if str(npc) in before:
+                grown += 1
+            else:
+                new_mobs += 1
+            card = e["card"]
+            if card and s_now >= card["spoil"] and d_now >= card["drop"] and (s_was < card["spoil"] or d_was < card["drop"]):
+                completed += 1
+            lst.append({"name": e["name"], "spoil": ds, "drop": dd, "s": s_now, "st": card and card["spoil"],
+                        "d": d_now, "dt": card and card["drop"]})
+        lst.sort(key=lambda x: (-(x["spoil"] + x["drop"]), x["name"]))
+        return {"rows": rows, "mobs": new_mobs, "grown": grown, "complete": completed, "list": lst[:10],
+                "more": max(0, len(lst) - 10)}
 
     def _mob_info_plan(self, lang):
         """The texts of the Spoil / Drop icons: {kind: {description: level}}, {npc: [(skill id, level)]}, and a
@@ -4841,10 +4871,13 @@ class Api:
                                           (("npcgrp", NPCGRP), ("skillgrp", SKILLGRP), ("skillname", SKILLNAME)))
         mob_info = self._mob_info()
         _lv, plan, sig = self._mob_info_plan(self._text_lang())
+        applied_info = self._data.get("info_applied") if info_in_game or not self._data.get("info_applied", {}).get("on") else None
+        before = (applied_info or {}).get("counts")
         info = {"ok": info_files, "on": bool(self._data.get("info_on")), "sig": sig,
                 "mobs": len(plan), "complete": sum(1 for e in mob_info.values() if e["card"] and
                                                    len(e["spoil"]) >= e["card"]["spoil"] and len(e["drop"]) >= e["card"]["drop"]),
-                "applied": self._data.get("info_applied") if info_in_game or not self._data.get("info_applied", {}).get("on") else None}
+                "applied": applied_info and {"on": applied_info.get("on"), "sig": applied_info.get("sig")},
+                "news": self._info_news(mob_info, before) if before is not None else None}
         return {"ok": True, "info": info, "marks": full(self._data.get("marks", [])),
                 "tag": self._data.get("marks_tag", MARK_TAG), "color": self._data.get("marks_color", MARK_COLOR),
                 "applied": applied and {"marks": full(applied["marks"]), "tag": applied["tag"], "color": applied["color"]}}
@@ -4948,7 +4981,8 @@ class Api:
             self._data["marks_written"] = {"npc": file_sha(NPCNAME), "item": file_sha(ITEMNAME), "npcgrp": file_sha(NPCGRP),
                                            "skillgrp": file_sha(SKILLGRP), "skillname": file_sha(SKILLNAME)}
             self._data["info_on"] = info
-            self._data["info_applied"] = {"on": info, "sig": info_sig}
+            self._data["info_applied"] = {"on": info, "sig": info_sig,
+                                          "counts": self._info_counts(self._mob_info()) if info else {}}
             self._save()
         return {"ok": True, "mobs": len(expect_npc), "items": len(expect_item), "infoMobs": info_mobs}
 
