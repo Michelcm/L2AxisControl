@@ -1135,33 +1135,44 @@ def l2_encrypt413(data):
 
 
 # Chat colours of the game: kinds of system message, the messages of each kind (ids in
-# systemmsg-e.dat), a suggested colour that tells them apart at a glance, a sample line, and the
-# messages that can also show in big letters at the top of the screen (a skill that failed).
+# systemmsg-e.dat), a suggested colour that tells them apart at a glance and a sample line (a
+# message and its values). "alert": the messages that can also show in big letters at the top of
+# the screen and play a sound (a skill that failed, shots that ran out...), with the suggested sound.
 CHAT_KINDS = [
-    ("crit", "#FF8C2E", [44, 1280, 2266, 1017, 1028, 361], "Player landed a critical hit!", []),
-    ("dmgOut", "#7EE36A", [35, 2261, 1015, 1026], "Player has done 2354 points of damage to Lilim Assassin.", []),
-    ("dmgIn", "#FF5A5A", [36, 37, 2262, 2263, 2281, 1016, 1027, 296, 297, 333, 686, 812, 2787],
-     "Player has received 412 damage from Lilim Assassin.", []),
-    ("skill", "#E6E6E6", [46], "You use Bluff.", []),
+    {"key": "crit", "color": "#FF8C2E", "ids": [44, 1280, 2266, 1017, 1028, 361, 1667, 1668, 2336],
+     "sample": (2266, {"c1": "Player"})},
+    {"key": "dmgOut", "color": "#7EE36A", "ids": [35, 2261, 1015, 1026],
+     "sample": (2261, {"c1": "Player", "s3": "2354", "c2": "Lilim Assassin"})},
+    {"key": "dmgIn", "color": "#FF5A5A", "ids": [36, 37, 2262, 2263, 2281, 1016, 1027, 296, 297, 333, 686, 812, 2787],
+     "sample": (2262, {"c1": "Player", "s3": "412", "c2": "Lilim Assassin"})},
+    {"key": "skill", "color": "#E6E6E6", "ids": [46], "sample": (46, {"s1": "Bluff"})},
     # The game sends nothing when a skill lands: these two kinds are the only sign that it did not.
     # Resisted or failed: debuffs (Bluff, Stun, Critical Wound...), magic and blows that failed.
-    ("resist", "#FF3CE6", [139, 158, 2268, 566, 567], "Lilim Assassin has resisted your Bluff.",
-     [139, 158, 2268, 566, 567]),
-    # Evaded: a skill the target dodged (on screen too), an attack that went astray or was blocked
-    # (chat only: normal hits miss too often for the screen).
-    ("dodge", "#FFF000", [1999, 2265, 43, 1996], "Lilim Assassin dodges the attack.", [1999]),
+    {"key": "resist", "color": "#FF3CE6", "ids": [139, 158, 2268, 566, 567],
+     "sample": (139, {"c1": "Lilim Assassin", "s2": "Bluff"}),
+     "alert": [139, 158, 2268, 566, 567], "sound": "ItemSound3.sys_enchant_failed"},
+    # Evaded: a skill the target dodged (alert too), an attack that went astray, was blocked or
+    # countered (chat only: normal hits miss too often for the screen).
+    {"key": "dodge", "color": "#FFF000", "ids": [1999, 2265, 43, 1996, 1997],
+     "sample": (1999, {"c1": "Lilim Assassin"}), "alert": [1999], "sound": "ItemSound3.sys_break"},
     # the other way round: you evaded, blocked or resisted, or a resist that only cut the damage
-    ("miss", "#8E9AAB", [2264, 42, 2000, 111, 1998, 157, 159, 2141, 2267, 2269, 2271, 2280, 156, 2151],
-     "Player has evaded Lilim Assassin's attack.", []),
-    ("adena", "#FFD84A", [28, 52, 1023, 1375, 1379], "You have obtained 1234 adena.", []),
-    ("item", "#4FE0C0", [29, 30, 299, 300, 369, 371, 376, 3073], "You have obtained Mold Glue.", []),
-    ("spoil", "#C792FF", [608, 609, 612], "Player has obtained 2 Animal Bone by using sweeper.", []),
-    ("exp", "#8FB4FF", [45, 95, 331, 1014], "You have earned 54321 experience and 3210 SP.", []),
-    ("buffOn", "#9EE0FF", [110], "Wind Walk's effect can be felt.", []),
-    ("buffOff", "#FF9EC7", [92, 749], "Haste has worn off.", []),
-    ("heal", "#7FD3FF", [1066, 1067, 1068, 1069], "1520 HP has been restored.", []),
+    {"key": "miss", "color": "#8E9AAB", "ids": [2264, 42, 2000, 111, 1998, 157, 159, 2141, 2267, 2269, 2271, 2280, 156, 2151],
+     "sample": (2264, {"c1": "Player", "c2": "Lilim Assassin"})},
+    {"key": "shots", "color": "#B8FF3C", "ids": [1435, 338, 531],
+     "sample": (1435, {"s1": "Soulshot: S-grade"}), "alert": [1435, 338, 531], "sound": "ItemSound3.sys_shortage"},
+    {"key": "cancel", "color": "#FF2E2E", "ids": [749], "sample": (749, {"s1": "Haste"}),
+     "alert": [749], "sound": "ItemSound3.sys_denial"},
+    {"key": "adena", "color": "#FFD84A", "ids": [28, 52, 1023, 1375, 1379], "sample": (28, {"s1": "1234"})},
+    {"key": "item", "color": "#4FE0C0", "ids": [29, 30, 299, 300, 369, 371, 376, 3073], "sample": (30, {"s1": "Mold Glue"})},
+    {"key": "spoil", "color": "#C792FF", "ids": [608, 609, 612],
+     "sample": (608, {"c1": "Player", "s3": "2", "s2": "Animal Bone"}),
+     "alert": [612], "sound": "orig"},
+    {"key": "exp", "color": "#8FB4FF", "ids": [45, 95, 331, 1014], "sample": (95, {"s1": "54321", "s2": "3210"})},
+    {"key": "buffOn", "color": "#9EE0FF", "ids": [110], "sample": (110, {"s1": "Wind Walk"})},
+    {"key": "buffOff", "color": "#FF9EC7", "ids": [92], "sample": (92, {"s1": "Haste"})},
+    {"key": "heal", "color": "#7FD3FF", "ids": [1066, 1067, 1068, 1069], "sample": (1066, {"s1": "1520"})},
 ]
-# The big text at the top of the screen, in the panel's language ($s2 is the skill's name).
+# The big text at the top of the screen, in the panel's language ($s1, $s2: the skill or item).
 SCREEN_TEXT = {
     139: {"pt": "RESISTIU: $s2", "en": "RESISTED: $s2", "de": "ABGEWEHRT: $s2"},
     158: {"pt": "FALHOU!", "en": "FAILED!", "de": "FEHLGESCHLAGEN!"},
@@ -1169,38 +1180,112 @@ SCREEN_TEXT = {
     566: {"pt": "RESISTIU!", "en": "RESISTED!", "de": "ABGEWEHRT!"},
     567: {"pt": "RESISTIU!", "en": "RESISTED!", "de": "ABGEWEHRT!"},
     1999: {"pt": "ESQUIVOU!", "en": "DODGED!", "de": "AUSGEWICHEN!"},
+    1435: {"pt": "ACABOU: $s1", "en": "OUT OF: $s1", "de": "LEER: $s1"},
+    338: {"pt": "SEM SOULSHOT!", "en": "NO SOULSHOTS!", "de": "KEINE SOULSHOTS!"},
+    531: {"pt": "SEM SPIRITSHOT!", "en": "NO SPIRITSHOTS!", "de": "KEINE SPIRITSHOTS!"},
+    749: {"pt": "REMOVIDO: $s1", "en": "REMOVED: $s1", "de": "ENTFERNT: $s1"},
+    612: {"pt": "SPOIL!", "en": "SPOIL!", "de": "SPOIL!"},
+}
+# Short chat lines for the common combat messages, in the panel's language (the same values, some
+# left out). A language missing for a message keeps the game's line.
+SHORT_TEXT = {
+    46: {"pt": "Usou $s1", "en": "Used $s1", "de": "$s1 benutzt"},
+    35: {"pt": "$s1 de dano", "en": "$s1 dmg", "de": "$s1 Schaden"},
+    2261: {"pt": "$s3 de dano em $c2", "en": "$s3 dmg to $c2", "de": "$s3 Schaden an $c2"},
+    36: {"pt": "Levou $s2 de $c1", "en": "Took $s2 from $c1", "de": "$s2 von $c1 erlitten"},
+    37: {"pt": "Levou $s2 de $c1", "en": "Took $s2 from $c1", "de": "$s2 von $c1 erlitten"},
+    2262: {"pt": "Levou $s3 de $c2", "en": "Took $s3 from $c2", "de": "$s3 von $c2 erlitten"},
+    44: {"pt": "CRÍTICO!", "en": "CRITICAL!", "de": "KRITISCH!"},
+    2266: {"pt": "$c1: CRÍTICO!", "en": "$c1: CRITICAL!", "de": "$c1: KRITISCH!"},
+    1280: {"pt": "CRÍTICO MÁGICO!", "en": "MAGIC CRITICAL!", "de": "MAGISCH KRITISCH!"},
+    1667: {"pt": "LETHAL!", "en": "LETHAL!", "de": "LETHAL!"},
+    1668: {"pt": "LETHAL!", "en": "LETHAL!", "de": "LETHAL!"},
+    139: {"pt": "$s2 RESISTIDO por $c1", "en": "$s2 RESISTED by $c1", "de": "$s2 von $c1 ABGEWEHRT"},
+    158: {"pt": "Ataque FALHOU", "en": "Attack FAILED", "de": "Angriff FEHLGESCHLAGEN"},
+    2268: {"pt": "Ataque de $c1 FALHOU", "en": "$c1's attack FAILED", "de": "Angriff von $c1 FEHLGESCHLAGEN"},
+    1999: {"pt": "$c1 ESQUIVOU", "en": "$c1 DODGED", "de": "$c1 AUSGEWICHEN"},
+    2265: {"pt": "$c1 errou", "en": "$c1 missed", "de": "$c1 verfehlt"},
+    1996: {"pt": "Ataque BLOQUEADO", "en": "Attack BLOCKED", "de": "Angriff GEBLOCKT"},
+    1997: {"pt": "$c1 CONTRA-ATACOU", "en": "$c1 COUNTERED", "de": "$c1 KONTERT"},
+    2264: {"pt": "$c1 esquivou de $c2", "en": "$c1 evaded $c2", "de": "$c1 wich $c2 aus"},
+    2000: {"pt": "Você esquivou de $c1", "en": "You evaded $c1", "de": "$c1 ausgewichen"},
+    42: {"pt": "Você esquivou de $c1", "en": "You evaded $c1", "de": "$c1 ausgewichen"},
+    111: {"pt": "Escudo bloqueou", "en": "Shield blocked", "de": "Schild geblockt"},
+    1998: {"pt": "Você contra-atacou $c1", "en": "You countered $c1", "de": "$c1 gekontert"},
+    159: {"pt": "Resistiu à magia de $c1", "de": "Magie von $c1 widerstanden"},
+    110: {"pt": "$s1 ativo", "en": "$s1 on", "de": "$s1 aktiv"},
+    92: {"pt": "$s1 acabou", "en": "$s1 ended", "de": "$s1 vorbei"},
+    749: {"pt": "$s1 REMOVIDO", "en": "$s1 REMOVED", "de": "$s1 ENTFERNT"},
+    1066: {"pt": "+$s1 HP", "en": "+$s1 HP", "de": "+$s1 HP"},
+    1067: {"pt": "+$s2 HP ($c1)", "en": "+$s2 HP ($c1)", "de": "+$s2 HP ($c1)"},
+    1068: {"pt": "+$s1 MP", "en": "+$s1 MP", "de": "+$s1 MP"},
+    1069: {"pt": "+$s2 MP ($c1)", "en": "+$s2 MP ($c1)", "de": "+$s2 MP ($c1)"},
+    45: {"pt": "+$s1 EXP", "en": "+$s1 EXP", "de": "+$s1 EXP"},
+    95: {"pt": "+$s1 EXP, +$s2 SP", "en": "+$s1 EXP, +$s2 SP", "de": "+$s1 EXP, +$s2 SP"},
+    28: {"pt": "+$s1 adena", "en": "+$s1 adena", "de": "+$s1 Adena"},
+    52: {"pt": "+$s1 adena", "en": "+$s1 adena", "de": "+$s1 Adena"},
+    29: {"pt": "+$s2 $s1", "en": "+$s2 $s1", "de": "+$s2 $s1"},
+    30: {"pt": "+$s1", "en": "+$s1", "de": "+$s1"},
+    608: {"pt": "Sweep: +$s3 $s2 ($c1)", "en": "Sweep: +$s3 $s2 ($c1)", "de": "Sweep: +$s3 $s2 ($c1)"},
+    609: {"pt": "Sweep: +$s2 ($c1)", "en": "Sweep: +$s2 ($c1)", "de": "Sweep: +$s2 ($c1)"},
+    612: {"pt": "SPOIL ATIVO!", "en": "SPOIL ON!", "de": "SPOIL AKTIV!"},
+    338: {"pt": "SEM SOULSHOT", "en": "OUT OF SOULSHOTS", "de": "KEINE SOULSHOTS"},
+    531: {"pt": "SEM SPIRITSHOT", "en": "OUT OF SPIRITSHOTS", "de": "KEINE SPIRITSHOTS"},
+    1435: {"pt": "$s1 ACABOU (auto desligado)", "en": "$s1 RAN OUT (auto off)", "de": "$s1 LEER (Auto aus)"},
+    27: {"pt": "Cast INTERROMPIDO", "en": "Cast INTERRUPTED", "de": "Wirken UNTERBROCHEN"},
+    48: {"pt": "$s1 em recarga", "en": "$s1 on cooldown", "de": "$s1 lädt nach"},
+    22: {"pt": "Alvo fora de alcance", "en": "Target out of range", "de": "Ziel außer Reichweite"},
 }
 # window, font, seconds, background, animation: the top of the screen, big letters, 2 s, with the
 # dark band and the game's own animated effect (as its "No-Fly Zone" message).
 SCREEN_LOOK = struct.pack("<5I", 2, 0, 2, 1, 1)
-SCREEN_OFF = struct.pack("<5I", 0, 0, 0, 0, 0)
+# Sounds of the game (Sounds\<package>.uax) a message can play: short system sounds.
+GAME_SOUNDS = [
+    "ItemSound3.sys_break", "ItemSound3.sys_shortage", "ItemSound3.sys_enchant_failed",
+    "ItemSound3.sys_enchant_success", "ItemSound3.sys_chat_keyword", "ItemSound3.sys_denial",
+    "ItemSound3.sys_failed", "ItemSound3.sys_impossible", "ItemSound3.sys_battle_count",
+    "ItemSound3.sys_fishing_failed", "ItemSound3.sys_make_fail", "ItemSound3.sys_spoil_success",
+    "InterfaceSound.sc_shot_01", "InterfaceSound.click_01",
+]
+SOUNDS_DIR = APP_DIR.parent / "Sounds"
 SYSMSG = GAME_DIR / "systemmsg-e.dat"
 SYSMSG_BACKUP = GAME_DIR / "systemmsg-e.dat.l2axis"   # the file as it was before the panel's first change
 
 
 def sysmsg_layout(data):
-    """message id -> where its fields are in the decrypted systemmsg-e.dat: the colour (4 bytes,
-    B G R A), the screen block (window, font, time, background, animation: 5 x u32) and the
-    screen text (start, end)."""
+    """message id -> where its fields are in the decrypted systemmsg-e.dat: the line ("msg",
+    start and end), the colour (4 bytes, B G R A), the sound (start, end), the screen block
+    (window, font, time, background, animation: 5 x u32) and the screen text (start, end)."""
     r = _DatReader(data)
     out = {}
     for _ in range(r.u32()):
         mid = r.u32()
         r.u32()
-        r.ascf()          # the message
+        a = r.p
+        r.ascf()
+        msg = (a, r.p)
         r.u32()           # group
         col = r.p
-        r.p += 4          # colour
-        r.ascf(), r.ascf()  # sound, voice
+        r.p += 4
+        a = r.p
+        r.ascf()
+        snd = (a, r.p)
+        r.ascf()          # voice
         look = r.p
         r.p += 20
         a = r.p
-        r.ascf()          # screen text
-        out.setdefault(mid, {"color": col, "look": look, "text": (a, r.p)})
+        r.ascf()
+        out.setdefault(mid, {"msg": msg, "color": col, "sound": snd, "look": look, "text": (a, r.p)})
         r.ascf()          # type
     if data[r.p:r.p + 12] != b"\x0cSafePackage":
         raise ValueError("unexpected systemmsg layout")
     return out
+
+
+def dat_string_at(data, span):
+    r = _DatReader(data)
+    r.p = span[0]
+    return r.ascf()
 
 
 def dat_string(s):
@@ -1219,6 +1304,68 @@ def dat_string(s):
         out.append((n & 0x7F) | (0x80 if n > 0x7F else 0))
         n >>= 7
     return bytes(out) + raw
+
+
+def fill_message(template, values):
+    """A game message with its $c1 / $s2... filled, as the chat shows it."""
+    return re.sub(r"\$([cs]\d)", lambda mt: values.get(mt.group(1).lower(), mt.group(0)), template, flags=re.I)
+
+
+def _compact(d, p):
+    b = d[p]
+    p += 1
+    neg, v = b & 0x80, b & 0x3F
+    if b & 0x40:
+        sh = 6
+        while True:
+            b = d[p]
+            p += 1
+            v |= (b & 0x7F) << sh
+            sh += 7
+            if not b & 0x80:
+                break
+    return (-v if neg else v), p
+
+
+_UAX_CACHE = {}
+
+
+def game_sound_wav(name):
+    """WAV bytes of a sound of the game ("ItemSound3.sys_break"), read from its Sounds\\*.uax
+    package (Lineage2Ver111: the Unreal package XOR 0xAC), or None."""
+    pkg, _, snd = name.partition(".")
+    if pkg not in _UAX_CACHE:
+        found = {}
+        try:
+            raw = (SOUNDS_DIR / f"{pkg}.uax").read_bytes()
+            if raw[:28].decode("utf-16-le", "replace") == "Lineage2Ver111":
+                d = bytes(x ^ 0xAC for x in raw[28:])
+                tag, _ver, _lic, _fl, ncount, noff, ecount, eoff = struct.unpack_from("<IHHIIIII", d, 0)
+                if tag == 0x9E2A83C1:
+                    names, p = [], noff
+                    for _ in range(ncount):
+                        n, p = _compact(d, p)
+                        names.append(d[p:p + n - 1].decode("latin1"))
+                        p += n + 4
+                    p = eoff
+                    for _ in range(ecount):
+                        _c, p = _compact(d, p)
+                        _s, p = _compact(d, p)
+                        p += 4
+                        nm, p = _compact(d, p)
+                        p += 4
+                        size, p = _compact(d, p)
+                        off = 0
+                        if size > 0:
+                            off, p = _compact(d, p)
+                        blob = d[off:off + size]
+                        i = blob.find(b"RIFF")
+                        if i >= 0 and blob[i + 8:i + 12] == b"WAVE":
+                            found[names[nm]] = blob[i:i + 8 + struct.unpack_from("<I", blob, i + 4)[0]]
+        except (OSError, struct.error, IndexError, ValueError):
+            found = {}
+        _UAX_CACHE[pkg] = found
+    return _UAX_CACHE[pkg].get(snd)
 
 
 class _DatReader:
@@ -4037,68 +4184,131 @@ class Api:
             return True
 
     # -------------------------------------------------- game chat colours
+    def _sysmsg_original(self, data):
+        """The message file as the game had it before the panel's first change (the kept copy),
+        or `data` when there is none yet."""
+        if SYSMSG_BACKUP.exists():
+            try:
+                return l2_decrypt413(SYSMSG_BACKUP)
+            except (OSError, ValueError, zlib_error()):
+                pass
+        return data
+
     def chat_colors(self):
-        """Colour of each kind of message in the game's chat now, the suggestion, whether its
-        failed skills also show on screen (None for the kinds that cannot), and whether the file
-        from before the panel's changes is kept."""
+        """For each kind of message in the game's chat: its colour now, the suggestion, sample
+        lines (as the game has it and short), and for the alert kinds whether it shows on screen
+        and its sound ("orig": the game's own). Also whether the short lines are on, and whether
+        the file from before the panel's changes is kept."""
         try:
             data = l2_decrypt413(SYSMSG)
             lay = sysmsg_layout(data)
+            orig = self._sysmsg_original(data)
+            olay = sysmsg_layout(orig)
         except (OSError, ValueError, zlib_error()):
             return {"ok": False}
+        lang = self._data.get("lang", "pt")
+        text = lambda d, ly, i, f: dat_string_at(d, ly[i][f]) if i in ly else ""
         cats = []
-        for key, suggest, ids, sample, alert in CHAT_KINDS:
-            o = next((lay[i]["color"] for i in ids if i in lay), None)
+        for k in CHAT_KINDS:
+            o = next((lay[i]["color"] for i in k["ids"] if i in lay), None)
             if o is None:
                 continue
             b, g, r = data[o], data[o + 1], data[o + 2]
-            first = next((lay[i]["look"] for i in alert if i in lay), None)
-            screen = None if first is None else struct.unpack_from("<I", data, first)[0] != 0
-            cats.append({"key": key, "color": f"#{r:02X}{g:02X}{b:02X}", "suggest": suggest, "sample": sample,
-                         "screen": screen})
-        return {"ok": True, "cats": cats, "backup": SYSMSG_BACKUP.exists()}
+            sid, vals = k["sample"]
+            original = text(orig, olay, sid, "msg")
+            short = SHORT_TEXT.get(sid, {}).get(lang, original)
+            cat = {"key": k["key"], "color": f"#{r:02X}{g:02X}{b:02X}", "suggest": k["color"],
+                   "sampleOrig": fill_message(original, vals), "sampleShort": fill_message(short, vals),
+                   "screen": None, "sound": None}
+            first = next((i for i in k.get("alert", []) if i in lay), None)
+            if first is not None:
+                cat["screen"] = struct.unpack_from("<I", data, lay[first]["look"])[0] != 0
+                now = text(data, lay, first, "sound")
+                cat["sound"] = "orig" if now == text(orig, olay, first, "sound") else now
+                cat["soundSuggest"] = k["sound"]
+                cat["soundOrig"] = text(orig, olay, first, "sound")
+            cats.append(cat)
+        short_on = any(i in lay and i in olay and text(data, lay, i, "msg") != text(orig, olay, i, "msg")
+                       for i in SHORT_TEXT)
+        return {"ok": True, "cats": cats, "short": short_on, "sounds": GAME_SOUNDS,
+                "soundsFound": SOUNDS_DIR.is_dir(), "backup": SYSMSG_BACKUP.exists()}
 
-    def apply_chat_colors(self, colors, screen=None):
-        """Write the chosen colours into the game's message file, and for the failed-skill kinds
-        whether they also show in big letters at the top of the screen (`screen`: kind -> bool).
-        A copy of the file as it was before the panel's first change is kept, and the new file is
-        read back before it replaces the old one. The game shows the changes the next time it starts."""
+    def play_game_sound(self, name):
+        """Play one of the game's sounds (to choose the sound of an alert)."""
+        if name not in GAME_SOUNDS:
+            return False
+        wav = game_sound_wav(name)
+        if not wav:
+            return False
+        threading.Thread(target=lambda: winsound.PlaySound(wav, winsound.SND_MEMORY), daemon=True).start()
+        return True
+
+    def apply_chat_colors(self, colors, screen=None, sounds=None, short=None):
+        """Write into the game's message file: the chosen colours; for the alert kinds whether
+        they also show in big letters at the top of the screen (`screen`: kind -> bool) and their
+        sound (`sounds`: kind -> a name of GAME_SOUNDS, or "orig" for the game's own); and whether
+        the common combat lines are short, in the panel's language (`short`). What is turned off
+        gets the game's own text back. A copy of the file as it was before the panel's first
+        change is kept, and the new file is read back before it replaces the old one. The game
+        shows the changes the next time it starts."""
         wanted = {k: v for k, v in (colors or {}).items() if isinstance(v, str) and re.fullmatch(r"#[0-9A-Fa-f]{6}", v)}
-        screen = {k: bool(v) for k, v in (screen or {}).items() if isinstance(v, bool)}
+        screen = {k: v for k, v in (screen or {}).items() if isinstance(v, bool)}
+        sounds = {k: v for k, v in (sounds or {}).items() if v == "orig" or v in GAME_SOUNDS}
         lang = self._data.get("lang", "pt")
         try:
-            data = bytearray(l2_decrypt413(SYSMSG))
-            lay = sysmsg_layout(bytes(data))
-            changed, texts, expect = 0, [], {}
-            for key, _suggest, ids, _sample, alert in CHAT_KINDS:
+            cur = l2_decrypt413(SYSMSG)
+            lay = sysmsg_layout(cur)
+            orig = self._sysmsg_original(cur)
+            olay = sysmsg_layout(orig)
+            data = bytearray(cur)
+            changed, edits, expect = 0, {}, {}
+
+            def put(i, field, value):  # a string field of message i, spliced in below
+                edits[(i, field)] = (*lay[i][field], dat_string(value))
+                expect[(i, field)] = value
+
+            def original(i, field):
+                return dat_string_at(orig, olay[i][field]) if i in olay else dat_string_at(cur, lay[i][field])
+
+            for k in CHAT_KINDS:
+                key = k["key"]
                 if key in wanted:
-                    r, g, b = (int(wanted[key][k:k + 2], 16) for k in (1, 3, 5))
-                    for i in ids:
+                    r, g, b = (int(wanted[key][n:n + 2], 16) for n in (1, 3, 5))
+                    for i in k["ids"]:
                         if i in lay:
                             o = lay[i]["color"]
                             data[o:o + 4] = bytes((b, g, r, 0xFF))
                             changed += 1
-                if key in screen:
-                    for i in alert:
-                        if i not in lay:
-                            continue
+                for i in k.get("alert", []):
+                    if i not in lay:
+                        continue
+                    if key in screen:
                         on = screen[key]
-                        text = SCREEN_TEXT[i].get(lang, SCREEN_TEXT[i]["en"]) if on else ""
                         o = lay[i]["look"]
-                        data[o:o + 20] = SCREEN_LOOK if on else SCREEN_OFF
-                        texts.append((*lay[i]["text"], dat_string(text)))
-                        expect[i] = (on, text)
-            for start, end, raw in sorted(texts, reverse=True):  # from the end: earlier offsets stay right
+                        data[o:o + 20] = SCREEN_LOOK if on else (orig[olay[i]["look"]:olay[i]["look"] + 20] if i in olay else bytes(20))
+                        put(i, "text", SCREEN_TEXT[i].get(lang, SCREEN_TEXT[i]["en"]) if on else original(i, "text"))
+                    if key in sounds:
+                        put(i, "sound", original(i, "sound") if sounds[key] == "orig" else sounds[key])
+            if isinstance(short, bool):
+                for i, texts in SHORT_TEXT.items():
+                    if i in lay:
+                        put(i, "msg", texts[lang] if short and lang in texts else original(i, "msg"))
+            # splice from the end of the file: the offsets before each edit stay right
+            for start, end, raw in sorted(edits.values(), key=lambda e: e[0], reverse=True):
                 data[start:end] = raw
             data = bytes(data)
-            try:  # the new file still reads as a message file, with the screen texts asked for
-                lay = sysmsg_layout(data)
-                for i, (on, text) in expect.items():
-                    rd = _DatReader(data)
-                    rd.p = lay[i]["text"][0]
-                    if rd.ascf() != text or (struct.unpack_from("<I", data, lay[i]["look"])[0] != 0) != on:
+            try:  # the new file still reads as a message file, with what was asked for
+                lay2 = sysmsg_layout(data)
+                for (i, field), value in expect.items():
+                    if dat_string_at(data, lay2[i][field]) != value:
                         raise ValueError(i)
-            except (ValueError, IndexError, struct.error):
+                for k in CHAT_KINDS:
+                    for i in k.get("alert", []):
+                        if k["key"] in screen and i in lay2:
+                            if (struct.unpack_from("<I", data, lay2[i]["look"])[0] != 0) != (screen[k["key"]] or
+                                                                                        struct.unpack_from("<I", orig, olay[i]["look"])[0] != 0):
+                                raise ValueError(i)
+            except (ValueError, IndexError, KeyError, struct.error):
                 return {"ok": False, "error": "verify"}
             blob = l2_encrypt413(data)
             tmp = SYSMSG.with_suffix(".dat.tmp")
@@ -4117,6 +4327,9 @@ class Api:
         with self._lock:
             self._data["chat_colors"] = wanted
             self._data["chat_screen"] = screen
+            self._data["chat_sounds"] = sounds
+            if isinstance(short, bool):
+                self._data["chat_short"] = short
             self._save()
         return {"ok": True, "changed": changed}
 
@@ -4131,8 +4344,8 @@ class Api:
         except OSError:
             return {"ok": False, "error": "other"}
         with self._lock:
-            self._data.pop("chat_colors", None)
-            self._data.pop("chat_screen", None)
+            for k in ("chat_colors", "chat_screen", "chat_sounds", "chat_short"):
+                self._data.pop(k, None)
             self._save()
         return {"ok": True}
 
