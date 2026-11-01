@@ -1147,7 +1147,10 @@ CHAT_KINDS = [
      "sample": (2262, {"c1": "Player", "s3": "412", "c2": "Lilim Assassin"})},
     {"key": "skill", "color": "#E6E6E6", "ids": [46], "sample": (46, {"s1": "Bluff"})},
     # The game sends nothing when a skill lands: these two kinds are the only sign that it did not.
-    # Resisted or failed: debuffs (Bluff, Stun, Critical Wound...), magic and blows that failed.
+    # Resisted: debuffs (Bluff, Stun, Critical Wound...) and magic fully resisted (139, with the skill's
+    # name). "Your attack has failed" (158) is a damage magic that hit for half: the server sends it
+    # without the skill's name (L2J and L2jMobius High Five, Formulas.calcMagicDam). A blow that fails
+    # sends nothing; one that is dodged is 1999.
     {"key": "resist", "color": "#FF3CE6", "ids": [139, 158, 2268, 566, 567],
      "sample": (139, {"c1": "Lilim Assassin", "s2": "Bluff"}),
      "alert": [139, 158, 2268, 566, 567], "sound": "ItemSound3.sys_enchant_failed"},
@@ -1175,7 +1178,7 @@ CHAT_KINDS = [
 # The big text at the top of the screen, in the panel's language ($s1, $s2: the skill or item).
 SCREEN_TEXT = {
     139: {"pt": "RESISTIU: $s2", "en": "RESISTED: $s2", "de": "ABGEWEHRT: $s2"},
-    158: {"pt": "FALHOU!", "en": "FAILED!", "de": "FEHLGESCHLAGEN!"},
+    158: {"pt": "MEIO DANO!", "en": "HALF DAMAGE!", "de": "HALBER SCHADEN!"},
     2268: {"pt": "FALHOU!", "en": "FAILED!", "de": "FEHLGESCHLAGEN!"},
     566: {"pt": "RESISTIU!", "en": "RESISTED!", "de": "ABGEWEHRT!"},
     567: {"pt": "RESISTIU!", "en": "RESISTED!", "de": "ABGEWEHRT!"},
@@ -1201,7 +1204,7 @@ SHORT_TEXT = {
     1667: {"pt": "LETHAL!", "en": "LETHAL!", "de": "LETHAL!"},
     1668: {"pt": "LETHAL!", "en": "LETHAL!", "de": "LETHAL!"},
     139: {"pt": "$s2 RESISTIDO por $c1", "en": "$s2 RESISTED by $c1", "de": "$s2 von $c1 ABGEWEHRT"},
-    158: {"pt": "Ataque FALHOU", "en": "Attack FAILED", "de": "Angriff FEHLGESCHLAGEN"},
+    158: {"pt": "Magia pela metade (½ dano)", "en": "Magic at half damage", "de": "Magie mit halbem Schaden"},
     2268: {"pt": "Ataque de $c1 FALHOU", "en": "$c1's attack FAILED", "de": "Angriff von $c1 FEHLGESCHLAGEN"},
     1999: {"pt": "$c1 ESQUIVOU", "en": "$c1 DODGED", "de": "$c1 AUSGEWICHEN"},
     2265: {"pt": "$c1 errou", "en": "$c1 missed", "de": "$c1 verfehlt"},
@@ -1280,6 +1283,129 @@ def sysmsg_layout(data):
     if data[r.p:r.p + 12] != b"\x0cSafePackage":
         raise ValueError("unexpected systemmsg layout")
     return out
+
+
+# Monster titles and item names of the client, for the items the player marks: the monsters that
+# give one by spoil show it over their head (npcname-e.dat: the title under the name, and its
+# colour), and the item's name gets a mark and the colour of the game's top items.
+NPCNAME = GAME_DIR / "npcname-e.dat"
+ITEMNAME = GAME_DIR / "itemname-e.dat"
+MARK_EPIC = 3          # itemname-e.dat name colour of Soul of Zaken, Hellblade... (1 is the usual)
+MARK_TAG = "[*]"       # the mark before a marked item's name, by default
+MARK_COLOR = "#FFD84A"  # the colour of the spoil title over a monster, by default
+
+
+def game_backup(path):
+    return path.with_name(path.name + ".l2axis")
+
+
+def npcname_layout(data):
+    """npc id -> its name, and where its title (start, end) and title colour (B G R A) are in the
+    decrypted npcname-e.dat."""
+    r = _DatReader(data)
+    out = {}
+    for _ in range(r.u32()):
+        nid = r.u32()
+        name = r.ascf()
+        a = r.p
+        title = r.ascf()
+        out.setdefault(nid, {"name": name, "title": title, "span": (a, r.p), "color": r.p})
+        r.p += 4
+    if data[r.p:r.p + 12] != b"\x0cSafePackage":
+        raise ValueError("unexpected npcname layout")
+    return out
+
+
+def itemname_layout(data):
+    """item id -> its name and additional name, and where the name (start, end: u32 byte length and
+    UTF-16) and the name colour (u32) are in the decrypted itemname-e.dat (High Five layout)."""
+    r = _DatReader(data)
+
+    def ustr():
+        n = r.u32()
+        if n > 4000 or n % 2:
+            raise ValueError("unexpected itemname string")
+        v = data[r.p:r.p + n].decode("utf-16-le")
+        r.p += n
+        return v
+
+    out = {}
+    for _ in range(r.u32()):
+        iid = r.u32()
+        a = r.p
+        name = ustr()
+        span = (a, r.p)
+        add = ustr()
+        r.ascf()            # description
+        r.p += 4            # popup
+        r.u32()
+        for _ in range(r.u32()):
+            ustr()          # set items
+        r.ascf()
+        r.u32()
+        for _ in range(r.u32()):
+            ustr()          # set extra items
+        r.ascf()
+        r.p += 9
+        r.u32()
+        r.ascf()            # set enchant effect
+        out.setdefault(iid, {"name": name, "add": add, "span": span, "grade": r.p})
+        r.p += 4
+    if data[r.p:r.p + 12] != b"\x0cSafePackage":
+        raise ValueError("unexpected itemname layout")
+    return out
+
+
+def dat_unicode(s):
+    """A UNICODE string of the .dat files: its byte length (u32), then UTF-16."""
+    raw = s.encode("utf-16-le")
+    return struct.pack("<I", len(raw)) + raw
+
+
+def splice(data, edits):
+    """`data` with each (start, end, bytes) put in, from the end of the file so the earlier offsets
+    stay right."""
+    out = bytearray(data)
+    for start, end, raw in sorted(edits, key=lambda e: e[0], reverse=True):
+        out[start:end] = raw
+    return bytes(out)
+
+
+def write_game_dat(path, data):
+    """Encrypt `data` into the game's file `path`: written beside it, read back, then put in place.
+    None, or "locked" / "verify" / "other"."""
+    try:
+        blob = l2_encrypt413(data)
+        tmp = path.with_suffix(path.suffix + ".tmp")
+        tmp.write_bytes(blob)
+        if l2_decrypt413(tmp) != data:  # never put a file the game could not read
+            tmp.unlink()
+            return "verify"
+        os.replace(tmp, path)
+        return None
+    except PermissionError:
+        return "locked"
+    except (OSError, ValueError, zlib_error()) as exc:
+        log_error("game files", repr(exc))
+        return "other"
+
+
+def file_sha(path):
+    import hashlib
+    try:
+        return hashlib.sha1(path.read_bytes()).hexdigest()
+    except OSError:
+        return None
+
+
+def mark_title(names_chances):
+    """The title over a monster for the marked items it gives by spoil: [(name, chance %)]."""
+    if len(names_chances) == 1:
+        name, ch = names_chances[0]
+        return f"Spoil: {name} {ch:.3g}%" if ch else f"Spoil: {name}"
+    names = [n for n, _ in names_chances]
+    full = "Spoil: " + ", ".join(names)
+    return full if len(full) <= 34 else f"Spoil: {names[0]} +{len(names) - 1}"
 
 
 def dat_string_at(data, span):
@@ -4234,7 +4360,13 @@ class Api:
             cats.append(cat)
         short_on = any(i in lay and i in olay and text(data, lay, i, "msg") != text(orig, olay, i, "msg")
                        for i in SHORT_TEXT)
-        return {"ok": True, "cats": cats, "short": short_on, "sounds": GAME_SOUNDS,
+        # texts written by an older panel or in another language: applying again updates them
+        stale = any(i in lay and struct.unpack_from("<I", data, lay[i]["look"])[0] != 0
+                    and text(data, lay, i, "text") != SCREEN_TEXT[i].get(lang, SCREEN_TEXT[i]["en"])
+                    for k in CHAT_KINDS for i in k.get("alert", []))
+        stale = stale or (short_on and any(i in lay and lang in t and text(data, lay, i, "msg") != t[lang]
+                                           for i, t in SHORT_TEXT.items()))
+        return {"ok": True, "cats": cats, "short": short_on, "stale": stale, "sounds": GAME_SOUNDS,
                 "soundsFound": SOUNDS_DIR.is_dir(), "backup": SYSMSG_BACKUP.exists()}
 
     def play_game_sound(self, name):
@@ -4352,6 +4484,185 @@ class Api:
                 self._data.pop(k, None)
             self._save()
         return {"ok": True}
+
+    # -------------------------------------------------- marked items (monster titles, item names)
+    def _marks_sources(self):
+        """For npcname-e.dat and itemname-e.dat: (current data, original data). The original is the
+        kept copy; it is taken again from the game's file whenever that file is not the one the panel
+        wrote last (first use, or the server's patcher replaced it), so it never brings back an old
+        version."""
+        written = self._data.get("marks_written", {})
+        out = {}
+        for key, path in (("npc", NPCNAME), ("item", ITEMNAME)):
+            bk = game_backup(path)
+            if not bk.exists() or file_sha(path) != written.get(key):
+                shutil.copy2(path, bk)
+                if key == "item":
+                    self._items_cat = None
+            out[key] = (l2_decrypt413(path), l2_decrypt413(bk))
+        return out
+
+    def _item_catalog(self):
+        """item id -> (name, additional name) as the game has them (without the panel's marks)."""
+        if getattr(self, "_items_cat", None) is None:
+            src = game_backup(ITEMNAME) if game_backup(ITEMNAME).exists() else ITEMNAME
+            lay = itemname_layout(l2_decrypt413(src))
+            self._items_cat = {i: (v["name"], v["add"]) for i, v in lay.items()}
+        return self._items_cat
+
+    def _spoil_sources(self):
+        """item id -> [(npc id, chance %, monster name)] of the monsters that give it by spoil."""
+        out = {}
+        for key, m in self.spoil_db()["mobs"].items():
+            if not str(key).isdigit():
+                continue
+            for e in m.get("spoil", []):
+                out.setdefault(int(e[0]), []).append((int(key), float(e[1] or 0), m.get("name", "")))
+        return out
+
+    @staticmethod
+    def _spoil_sample(sources):
+        """[monster name, chance] of the monster that gives the item most often, for the preview."""
+        if not sources:
+            return None
+        _nid, ch, name = max(sources, key=lambda e: e[1])
+        return [name, f"{ch:.3g}"]
+
+    def mark_search(self, q):
+        """Items whose name holds `q`, for the list of marked items: the ones some monster gives
+        by spoil first."""
+        q = (q or "").strip().lower()
+        if len(q) < 2:
+            return []
+        try:
+            cat = self._item_catalog()
+        except (OSError, ValueError, zlib_error()):
+            return []
+        src = self._spoil_sources()
+        hits = []
+        for iid, (name, add) in cat.items():
+            low = name.lower()
+            if q not in low or name.startswith("(Not In Use)") or name.startswith("Common Item - "):
+                continue
+            hits.append((not low.startswith(q), not src.get(iid), len(name), name, iid, add))
+        hits.sort()
+        return [{"id": h[4], "name": h[3], "add": h[5], "mobs": len(src.get(h[4], [])),
+                 "sample": self._spoil_sample(src.get(h[4]))} for h in hits[:12]]
+
+    def game_marks(self):
+        """The marked items (with how many monsters give each by spoil), the mark and the title
+        colour, and what is in the game's files now."""
+        if not (NPCNAME.exists() and ITEMNAME.exists()):
+            return {"ok": False}
+        try:
+            cat = self._item_catalog()
+        except (OSError, ValueError, zlib_error()):
+            return {"ok": False}
+        src = self._spoil_sources()
+        written = self._data.get("marks_written", {})
+        in_game = bool(written) and file_sha(NPCNAME) == written.get("npc") and file_sha(ITEMNAME) == written.get("item")
+
+        def full(ms):
+            return [{"id": m["id"], "name": cat.get(m["id"], (f"#{m['id']}", ""))[0], "add": cat.get(m["id"], ("", ""))[1],
+                     "mobs": len(src.get(m["id"], [])), "sample": self._spoil_sample(src.get(m["id"])),
+                     "onMobs": bool(m.get("onMobs")), "tag": bool(m.get("tag"))}
+                    for m in ms]
+        applied = self._data.get("marks_applied") if in_game else None
+        return {"ok": True, "marks": full(self._data.get("marks", [])),
+                "tag": self._data.get("marks_tag", MARK_TAG), "color": self._data.get("marks_color", MARK_COLOR),
+                "applied": applied and {"marks": full(applied["marks"]), "tag": applied["tag"], "color": applied["color"]}}
+
+    def apply_marks(self, marks, tag=MARK_TAG, color=MARK_COLOR):
+        """Write the marked items into the game's files: the monsters that give one by spoil show it
+        in their title (in `color`), and the items marked by name get `tag` before it and the top
+        items' name colour. Everything else is the game's own. The game shows it the next time it
+        starts."""
+        try:
+            marks = [{"id": int(m["id"]), "onMobs": bool(m.get("onMobs")), "tag": bool(m.get("tag"))}
+                     for m in (marks or [])][:40]
+        except (TypeError, ValueError, KeyError):
+            return {"ok": False, "error": "other"}
+        tag = re.sub(r"[\x00-\x1f]", "", str(tag or ""))[:8].strip()
+        if not re.fullmatch(r"#[0-9A-Fa-f]{6}", str(color or "")):
+            color = MARK_COLOR
+        try:
+            files = self._marks_sources()
+            cat = self._item_catalog()
+            src = self._spoil_sources()
+            # monster titles
+            npc_cur, npc_orig = files["npc"]
+            lay = npcname_layout(npc_orig)
+            per_mob = {}
+            for m in marks:
+                if m["onMobs"]:
+                    for nid, ch, _name in src.get(m["id"], []):
+                        per_mob.setdefault(nid, []).append((cat.get(m["id"], (f"#{m['id']}",))[0], ch))
+            r, g, b = (int(color[k:k + 2], 16) for k in (1, 3, 5))
+            npc_data = bytearray(npc_orig)
+            edits, expect_npc = [], {}
+            for nid, items in per_mob.items():
+                if nid in lay:
+                    title = mark_title(items)
+                    o = lay[nid]["color"]
+                    npc_data[o:o + 4] = bytes((b, g, r, 0xFF))
+                    edits.append((*lay[nid]["span"], dat_string(title)))
+                    expect_npc[nid] = title
+            npc_new = splice(bytes(npc_data), edits)
+            # item names
+            item_cur, item_orig = files["item"]
+            ilay = itemname_layout(item_orig)
+            item_data = bytearray(item_orig)
+            edits, expect_item = [], {}
+            for m in marks:
+                if m["tag"] and m["id"] in ilay:
+                    v = ilay[m["id"]]
+                    name = f"{tag} {v['name']}" if tag else v["name"]
+                    struct.pack_into("<I", item_data, v["grade"], MARK_EPIC)
+                    edits.append((*v["span"], dat_unicode(name)))
+                    expect_item[m["id"]] = name
+            item_new = splice(bytes(item_data), edits)
+            # read back: still the game's layout, with what was asked for
+            try:
+                lay2 = npcname_layout(npc_new)
+                ilay2 = itemname_layout(item_new)
+                if any(lay2[n]["title"] != t for n, t in expect_npc.items()) or \
+                        any(ilay2[i]["name"] != t for i, t in expect_item.items()) or \
+                        len(lay2) != len(lay) or len(ilay2) != len(ilay):
+                    return {"ok": False, "error": "verify"}
+            except (ValueError, KeyError, IndexError, struct.error, UnicodeDecodeError):
+                return {"ok": False, "error": "verify"}
+        except PermissionError:
+            return {"ok": False, "error": "locked"}
+        except (OSError, ValueError, zlib_error()) as exc:
+            log_error("marks", repr(exc))
+            return {"ok": False, "error": "other"}
+        for path, new, cur in ((NPCNAME, npc_new, npc_cur), (ITEMNAME, item_new, item_cur)):
+            if new != cur:
+                err = write_game_dat(path, new)
+                if err:
+                    return {"ok": False, "error": err}
+        with self._lock:
+            self._data["marks"] = marks
+            self._data["marks_tag"] = tag
+            self._data["marks_color"] = color.upper()
+            self._data["marks_applied"] = {"marks": marks, "tag": tag, "color": color.upper()}
+            self._data["marks_written"] = {"npc": file_sha(NPCNAME), "item": file_sha(ITEMNAME)}
+            self._save()
+        return {"ok": True, "mobs": len(expect_npc), "items": len(expect_item)}
+
+    def save_marks_draft(self, marks, tag, color):
+        """Keep the list being set up (not written to the game yet)."""
+        try:
+            marks = [{"id": int(m["id"]), "onMobs": bool(m.get("onMobs")), "tag": bool(m.get("tag"))} for m in (marks or [])][:40]
+        except (TypeError, ValueError, KeyError):
+            return False
+        with self._lock:
+            self._data["marks"] = marks
+            self._data["marks_tag"] = re.sub(r"[\x00-\x1f]", "", str(tag or ""))[:8].strip()
+            if re.fullmatch(r"#[0-9A-Fa-f]{6}", str(color or "")):
+                self._data["marks_color"] = color.upper()
+            self._save()
+        return True
 
     def swap_clients(self, i, j):
         """The open game of slot i really belongs to slot j (or the other way round): swap them.

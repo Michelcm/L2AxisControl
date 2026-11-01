@@ -428,6 +428,39 @@
   #chatMsg { margin-top: 3px; min-height: 13px; }
   .gnote { margin-top: 2px; font-size: 9px; color: var(--dim); line-height: 12px; }
   @media (prefers-reduced-motion: reduce) { .gcustom > summary svg { transition: none; } }
+  /* Options > Mobs and items: the marked items, how they look in the game */
+  .msearch { margin: 5px 0 3px; }
+  .msearch input.e { width: 100%; box-sizing: border-box; height: 20px; }
+  .mresults { margin-top: 2px; max-height: 196px; overflow: auto; background: var(--well); border: 1px solid #000;
+              box-shadow: inset 0 0 0 1px var(--line-dim); }
+  .mresults[hidden] { display: none; }
+  .mresults button { display: flex; width: 100%; justify-content: space-between; align-items: baseline; gap: 10px; padding: 2px 6px;
+                     background: none; border: 0; color: var(--text); font: 11px Tahoma, Verdana, sans-serif; text-align: left; cursor: pointer; }
+  .mresults button:hover, .mresults button:focus-visible { background: rgba(201,165,90,.14); color: var(--text-hi); outline: none; }
+  .mresults button[disabled] { color: var(--dim); cursor: default; background: none; }
+  .mresults .n { flex: none; color: var(--dim); font-size: 10px; }
+  .mresults .none { padding: 3px 6px; font-size: 10px; color: var(--dim); }
+  .mrow { display: grid; grid-template-columns: minmax(0, 1fr) auto auto 20px; gap: 10px; align-items: center; min-height: 22px; }
+  .mrow + .mrow { border-top: 1px solid rgba(74,66,50,.5); }
+  .mrow .nm { font-size: 11px; color: var(--text-hi); line-height: 13px; }
+  .mrow .nm small { font-size: 10px; color: var(--dim); }
+  .mrow label.chk { margin: 0; font-size: 10px; white-space: nowrap; }
+  .mrow .nospoil { font-size: 10px; color: var(--dim); white-space: nowrap; }
+  .mrow button.b.ico { height: 16px; width: 20px; }
+  .mrow button.b.ico svg { width: 8px; height: 8px; }
+  .mempty { padding: 5px 2px; font-size: 10px; line-height: 13px; color: var(--dim); }
+  .mlook { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: stretch; }
+  .mprev { display: flex; flex-direction: column; justify-content: center; gap: 9px; padding: 9px 8px; text-align: center;
+           background: rgba(0,0,0,.6); border: 1px solid #000; box-shadow: inset 0 0 0 1px var(--line-dim);
+           font: 11px Tahoma, Verdana, sans-serif; text-shadow: 1px 1px 0 #000; }
+  .mprev .mname { color: var(--text-hi); }
+  .mprev .mitem { color: var(--grade-s84); }
+  .mprev .cap { font-size: 9px; color: var(--dim); text-shadow: none; }
+  .mctl { display: flex; flex-direction: column; justify-content: center; gap: 6px; }
+  .mctl .orow { min-height: 20px; gap: 8px; }
+  .mctl input[type=color] { width: 30px; height: 17px; padding: 0; border: 1px solid #000; background: none; cursor: pointer; }
+  .mctl input.e { width: 58px; text-align: center; }
+
   .warn { color: var(--note); font-size: 10px; margin-top: 3px; white-space: pre-line; }
 
   /* votes */
@@ -1166,6 +1199,7 @@
       <div class="ctabs" role="tablist" id="optTabs" style="margin-top:0">
         <button class="b on" role="tab" id="ot-panel" data-opane="panel" aria-controls="op-panel" aria-selected="true" data-i18n="optTabPanel"></button>
         <button class="b" role="tab" id="ot-game" data-opane="game" aria-controls="op-game" aria-selected="false" tabindex="-1" data-i18n="optTabGame"></button>
+        <button class="b" role="tab" id="ot-marks" data-opane="marks" aria-controls="op-marks" aria-selected="false" tabindex="-1" data-i18n="optTabMarks"></button>
         <button class="b" role="tab" id="ot-links" data-opane="links" aria-controls="op-links" aria-selected="false" tabindex="-1" data-i18n="optTabLinks"></button>
       </div>
 
@@ -1226,6 +1260,31 @@
         <div class="gapply"><button class="b gold" id="bChatApply" data-i18n="btnChatApply"></button></div>
         <div class="small" id="chatMsg" role="status"></div>
         <div class="gnote" data-i18n="chatNote"></div>
+      </div>
+
+      <div class="panel opane" id="op-marks" role="tabpanel" aria-labelledby="ot-marks" hidden>
+        <div class="osec" data-i18n="secMarks"></div>
+        <div class="gdesc" data-i18n="marksIntro"></div>
+        <div class="msearch">
+          <input class="e" id="mQuery" type="search" autocomplete="off" spellcheck="false" data-i18n-ph="marksSearchPh" data-i18n-aria="marksSearchPh" aria-controls="mResults">
+          <div class="mresults" id="mResults" hidden></div>
+        </div>
+        <div class="gbox" id="mList"></div>
+
+        <div class="osec" data-i18n="secMarksLook"></div>
+        <div class="mlook">
+          <div class="mprev" aria-hidden="true">
+            <div><div class="mtitle" id="mPrevTitle"></div><div class="mname" id="mPrevMob"></div></div>
+            <div><div class="mitem" id="mPrevItem"></div><div class="cap" data-i18n="marksPrevItem"></div></div>
+          </div>
+          <div class="mctl">
+            <label class="orow"><span class="lbl small" data-i18n="marksColor"></span><input type="color" id="mColor"></label>
+            <label class="orow"><span class="lbl small" data-i18n="marksTag"></span><input class="e" id="mTag" maxlength="8" spellcheck="false"></label>
+          </div>
+        </div>
+        <div class="gapply"><button class="b gold" id="bMarksApply" data-i18n="btnChatApply"></button></div>
+        <div class="small" id="marksMsg" role="status"></div>
+        <div class="gnote" data-i18n="marksNote"></div>
       </div>
 
       <div class="panel opane" id="op-links" role="tabpanel" aria-labelledby="ot-links" hidden>
@@ -1479,7 +1538,7 @@ const I18N = {
     connLost: "Sem resposta do painel. Tentando de novo…", aTabs: "Seções", aLvMin: "Nível mínimo", aLvMax: "Nível máximo", aSort: "Ordenar", aGroup: "Agrupar", aRace: "Raça", aClass: "Classe", aKind: "Tipo de item", aSlot: "Slot do acessório", aSrc: "Origem", aRate: "Chance de sucesso", aAccName: "Nome da conta", aFav: "Só favoritos", aZoomIn: "Aproximar", aZoomOut: "Afastar", aZoomFit: "Mapa inteiro",
     accListTitle: "Contas", accCount: "{open} de {n} abertas", btnSpread: "Espalhar", btnSavePos: "Salvar posições", btnRestorePos: "Restaurar", btnMinAll: "Minimizar todos", btnCloseAll: "Fechar todos", tipFocus: "Trazer a janela do jogo para a frente", tipMinGame: "Minimizar o jogo", tipCloseGame: "Fechar o jogo", stLobby: "aberto, no login ou na seleção", noLogin: "sem login salvo", loginIs: "login {login}",
     rInside: "O teleporte já te deixa dentro de {zone}; os mobs ficam nas salas (veja o mapa interno)", rEnter: "Fale com o Gatekeeper Ziggurat na entrada para entrar em {zone}", dInside: "Dentro de {zone}", btnInnerMap: "Mapa interno", btnInnerPart: "Andar {n}", tipInnerMap: "Abre no navegador o mapa de dentro de {zone}", innerSrc: "mapa do site l2j.ru",
-    secChat: "Chat e avisos do jogo", chatNote: "Vale quando o jogo é aberto de novo. O painel guarda uma cópia do arquivo de mensagens antes da primeira mudança.", optTabPanel: "Painel", optTabGame: "No jogo", optTabLinks: "Links", secProfile: "Perfil", prof_orig: "Jogo original", prof_pvp: "PvP", prof_farm: "Farm", prof_spoil: "Spoil", prof_custom: "personalizado", profDesc_orig: "As cores, mensagens e sons que vieram com o jogo.", profDesc_pvp: "Uma cor por tipo de mensagem, mensagens curtas, e na tela com som: skill resistida, skill esquivada, buff removido e shots acabando.", profDesc_farm: "Uma cor por tipo de mensagem, mensagens curtas, e na tela com som só quando os shots acabam.", profDesc_spoil: "Uma cor por tipo de mensagem, mensagens curtas, e na tela com som: spoil ativado, skill resistida (um Spoil que falhou) e shots acabando.", profDesc_custom: "Personalizado: ajustado item por item em Personalizar.", secPreview: "Prévia", prevScreen: "No alto da tela", prevChat: "No chat", prevNone: "nenhum aviso na tela", custom: "Personalizar", secGameAlerts: "Avisos", secGameColors: "Cores do chat", chatPending: "Mudanças ainda não aplicadas no jogo.", chatNow: "No arquivo do jogo agora: {p}.", chatSaving: "Gravando…", chatShort: "Mensagens de combate curtas, em português", chatShortTip: "Troca as mensagens mais comuns de combate, loot e buff por versões curtas no idioma do painel (ex.: Bluff RESISTIDO por Lilim Assassin). Desmarcado, volta o texto do jogo.", ccSound: "Som:", ccSoundOrig: "o do jogo", ccSoundNone: "sem som (o do jogo)", ccPlay: "Ouvir", btnChatApply: "Aplicar no jogo", chatApplied: "Gravado no arquivo do jogo. Abra o jogo de novo para ver.", chatRestored: "Arquivo original do jogo de volta. Abra o jogo de novo para ver.", chatErr: "Não deu para gravar: {why}", chatErr_locked: "o arquivo está em uso; feche o jogo e tente de novo", chatErr_verify: "a conferência do arquivo falhou, nada foi trocado", chatErr_nobackup: "não há cópia guardada", chatErr_other: "erro ao ler ou gravar o arquivo", chatMissing: "Arquivo de mensagens do jogo não encontrado na pasta system.", cc_crit: "Crítico", cc_dmgOut: "Seu dano", cc_dmgIn: "Dano recebido", cc_miss: "Você esquivou, defendeu", cc_skill: "Skill usada", cc_resist: "Skill resistida, falhou", cc_dodge: "Skill esquivada, errou", cc_shots: "Soulshot/spiritshot acabou", cc_cancel: "Buff removido (cancel)", ccScreen: "Na tela", ccScreenTip: "Também em letras grandes no alto da tela do jogo, com o efeito animado do jogo, por 2 s. Numa skill: o jogo não avisa quando ela entra, então sem esse aviso ela entrou.", cc_adena: "Adena", cc_item: "Itens", cc_spoil: "Spoil e sweep", cc_exp: "EXP e SP", cc_buffOn: "Buff ativo", cc_buffOff: "Buff acabou", cc_heal: "HP e MP recuperados",
+    secChat: "Chat e avisos do jogo", chatNote: "Vale quando o jogo é aberto de novo. O painel guarda uma cópia do arquivo de mensagens antes da primeira mudança.", optTabPanel: "Painel", optTabGame: "Chat e avisos", optTabMarks: "Mobs e itens", optTabLinks: "Links", secMarks: "Itens marcados", marksIntro: "Os monstros que dão o item no spoil mostram ele em cima da cabeça, e o nome do item ganha uma marca e a cor de item épico (inventário, chat, loja).", marksSearchPh: "Procurar item (ex.: Steel Mold)", marksEmpty: "Nenhum item marcado. Procure um item acima.", marksOnMobs: "Nos mobs ({n})", marksOnMobsTip: "Título com o spoil em cima dos monstros que dão este item (listas oficiais e o que você abriu no Alt+B).", marksNoSpoil: "sem spoil conhecido", marksMobsN: "{n} mobs no spoil", marksHave: "já marcado", marksNoResult: "Nenhum item com esse nome.", marksTagChk: "Marca no nome", marksRemove: "Tirar da lista", secMarksLook: "Como aparece", marksColor: "Cor do título", marksTag: "Marca", marksTitle: "Spoil: {item} {pct}%", marksPrevNoMob: "(nenhum item nos mobs)", marksPrevMob: "Monstro", marksPrevItem: "nome do item, cor de épico", marksPrevItemName: "Item", marksNow: "No jogo agora: {n} item(ns) marcado(s).", marksNoneGame: "Nenhum item marcado no jogo.", marksCleared: "Marcas tiradas: monstros e itens voltam como no jogo original. Abra o jogo de novo para ver.", marksApplied: "Gravado: {mobs} monstros com título e {items} itens com marca. Abra o jogo de novo para ver.", marksMissing: "Arquivos de monstros e itens do jogo não encontrados na pasta system.", marksNote: "Vale quando o jogo é aberto de novo. Se o servidor já mostra algo em cima dos mobs (ex.: Lv 52), o dele aparece no lugar. O painel guarda cópia dos arquivos originais; esvaziar a lista e aplicar volta tudo como era.", chatStale: "O arquivo do jogo tem textos de antes desta versão; aplique de novo para atualizar.", secProfile: "Perfil", prof_orig: "Jogo original", prof_pvp: "PvP", prof_farm: "Farm", prof_spoil: "Spoil", prof_custom: "personalizado", profDesc_orig: "As cores, mensagens e sons que vieram com o jogo.", profDesc_pvp: "Uma cor por tipo de mensagem, mensagens curtas, e na tela com som: skill resistida, skill esquivada, buff removido e shots acabando.", profDesc_farm: "Uma cor por tipo de mensagem, mensagens curtas, e na tela com som só quando os shots acabam.", profDesc_spoil: "Uma cor por tipo de mensagem, mensagens curtas, e na tela com som: spoil ativado, skill resistida (um Spoil que falhou) e shots acabando.", profDesc_custom: "Personalizado: ajustado item por item em Personalizar.", secPreview: "Prévia", prevScreen: "No alto da tela", prevChat: "No chat", prevNone: "nenhum aviso na tela", custom: "Personalizar", secGameAlerts: "Avisos", secGameColors: "Cores do chat", chatPending: "Mudanças ainda não aplicadas no jogo.", chatNow: "No arquivo do jogo agora: {p}.", chatSaving: "Gravando…", chatShort: "Mensagens de combate curtas, em português", chatShortTip: "Troca as mensagens mais comuns de combate, loot e buff por versões curtas no idioma do painel (ex.: Bluff RESISTIDO por Lilim Assassin). Desmarcado, volta o texto do jogo.", ccSound: "Som:", ccSoundOrig: "o do jogo", ccSoundNone: "sem som (o do jogo)", ccPlay: "Ouvir", btnChatApply: "Aplicar no jogo", chatApplied: "Gravado no arquivo do jogo. Abra o jogo de novo para ver.", chatRestored: "Arquivo original do jogo de volta. Abra o jogo de novo para ver.", chatErr: "Não deu para gravar: {why}", chatErr_locked: "o arquivo está em uso; feche o jogo e tente de novo", chatErr_verify: "a conferência do arquivo falhou, nada foi trocado", chatErr_nobackup: "não há cópia guardada", chatErr_other: "erro ao ler ou gravar o arquivo", chatMissing: "Arquivo de mensagens do jogo não encontrado na pasta system.", cc_crit: "Crítico", cc_dmgOut: "Seu dano", cc_dmgIn: "Dano recebido", cc_miss: "Você esquivou, defendeu", cc_skill: "Skill usada", cc_resist: "Skill resistida, meio dano", cc_dodge: "Skill esquivada, errou", cc_shots: "Soulshot/spiritshot acabou", cc_cancel: "Buff removido (cancel)", ccScreen: "Na tela", ccScreenTip: "Também em letras grandes no alto da tela do jogo, com o efeito animado do jogo, por 2 s. Numa skill: o jogo não avisa quando ela entra, então sem esse aviso ela entrou.", cc_adena: "Adena", cc_item: "Itens", cc_spoil: "Spoil e sweep", cc_exp: "EXP e SP", cc_buffOn: "Buff ativo", cc_buffOff: "Buff acabou", cc_heal: "HP e MP recuperados",
     optScale: "Tamanho do texto", tipResize: "Arraste para redimensionar",
     secWindow: "Janela", secLogin: "Login automático", secLinks: "Links do L2Axis", secFolders: "Pastas",
     optTop: "Sempre por cima dos outros programas", optAbout: "Sobre o painel e créditos",
@@ -1663,7 +1722,7 @@ const I18N = {
     connLost: "The panel is not responding. Retrying…", aTabs: "Sections", aLvMin: "Minimum level", aLvMax: "Maximum level", aSort: "Sort", aGroup: "Group", aRace: "Race", aClass: "Class", aKind: "Item type", aSlot: "Accessory slot", aSrc: "Source", aRate: "Success chance", aAccName: "Account name", aFav: "Favourites only", aZoomIn: "Zoom in", aZoomOut: "Zoom out", aZoomFit: "Whole map",
     accListTitle: "Accounts", accCount: "{open} of {n} open", btnSpread: "Spread", btnSavePos: "Save positions", btnRestorePos: "Restore", btnMinAll: "Minimize all", btnCloseAll: "Close all", tipFocus: "Bring the game window to the front", tipMinGame: "Minimize the game", tipCloseGame: "Close the game", stLobby: "open, at login or character select", noLogin: "no saved login", loginIs: "login {login}",
     rInside: "The teleport drops you inside {zone}; the monsters are in its rooms (see the interior map)", rEnter: "Talk to the Gatekeeper Ziggurat at the entrance to go into {zone}", dInside: "Inside {zone}", btnInnerMap: "Interior map", btnInnerPart: "Floor {n}", tipInnerMap: "Opens the map of the inside of {zone} in the browser", innerSrc: "map from l2j.ru",
-    secChat: "Game chat and alerts", chatNote: "Shows the next time the game starts. The panel keeps a copy of the message file before its first change.", optTabPanel: "Panel", optTabGame: "In game", optTabLinks: "Links", secProfile: "Profile", prof_orig: "Game default", prof_pvp: "PvP", prof_farm: "Farm", prof_spoil: "Spoil", prof_custom: "custom", profDesc_orig: "The colours, messages and sounds the game came with.", profDesc_pvp: "A colour per kind of message, short messages, and on screen with a sound: skill resisted, skill dodged, buff removed and shots running out.", profDesc_farm: "A colour per kind of message, short messages, and on screen with a sound only when shots run out.", profDesc_spoil: "A colour per kind of message, short messages, and on screen with a sound: spoil activated, skill resisted (a Spoil that failed) and shots running out.", profDesc_custom: "Custom: set item by item under Customise.", secPreview: "Preview", prevScreen: "Top of the screen", prevChat: "In the chat", prevNone: "no on-screen alerts", custom: "Customise", secGameAlerts: "Alerts", secGameColors: "Chat colours", chatPending: "Changes not applied to the game yet.", chatNow: "In the game\u2019s file now: {p}.", chatSaving: "Saving…", chatShort: "Short combat messages, in English", chatShortTip: "Replaces the most common combat, loot and buff messages with short ones in the panel\u2019s language (e.g. Bluff RESISTED by Lilim Assassin). Unticked, the game\u2019s text comes back.", ccSound: "Sound:", ccSoundOrig: "the game\u2019s", ccSoundNone: "none (the game\u2019s)", ccPlay: "Listen", btnChatApply: "Apply to the game", chatApplied: "Saved in the game's file. Start the game again to see it.", chatRestored: "The game\u2019s own file is back. Start the game again to see it.", chatErr: "Could not save: {why}", chatErr_locked: "the file is in use; close the game and try again", chatErr_verify: "the file check failed, nothing was replaced", chatErr_nobackup: "there is no saved copy", chatErr_other: "error reading or writing the file", chatMissing: "The game\u2019s message file was not found in the system folder.", cc_crit: "Critical", cc_dmgOut: "Your damage", cc_dmgIn: "Damage taken", cc_miss: "You evaded, blocked", cc_skill: "Skill used", cc_resist: "Skill resisted, failed", cc_dodge: "Skill dodged, missed", cc_shots: "Soulshots/spiritshots ran out", cc_cancel: "Buff removed (cancel)", ccScreen: "On screen", ccScreenTip: "Also in big letters at the top of the game screen, with the game\u2019s animated effect, for 2 s. For a skill: the game says nothing when it lands, so no warning means it landed.", cc_adena: "Adena", cc_item: "Items", cc_spoil: "Spoil and sweep", cc_exp: "EXP and SP", cc_buffOn: "Buff on", cc_buffOff: "Buff ended", cc_heal: "HP and MP restored",
+    secChat: "Game chat and alerts", chatNote: "Shows the next time the game starts. The panel keeps a copy of the message file before its first change.", optTabPanel: "Panel", optTabGame: "Chat & alerts", optTabMarks: "Mobs & items", optTabLinks: "Links", secMarks: "Marked items", marksIntro: "Monsters that give the item by spoil show it over their head, and the item\u2019s name gets a mark and the top items\u2019 colour (inventory, chat, shops).", marksSearchPh: "Search an item (e.g. Steel Mold)", marksEmpty: "No marked items. Search one above.", marksOnMobs: "On mobs ({n})", marksOnMobsTip: "A spoil title over the monsters that give this item (official lists and what you opened in Alt+B).", marksNoSpoil: "no known spoil", marksMobsN: "{n} mobs by spoil", marksHave: "already marked", marksNoResult: "No item with that name.", marksTagChk: "Mark the name", marksRemove: "Remove", secMarksLook: "How it looks", marksColor: "Title colour", marksTag: "Mark", marksTitle: "Spoil: {item} {pct}%", marksPrevNoMob: "(no item on mobs)", marksPrevMob: "Monster", marksPrevItem: "item name, top items\u2019 colour", marksPrevItemName: "Item", marksNow: "In the game now: {n} marked item(s).", marksNoneGame: "No marked items in the game.", marksCleared: "Marks removed: monsters and items are back to the game’s own. Start the game again to see it.", marksApplied: "Saved: {mobs} monsters with a title and {items} items with a mark. Start the game again to see it.", marksMissing: "The game\u2019s monster and item files were not found in the system folder.", marksNote: "Shows the next time the game starts. If the server already shows something over the mobs (e.g. Lv 52), that shows instead. The panel keeps copies of the original files; emptying the list and applying puts everything back.", chatStale: "The game\u2019s file has texts from before this version; apply again to update them.", secProfile: "Profile", prof_orig: "Game default", prof_pvp: "PvP", prof_farm: "Farm", prof_spoil: "Spoil", prof_custom: "custom", profDesc_orig: "The colours, messages and sounds the game came with.", profDesc_pvp: "A colour per kind of message, short messages, and on screen with a sound: skill resisted, skill dodged, buff removed and shots running out.", profDesc_farm: "A colour per kind of message, short messages, and on screen with a sound only when shots run out.", profDesc_spoil: "A colour per kind of message, short messages, and on screen with a sound: spoil activated, skill resisted (a Spoil that failed) and shots running out.", profDesc_custom: "Custom: set item by item under Customise.", secPreview: "Preview", prevScreen: "Top of the screen", prevChat: "In the chat", prevNone: "no on-screen alerts", custom: "Customise", secGameAlerts: "Alerts", secGameColors: "Chat colours", chatPending: "Changes not applied to the game yet.", chatNow: "In the game\u2019s file now: {p}.", chatSaving: "Saving…", chatShort: "Short combat messages, in English", chatShortTip: "Replaces the most common combat, loot and buff messages with short ones in the panel\u2019s language (e.g. Bluff RESISTED by Lilim Assassin). Unticked, the game\u2019s text comes back.", ccSound: "Sound:", ccSoundOrig: "the game\u2019s", ccSoundNone: "none (the game\u2019s)", ccPlay: "Listen", btnChatApply: "Apply to the game", chatApplied: "Saved in the game's file. Start the game again to see it.", chatRestored: "The game\u2019s own file is back. Start the game again to see it.", chatErr: "Could not save: {why}", chatErr_locked: "the file is in use; close the game and try again", chatErr_verify: "the file check failed, nothing was replaced", chatErr_nobackup: "there is no saved copy", chatErr_other: "error reading or writing the file", chatMissing: "The game\u2019s message file was not found in the system folder.", cc_crit: "Critical", cc_dmgOut: "Your damage", cc_dmgIn: "Damage taken", cc_miss: "You evaded, blocked", cc_skill: "Skill used", cc_resist: "Skill resisted, half damage", cc_dodge: "Skill dodged, missed", cc_shots: "Soulshots/spiritshots ran out", cc_cancel: "Buff removed (cancel)", ccScreen: "On screen", ccScreenTip: "Also in big letters at the top of the game screen, with the game\u2019s animated effect, for 2 s. For a skill: the game says nothing when it lands, so no warning means it landed.", cc_adena: "Adena", cc_item: "Items", cc_spoil: "Spoil and sweep", cc_exp: "EXP and SP", cc_buffOn: "Buff on", cc_buffOff: "Buff ended", cc_heal: "HP and MP restored",
     optScale: "Text size", tipResize: "Drag to resize",
     secWindow: "Window", secLogin: "Auto login", secLinks: "L2Axis links", secFolders: "Folders",
     optTop: "Always on top of other programs", optAbout: "About the panel & credits",
@@ -1847,7 +1906,7 @@ const I18N = {
     connLost: "Das Panel antwortet nicht. Neuer Versuch…", aTabs: "Bereiche", aLvMin: "Mindestlevel", aLvMax: "Höchstlevel", aSort: "Sortieren", aGroup: "Gruppieren", aRace: "Rasse", aClass: "Klasse", aKind: "Itemtyp", aSlot: "Accessoire-Slot", aSrc: "Herkunft", aRate: "Erfolgschance", aAccName: "Kontoname", aFav: "Nur Favoriten", aZoomIn: "Vergrößern", aZoomOut: "Verkleinern", aZoomFit: "Ganze Karte",
     accListTitle: "Konten", accCount: "{open} von {n} offen", btnSpread: "Verteilen", btnSavePos: "Positionen speichern", btnRestorePos: "Wiederherstellen", btnMinAll: "Alle minimieren", btnCloseAll: "Alle schließen", tipFocus: "Spielfenster nach vorne holen", tipMinGame: "Spiel minimieren", tipCloseGame: "Spiel schließen", stLobby: "offen, im Login oder in der Charakterauswahl", noLogin: "kein gespeicherter Login", loginIs: "Login {login}",
     rInside: "Der Teleport bringt dich direkt in {zone}; die Monster sind in den Räumen (siehe Innenkarte)", rEnter: "Sprich mit dem Gatekeeper Ziggurat am Eingang, um nach {zone} zu gelangen", dInside: "In {zone}", btnInnerMap: "Innenkarte", btnInnerPart: "Etage {n}", tipInnerMap: "Öffnet die Karte des Inneren von {zone} im Browser", innerSrc: "Karte von l2j.ru",
-    secChat: "Chat und Hinweise im Spiel", chatNote: "Gilt beim nächsten Spielstart. Das Panel behält vor der ersten Änderung eine Kopie der Nachrichtendatei.", optTabPanel: "Panel", optTabGame: "Im Spiel", optTabLinks: "Links", secProfile: "Profil", prof_orig: "Spielstandard", prof_pvp: "PvP", prof_farm: "Farm", prof_spoil: "Spoil", prof_custom: "eigene", profDesc_orig: "Die Farben, Nachrichten und Töne, mit denen das Spiel kam.", profDesc_pvp: "Eine Farbe je Nachrichtenart, kurze Nachrichten, und auf dem Schirm mit Ton: Fertigkeit abgewehrt, ausgewichen, Buff entfernt und Shots gehen aus.", profDesc_farm: "Eine Farbe je Nachrichtenart, kurze Nachrichten, und auf dem Schirm mit Ton nur, wenn die Shots ausgehen.", profDesc_spoil: "Eine Farbe je Nachrichtenart, kurze Nachrichten, und auf dem Schirm mit Ton: Spoil aktiv, Fertigkeit abgewehrt (ein gescheiterter Spoil) und Shots gehen aus.", profDesc_custom: "Eigene: einzeln unter Anpassen eingestellt.", secPreview: "Vorschau", prevScreen: "Oben im Bild", prevChat: "Im Chat", prevNone: "keine Hinweise auf dem Schirm", custom: "Anpassen", secGameAlerts: "Hinweise", secGameColors: "Chatfarben", chatPending: "Änderungen noch nicht im Spiel angewendet.", chatNow: "Jetzt in der Spieldatei: {p}.", chatSaving: "Speichern…", chatShort: "Kurze Kampfnachrichten, auf Deutsch", chatShortTip: "Ersetzt die häufigsten Kampf-, Beute- und Buff-Nachrichten durch kurze in der Sprache des Panels (z. B. Bluff von Lilim Assassin ABGEWEHRT). Abgewählt kommt der Text des Spiels zurück.", ccSound: "Ton:", ccSoundOrig: "der des Spiels", ccSoundNone: "keiner (der des Spiels)", ccPlay: "Anhören", btnChatApply: "Im Spiel anwenden", chatApplied: "In der Spieldatei gespeichert. Starte das Spiel neu, um es zu sehen.", chatRestored: "Die Originaldatei des Spiels ist zurück. Starte das Spiel neu, um es zu sehen.", chatErr: "Speichern nicht möglich: {why}", chatErr_locked: "die Datei ist in Benutzung; schließe das Spiel und versuche es erneut", chatErr_verify: "die Dateiprüfung ist fehlgeschlagen, nichts wurde ersetzt", chatErr_nobackup: "es gibt keine gespeicherte Kopie", chatErr_other: "Fehler beim Lesen oder Schreiben der Datei", chatMissing: "Die Nachrichtendatei des Spiels wurde im Ordner system nicht gefunden.", cc_crit: "Kritisch", cc_dmgOut: "Dein Schaden", cc_dmgIn: "Erlittener Schaden", cc_miss: "Du bist ausgewichen, geblockt", cc_skill: "Fertigkeit benutzt", cc_resist: "Fertigkeit abgewehrt, fehlgeschl.", cc_dodge: "Fertigkeit ausgewichen, verfehlt", cc_shots: "Soulshots/Spiritshots leer", cc_cancel: "Buff entfernt (Cancel)", ccScreen: "Auf dem Schirm", ccScreenTip: "Auch in großer Schrift oben im Spielbild, mit dem animierten Effekt des Spiels, 2 s lang. Bei einer Fertigkeit: Trifft sie, meldet das Spiel nichts, also heißt keine Warnung, sie hat getroffen.", cc_adena: "Adena", cc_item: "Gegenstände", cc_spoil: "Spoil und Sweep", cc_exp: "EXP und SP", cc_buffOn: "Buff aktiv", cc_buffOff: "Buff vorbei", cc_heal: "HP und MP wiederhergestellt",
+    secChat: "Chat und Hinweise im Spiel", chatNote: "Gilt beim nächsten Spielstart. Das Panel behält vor der ersten Änderung eine Kopie der Nachrichtendatei.", optTabPanel: "Panel", optTabGame: "Chat & Hinweise", optTabMarks: "Mobs & Items", optTabLinks: "Links", secMarks: "Markierte Gegenstände", marksIntro: "Monster, die den Gegenstand per Spoil geben, zeigen ihn über dem Kopf, und der Name des Gegenstands bekommt eine Markierung und die Farbe der Top-Gegenstände (Inventar, Chat, Läden).", marksSearchPh: "Gegenstand suchen (z. B. Steel Mold)", marksEmpty: "Keine markierten Gegenstände. Oben einen suchen.", marksOnMobs: "Auf Mobs ({n})", marksOnMobsTip: "Ein Spoil-Titel über den Monstern, die diesen Gegenstand geben (offizielle Listen und was du in Alt+B geöffnet hast).", marksNoSpoil: "kein bekannter Spoil", marksMobsN: "{n} Mobs per Spoil", marksHave: "schon markiert", marksNoResult: "Kein Gegenstand mit diesem Namen.", marksTagChk: "Name markieren", marksRemove: "Entfernen", secMarksLook: "So sieht es aus", marksColor: "Titelfarbe", marksTag: "Markierung", marksTitle: "Spoil: {item} {pct}%", marksPrevNoMob: "(kein Gegenstand auf Mobs)", marksPrevMob: "Monster", marksPrevItem: "Gegenstandsname, Farbe der Top-Gegenstände", marksPrevItemName: "Gegenstand", marksNow: "Jetzt im Spiel: {n} markiert.", marksNoneGame: "Keine markierten Gegenstände im Spiel.", marksCleared: "Markierungen entfernt: Monster und Gegenstände wie im Original. Starte das Spiel neu, um es zu sehen.", marksApplied: "Gespeichert: {mobs} Monster mit Titel und {items} Gegenstände markiert. Starte das Spiel neu, um es zu sehen.", marksMissing: "Die Monster- und Gegenstandsdateien des Spiels wurden im Ordner system nicht gefunden.", marksNote: "Gilt beim nächsten Spielstart. Zeigt der Server schon etwas über den Mobs (z. B. Lv 52), erscheint das stattdessen. Das Panel behält Kopien der Originaldateien; Liste leeren und anwenden stellt alles wieder her.", chatStale: "Die Spieldatei hat Texte von vor dieser Version; erneut anwenden, um sie zu aktualisieren.", secProfile: "Profil", prof_orig: "Spielstandard", prof_pvp: "PvP", prof_farm: "Farm", prof_spoil: "Spoil", prof_custom: "eigene", profDesc_orig: "Die Farben, Nachrichten und Töne, mit denen das Spiel kam.", profDesc_pvp: "Eine Farbe je Nachrichtenart, kurze Nachrichten, und auf dem Schirm mit Ton: Fertigkeit abgewehrt, ausgewichen, Buff entfernt und Shots gehen aus.", profDesc_farm: "Eine Farbe je Nachrichtenart, kurze Nachrichten, und auf dem Schirm mit Ton nur, wenn die Shots ausgehen.", profDesc_spoil: "Eine Farbe je Nachrichtenart, kurze Nachrichten, und auf dem Schirm mit Ton: Spoil aktiv, Fertigkeit abgewehrt (ein gescheiterter Spoil) und Shots gehen aus.", profDesc_custom: "Eigene: einzeln unter Anpassen eingestellt.", secPreview: "Vorschau", prevScreen: "Oben im Bild", prevChat: "Im Chat", prevNone: "keine Hinweise auf dem Schirm", custom: "Anpassen", secGameAlerts: "Hinweise", secGameColors: "Chatfarben", chatPending: "Änderungen noch nicht im Spiel angewendet.", chatNow: "Jetzt in der Spieldatei: {p}.", chatSaving: "Speichern…", chatShort: "Kurze Kampfnachrichten, auf Deutsch", chatShortTip: "Ersetzt die häufigsten Kampf-, Beute- und Buff-Nachrichten durch kurze in der Sprache des Panels (z. B. Bluff von Lilim Assassin ABGEWEHRT). Abgewählt kommt der Text des Spiels zurück.", ccSound: "Ton:", ccSoundOrig: "der des Spiels", ccSoundNone: "keiner (der des Spiels)", ccPlay: "Anhören", btnChatApply: "Im Spiel anwenden", chatApplied: "In der Spieldatei gespeichert. Starte das Spiel neu, um es zu sehen.", chatRestored: "Die Originaldatei des Spiels ist zurück. Starte das Spiel neu, um es zu sehen.", chatErr: "Speichern nicht möglich: {why}", chatErr_locked: "die Datei ist in Benutzung; schließe das Spiel und versuche es erneut", chatErr_verify: "die Dateiprüfung ist fehlgeschlagen, nichts wurde ersetzt", chatErr_nobackup: "es gibt keine gespeicherte Kopie", chatErr_other: "Fehler beim Lesen oder Schreiben der Datei", chatMissing: "Die Nachrichtendatei des Spiels wurde im Ordner system nicht gefunden.", cc_crit: "Kritisch", cc_dmgOut: "Dein Schaden", cc_dmgIn: "Erlittener Schaden", cc_miss: "Du bist ausgewichen, geblockt", cc_skill: "Fertigkeit benutzt", cc_resist: "Fertigkeit abgewehrt, halber Schaden", cc_dodge: "Fertigkeit ausgewichen, verfehlt", cc_shots: "Soulshots/Spiritshots leer", cc_cancel: "Buff entfernt (Cancel)", ccScreen: "Auf dem Schirm", ccScreenTip: "Auch in großer Schrift oben im Spielbild, mit dem animierten Effekt des Spiels, 2 s lang. Bei einer Fertigkeit: Trifft sie, meldet das Spiel nichts, also heißt keine Warnung, sie hat getroffen.", cc_adena: "Adena", cc_item: "Gegenstände", cc_spoil: "Spoil und Sweep", cc_exp: "EXP und SP", cc_buffOn: "Buff aktiv", cc_buffOff: "Buff vorbei", cc_heal: "HP und MP wiederhergestellt",
     optScale: "Textgröße", tipResize: "Ziehen, um die Größe zu ändern",
     secWindow: "Fenster", secLogin: "Auto-Login", secLinks: "L2Axis-Links", secFolders: "Ordner",
     optTop: "Immer über anderen Programmen", optAbout: "Über das Panel & Credits",
@@ -2138,6 +2197,7 @@ function selectOptPane(name, focus) {
   });
   document.querySelectorAll("#p-lnk .opane").forEach(p => p.hidden = p.id !== "op-" + name);
   if (name === "game" && !CHATC) loadChatColors();
+  if (name === "marks" && !MK) loadMarks();
 }
 document.querySelectorAll("#optTabs [data-opane]").forEach(b => b.onclick = () => selectOptPane(b.dataset.opane));
 $("#optTabs").addEventListener("keydown", e => {
@@ -2193,7 +2253,7 @@ async function loadChatColors() {
   GD = CHATC.ok ? fileState() : null;
   renderGame(true);
 }
-function renderChatColors() { renderGame(true); }  // after a language change
+function renderChatColors() { renderGame(true); renderMarks(); }  // after a language change
 async function refreshChatTexts() {  // new sample lines, the draft kept
   if (!CHATC || !CHATC.ok) return;
   const r = await api.chat_colors();
@@ -2224,11 +2284,12 @@ function renderGame(rebuild) {
     `<div style="color:${GD.colors[k]}">${esc(GD.short ? by[k].sampleShort : by[k].sampleOrig)}</div>`).join("");
   $("#gPrev").setAttribute("aria-label", t("secPreview"));
   // apply: only when the draft differs from the file
-  const pending = !sameState(GD, fileState());
+  const same = sameState(GD, fileState());
+  const pending = !same || (CHATC.stale && profileOf(GD) !== "orig");
   setDisabled($("#bChatApply"), !pending);
   if (!$("#chatMsg").dataset.keep) {
     const now = profileOf(fileState());
-    setText($("#chatMsg"), pending ? t("chatPending") : t("chatNow", { p: t("prof_" + now) }));
+    setText($("#chatMsg"), !pending ? t("chatNow", { p: t("prof_" + now) }) : same ? t("chatStale") : t("chatPending"));
   }
 }
 function buildGameControls() {
@@ -2298,6 +2359,103 @@ function initChatColors() {
     await loadChatColors();
     chatMsg(r.ok ? t(toOrig ? "chatRestored" : "chatApplied") : t("chatErr", { why: t("chatErr_" + r.error) }));
     if (!r.ok) setDisabled($("#bChatApply"), false);
+  };
+}
+
+// ---- Options > Mobs and items: items marked in the game (monster titles, item names)
+let MK = null, MD = null, mkTimer = 0;  // MK: what the panel read; MD: the list being set up
+const SVG_X = '<svg viewBox="0 0 8 8" aria-hidden="true"><path d="M1 1 L7 7 M7 1 L1 7" stroke="currentColor" stroke-width="1.6"/></svg>';
+async function loadMarks() {
+  MK = await api.game_marks();
+  if (MK.ok) MD = { marks: MK.marks.map(m => ({ ...m })), tag: MK.tag, color: MK.color.toUpperCase() };
+  renderMarks();
+}
+const markKey = st => JSON.stringify([st.marks.map(m => [m.id, !!m.onMobs, !!m.tag]).sort(), st.tag, st.color.toUpperCase()]);
+function renderMarks() {
+  if (!MK) return;
+  const ok = MK.ok;
+  ["#mQuery", "#mColor", "#mTag"].forEach(sel => setDisabled($(sel), !ok));
+  if (!ok) { setDisabled($("#bMarksApply"), true); $("#mList").innerHTML = `<div class="mempty">${esc(t("marksMissing"))}</div>`; return; }
+  $("#mList").innerHTML = MD.marks.length ? MD.marks.map((m, i) => `<div class="mrow">
+      <span class="nm">${esc(m.name)}${m.add ? ` <small>${esc(m.add)}</small>` : ""}</span>
+      ${m.mobs ? `<label class="chk" title="${esc(t("marksOnMobsTip"))}"><input type="checkbox" data-mobs="${i}"${m.onMobs ? " checked" : ""}><i></i><span>${esc(t("marksOnMobs", { n: m.mobs }))}</span></label>`
+        : `<span class="nospoil">${esc(t("marksNoSpoil"))}</span>`}
+      <label class="chk"><input type="checkbox" data-tag="${i}"${m.tag ? " checked" : ""}><i></i><span>${esc(t("marksTagChk"))}</span></label>
+      <button class="b ico" data-rm="${i}" title="${esc(t("marksRemove"))}" aria-label="${esc(t("marksRemove") + ": " + m.name)}">${SVG_X}</button></div>`).join("")
+    : `<div class="mempty">${esc(t("marksEmpty"))}</div>`;
+  document.querySelectorAll("#mList [data-mobs]").forEach(c => c.onchange = () => { MD.marks[+c.dataset.mobs].onMobs = c.checked; marksChanged(); });
+  document.querySelectorAll("#mList [data-tag]").forEach(c => c.onchange = () => { MD.marks[+c.dataset.tag].tag = c.checked; marksChanged(); });
+  document.querySelectorAll("#mList [data-rm]").forEach(b => b.onclick = () => { MD.marks.splice(+b.dataset.rm, 1); marksChanged(true); });
+  $("#mColor").value = MD.color.toLowerCase();
+  if (document.activeElement !== $("#mTag")) $("#mTag").value = MD.tag;
+  renderMarksLook();
+}
+function renderMarksLook() {
+  const onMobs = MD.marks.find(m => m.onMobs && m.mobs), tagged = MD.marks.find(m => m.tag);
+  const title = $("#mPrevTitle");
+  setText(title, onMobs ? (onMobs.sample ? t("marksTitle", { item: onMobs.name, pct: onMobs.sample[1] }) : "Spoil: " + onMobs.name) : t("marksPrevNoMob"));
+  title.style.color = onMobs ? MD.color : "var(--dim)";
+  setText($("#mPrevMob"), onMobs && onMobs.sample ? onMobs.sample[0] : t("marksPrevMob"));
+  const item = tagged ? tagged.name : t("marksPrevItemName");
+  setText($("#mPrevItem"), (MD.tag ? MD.tag + " " : "") + item);
+  // apply only when the list differs from what is in the game
+  const applied = MK.applied || { marks: [], tag: MD.tag, color: MD.color };
+  const pending = markKey(MD) !== markKey(applied) && !(MD.marks.length === 0 && !MK.applied);
+  setDisabled($("#bMarksApply"), !pending);
+  if (!$("#marksMsg").dataset.keep) {
+    const n = (MK.applied ? MK.applied.marks : []).length;
+    setText($("#marksMsg"), pending ? t("chatPending") : n ? t("marksNow", { n }) : t("marksNoneGame"));
+  }
+}
+function marksChanged(rebuild) {
+  delete $("#marksMsg").dataset.keep;
+  api.save_marks_draft(MD.marks.map(m => ({ id: m.id, onMobs: m.onMobs, tag: m.tag })), MD.tag, MD.color);
+  if (rebuild) renderMarks(); else renderMarksLook();
+}
+function marksMsg(text) { const el = $("#marksMsg"); setText(el, text); el.dataset.keep = "1"; }
+async function searchMarks() {
+  const q = $("#mQuery").value.trim(), box = $("#mResults");
+  if (q.length < 2) { box.hidden = true; box.innerHTML = ""; return; }
+  const res = await api.mark_search(q);
+  if ($("#mQuery").value.trim() !== q) return;  // typed on meanwhile
+  const have = new Set(MD.marks.map(m => m.id));
+  box.innerHTML = res.length ? res.map(r => `<button type="button" data-add="${r.id}"${have.has(r.id) ? " disabled" : ""}>
+      <span>${esc(r.name)}${r.add ? ` <small>${esc(r.add)}</small>` : ""}</span>
+      <span class="n">${esc(have.has(r.id) ? t("marksHave") : r.mobs ? t("marksMobsN", { n: r.mobs }) : t("marksNoSpoil"))}</span></button>`).join("")
+    : `<div class="none">${esc(t("marksNoResult"))}</div>`;
+  box.hidden = false;
+  box.querySelectorAll("[data-add]").forEach(b => b.onclick = () => {
+    const r = res.find(x => x.id === +b.dataset.add);
+    MD.marks.push({ id: r.id, name: r.name, add: r.add, mobs: r.mobs, sample: r.sample, onMobs: r.mobs > 0, tag: true });
+    $("#mQuery").value = ""; box.hidden = true; box.innerHTML = "";
+    marksChanged(true);
+    $("#mQuery").focus();
+  });
+}
+function initMarks() {
+  $("#mQuery").addEventListener("input", () => { clearTimeout(mkTimer); mkTimer = setTimeout(searchMarks, 180); });
+  $("#mQuery").addEventListener("keydown", e => {
+    if (e.key === "Enter") { const b = $("#mResults button:not([disabled])"); if (b && !$("#mResults").hidden) { e.preventDefault(); b.click(); } }
+    if (e.key === "Escape") { $("#mQuery").value = ""; $("#mResults").hidden = true; }
+    if (e.key === "ArrowDown") { const b = $("#mResults button:not([disabled])"); if (b) { e.preventDefault(); b.focus(); } }
+  });
+  $("#mResults").addEventListener("keydown", e => {
+    const bs = [...document.querySelectorAll("#mResults button:not([disabled])")], i = bs.indexOf(document.activeElement);
+    if (e.key === "ArrowDown" && i < bs.length - 1) { e.preventDefault(); bs[i + 1].focus(); }
+    if (e.key === "ArrowUp") { e.preventDefault(); (i > 0 ? bs[i - 1] : $("#mQuery")).focus(); }
+    if (e.key === "Escape") { $("#mResults").hidden = true; $("#mQuery").focus(); }
+  });
+  $("#mColor").oninput = () => { MD.color = $("#mColor").value.toUpperCase(); marksChanged(); };
+  $("#mTag").oninput = () => { MD.tag = $("#mTag").value.replace(/[\x00-\x1f]/g, "").trim(); marksChanged(); };
+  $("#bMarksApply").onclick = async () => {
+    if (!MD) return;
+    setDisabled($("#bMarksApply"), true);
+    marksMsg(t("chatSaving"));
+    const r = await api.apply_marks(MD.marks.map(m => ({ id: m.id, onMobs: m.onMobs, tag: m.tag })), MD.tag, MD.color);
+    await loadMarks();
+    marksMsg(!r.ok ? t("chatErr", { why: t("chatErr_" + r.error) })
+      : r.mobs || r.items ? t("marksApplied", { mobs: r.mobs, items: r.items }) : t("marksCleared"));
+    if (!r.ok) setDisabled($("#bMarksApply"), false);
   };
 }
 
@@ -2586,6 +2744,7 @@ function build() {
   initBossMap();
   initSpoil();
   initChatColors();
+  initMarks();
   Object.assign(bossView, S.bossView || {});
   buildSlots();
 
