@@ -1141,8 +1141,10 @@ CHAT_KINDS = [
     ("dmgOut", "#7EE36A", [35, 2261, 1015, 1026], "Player has done 2354 points of damage to Lilim Assassin."),
     ("dmgIn", "#FF5A5A", [36, 37, 2262, 2263, 2281, 1016, 1027, 296, 297, 333, 686, 812, 2787],
      "Player has received 412 damage from Lilim Assassin."),
-    ("miss", "#8E9AAB", [43, 2264, 2265, 139, 156, 157, 159, 2267, 2280, 111], "Lilim Assassin has evaded Player's attack."),
+    ("miss", "#8E9AAB", [43, 2264, 2265, 156, 157, 159, 2267, 2280, 111], "Lilim Assassin has evaded Player's attack."),
     ("skill", "#E6E6E6", [46], "You use Stun Attack."),
+    # the only sign that a debuff failed: the game sends nothing when one lands
+    ("resist", "#FF3CE6", [139, 566, 567], "Lilim Assassin has resisted your Critical Wound."),
     ("adena", "#FFD84A", [28, 52, 1023, 1375, 1379], "You have obtained 1234 adena."),
     ("item", "#4FE0C0", [29, 30, 299, 300, 369, 371, 376, 3073], "You have obtained Mold Glue."),
     ("spoil", "#C792FF", [608, 609, 612], "Player has obtained 2 Animal Bone by using sweeper."),
