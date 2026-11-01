@@ -1135,30 +1135,53 @@ def l2_encrypt413(data):
 
 
 # Chat colours of the game: kinds of system message, the messages of each kind (ids in
-# systemmsg-e.dat) and a suggested colour that tells them apart at a glance.
+# systemmsg-e.dat), a suggested colour that tells them apart at a glance, a sample line, and the
+# messages that can also show in big letters at the top of the screen (a skill that failed).
 CHAT_KINDS = [
-    ("crit", "#FF8C2E", [44, 1280, 2266, 1017, 1028, 361], "Player landed a critical hit!"),
-    ("dmgOut", "#7EE36A", [35, 2261, 1015, 1026], "Player has done 2354 points of damage to Lilim Assassin."),
+    ("crit", "#FF8C2E", [44, 1280, 2266, 1017, 1028, 361], "Player landed a critical hit!", []),
+    ("dmgOut", "#7EE36A", [35, 2261, 1015, 1026], "Player has done 2354 points of damage to Lilim Assassin.", []),
     ("dmgIn", "#FF5A5A", [36, 37, 2262, 2263, 2281, 1016, 1027, 296, 297, 333, 686, 812, 2787],
-     "Player has received 412 damage from Lilim Assassin."),
-    ("miss", "#8E9AAB", [43, 2264, 2265, 156, 157, 159, 2267, 2280, 111], "Lilim Assassin has evaded Player's attack."),
-    ("skill", "#E6E6E6", [46], "You use Stun Attack."),
-    # the only sign that a debuff failed: the game sends nothing when one lands
-    ("resist", "#FF3CE6", [139, 566, 567], "Lilim Assassin has resisted your Critical Wound."),
-    ("adena", "#FFD84A", [28, 52, 1023, 1375, 1379], "You have obtained 1234 adena."),
-    ("item", "#4FE0C0", [29, 30, 299, 300, 369, 371, 376, 3073], "You have obtained Mold Glue."),
-    ("spoil", "#C792FF", [608, 609, 612], "Player has obtained 2 Animal Bone by using sweeper."),
-    ("exp", "#8FB4FF", [45, 95, 331, 1014], "You have earned 54321 experience and 3210 SP."),
-    ("buffOn", "#9EE0FF", [110], "Wind Walk's effect can be felt."),
-    ("buffOff", "#FF9EC7", [92, 749], "Haste has worn off."),
-    ("heal", "#7FD3FF", [1066, 1067, 1068, 1069], "1520 HP has been restored."),
+     "Player has received 412 damage from Lilim Assassin.", []),
+    ("skill", "#E6E6E6", [46], "You use Bluff.", []),
+    # The game sends nothing when a skill lands: these two kinds are the only sign that it did not.
+    # Resisted or failed: debuffs (Bluff, Stun, Critical Wound...), magic and blows that failed.
+    ("resist", "#FF3CE6", [139, 158, 2268, 566, 567], "Lilim Assassin has resisted your Bluff.",
+     [139, 158, 2268, 566, 567]),
+    # Evaded: a skill the target dodged (on screen too), an attack that went astray or was blocked
+    # (chat only: normal hits miss too often for the screen).
+    ("dodge", "#FFF000", [1999, 2265, 43, 1996], "Lilim Assassin dodges the attack.", [1999]),
+    # the other way round: you evaded, blocked or resisted, or a resist that only cut the damage
+    ("miss", "#8E9AAB", [2264, 42, 2000, 111, 1998, 157, 159, 2141, 2267, 2269, 2271, 2280, 156, 2151],
+     "Player has evaded Lilim Assassin's attack.", []),
+    ("adena", "#FFD84A", [28, 52, 1023, 1375, 1379], "You have obtained 1234 adena.", []),
+    ("item", "#4FE0C0", [29, 30, 299, 300, 369, 371, 376, 3073], "You have obtained Mold Glue.", []),
+    ("spoil", "#C792FF", [608, 609, 612], "Player has obtained 2 Animal Bone by using sweeper.", []),
+    ("exp", "#8FB4FF", [45, 95, 331, 1014], "You have earned 54321 experience and 3210 SP.", []),
+    ("buffOn", "#9EE0FF", [110], "Wind Walk's effect can be felt.", []),
+    ("buffOff", "#FF9EC7", [92, 749], "Haste has worn off.", []),
+    ("heal", "#7FD3FF", [1066, 1067, 1068, 1069], "1520 HP has been restored.", []),
 ]
+# The big text at the top of the screen, in the panel's language ($s2 is the skill's name).
+SCREEN_TEXT = {
+    139: {"pt": "RESISTIU: $s2", "en": "RESISTED: $s2", "de": "ABGEWEHRT: $s2"},
+    158: {"pt": "FALHOU!", "en": "FAILED!", "de": "FEHLGESCHLAGEN!"},
+    2268: {"pt": "FALHOU!", "en": "FAILED!", "de": "FEHLGESCHLAGEN!"},
+    566: {"pt": "RESISTIU!", "en": "RESISTED!", "de": "ABGEWEHRT!"},
+    567: {"pt": "RESISTIU!", "en": "RESISTED!", "de": "ABGEWEHRT!"},
+    1999: {"pt": "ESQUIVOU!", "en": "DODGED!", "de": "AUSGEWICHEN!"},
+}
+# window, font, seconds, background, animation: the top of the screen, big letters, 2 s, with the
+# dark band and the game's own animated effect (as its "No-Fly Zone" message).
+SCREEN_LOOK = struct.pack("<5I", 2, 0, 2, 1, 1)
+SCREEN_OFF = struct.pack("<5I", 0, 0, 0, 0, 0)
 SYSMSG = GAME_DIR / "systemmsg-e.dat"
 SYSMSG_BACKUP = GAME_DIR / "systemmsg-e.dat.l2axis"   # the file as it was before the panel's first change
 
 
-def sysmsg_colors(data):
-    """message id -> offset of its colour (4 bytes, B G R A) in the decrypted systemmsg-e.dat."""
+def sysmsg_layout(data):
+    """message id -> where its fields are in the decrypted systemmsg-e.dat: the colour (4 bytes,
+    B G R A), the screen block (window, font, time, background, animation: 5 x u32) and the
+    screen text (start, end)."""
     r = _DatReader(data)
     out = {}
     for _ in range(r.u32()):
@@ -1166,14 +1189,36 @@ def sysmsg_colors(data):
         r.u32()
         r.ascf()          # the message
         r.u32()           # group
-        out.setdefault(mid, r.p)
+        col = r.p
         r.p += 4          # colour
         r.ascf(), r.ascf()  # sound, voice
-        r.p += 20         # window, font, time, background, animation
-        r.ascf(), r.ascf()  # screen message, type
+        look = r.p
+        r.p += 20
+        a = r.p
+        r.ascf()          # screen text
+        out.setdefault(mid, {"color": col, "look": look, "text": (a, r.p)})
+        r.ascf()          # type
     if data[r.p:r.p + 12] != b"\x0cSafePackage":
         raise ValueError("unexpected systemmsg layout")
     return out
+
+
+def dat_string(s):
+    """A string as the .dat files keep it: its length with the closing NUL (compact index), then
+    the text in Latin-1, or in UTF-16 (negative length) when Latin-1 cannot hold it."""
+    if not s:
+        return b"\0"
+    try:
+        raw, neg = (s + "\0").encode("latin1"), 0
+    except UnicodeEncodeError:
+        raw, neg = (s + "\0").encode("utf-16-le"), 0x80
+    n = len(s) + 1
+    out = bytearray([neg | (n & 0x3F) | (0x40 if n > 0x3F else 0)])
+    n >>= 6
+    while n:
+        out.append((n & 0x7F) | (0x80 if n > 0x7F else 0))
+        n >>= 7
+    return bytes(out) + raw
 
 
 class _DatReader:
@@ -3993,43 +4038,72 @@ class Api:
 
     # -------------------------------------------------- game chat colours
     def chat_colors(self):
-        """Colour of each kind of message in the game's chat now, the suggestion, and whether the
-        file from before the panel's changes is kept."""
+        """Colour of each kind of message in the game's chat now, the suggestion, whether its
+        failed skills also show on screen (None for the kinds that cannot), and whether the file
+        from before the panel's changes is kept."""
         try:
             data = l2_decrypt413(SYSMSG)
-            offs = sysmsg_colors(data)
+            lay = sysmsg_layout(data)
         except (OSError, ValueError, zlib_error()):
             return {"ok": False}
         cats = []
-        for key, suggest, ids, sample in CHAT_KINDS:
-            o = next((offs[i] for i in ids if i in offs), None)
+        for key, suggest, ids, sample, alert in CHAT_KINDS:
+            o = next((lay[i]["color"] for i in ids if i in lay), None)
             if o is None:
                 continue
             b, g, r = data[o], data[o + 1], data[o + 2]
-            cats.append({"key": key, "color": f"#{r:02X}{g:02X}{b:02X}", "suggest": suggest, "sample": sample})
+            first = next((lay[i]["look"] for i in alert if i in lay), None)
+            screen = None if first is None else struct.unpack_from("<I", data, first)[0] != 0
+            cats.append({"key": key, "color": f"#{r:02X}{g:02X}{b:02X}", "suggest": suggest, "sample": sample,
+                         "screen": screen})
         return {"ok": True, "cats": cats, "backup": SYSMSG_BACKUP.exists()}
 
-    def apply_chat_colors(self, colors):
-        """Write the chosen colours into the game's message file. A copy of the file as it was
-        before the panel's first change is kept, and the new file is read back before it replaces
-        the old one. The game shows the new colours the next time it starts."""
+    def apply_chat_colors(self, colors, screen=None):
+        """Write the chosen colours into the game's message file, and for the failed-skill kinds
+        whether they also show in big letters at the top of the screen (`screen`: kind -> bool).
+        A copy of the file as it was before the panel's first change is kept, and the new file is
+        read back before it replaces the old one. The game shows the changes the next time it starts."""
         wanted = {k: v for k, v in (colors or {}).items() if isinstance(v, str) and re.fullmatch(r"#[0-9A-Fa-f]{6}", v)}
+        screen = {k: bool(v) for k, v in (screen or {}).items() if isinstance(v, bool)}
+        lang = self._data.get("lang", "pt")
         try:
             data = bytearray(l2_decrypt413(SYSMSG))
-            offs = sysmsg_colors(bytes(data))
-            changed = 0
-            for key, _suggest, ids, _sample in CHAT_KINDS:
-                if key not in wanted:
-                    continue
-                r, g, b = (int(wanted[key][k:k + 2], 16) for k in (1, 3, 5))
-                for i in ids:
-                    if i in offs:
-                        data[offs[i]:offs[i] + 4] = bytes((b, g, r, 0xFF))
-                        changed += 1
-            blob = l2_encrypt413(bytes(data))
+            lay = sysmsg_layout(bytes(data))
+            changed, texts, expect = 0, [], {}
+            for key, _suggest, ids, _sample, alert in CHAT_KINDS:
+                if key in wanted:
+                    r, g, b = (int(wanted[key][k:k + 2], 16) for k in (1, 3, 5))
+                    for i in ids:
+                        if i in lay:
+                            o = lay[i]["color"]
+                            data[o:o + 4] = bytes((b, g, r, 0xFF))
+                            changed += 1
+                if key in screen:
+                    for i in alert:
+                        if i not in lay:
+                            continue
+                        on = screen[key]
+                        text = SCREEN_TEXT[i].get(lang, SCREEN_TEXT[i]["en"]) if on else ""
+                        o = lay[i]["look"]
+                        data[o:o + 20] = SCREEN_LOOK if on else SCREEN_OFF
+                        texts.append((*lay[i]["text"], dat_string(text)))
+                        expect[i] = (on, text)
+            for start, end, raw in sorted(texts, reverse=True):  # from the end: earlier offsets stay right
+                data[start:end] = raw
+            data = bytes(data)
+            try:  # the new file still reads as a message file, with the screen texts asked for
+                lay = sysmsg_layout(data)
+                for i, (on, text) in expect.items():
+                    rd = _DatReader(data)
+                    rd.p = lay[i]["text"][0]
+                    if rd.ascf() != text or (struct.unpack_from("<I", data, lay[i]["look"])[0] != 0) != on:
+                        raise ValueError(i)
+            except (ValueError, IndexError, struct.error):
+                return {"ok": False, "error": "verify"}
+            blob = l2_encrypt413(data)
             tmp = SYSMSG.with_suffix(".dat.tmp")
             tmp.write_bytes(blob)
-            if l2_decrypt413(tmp) != bytes(data):  # never put a file the game could not read
+            if l2_decrypt413(tmp) != data:  # never put a file the game could not read
                 tmp.unlink()
                 return {"ok": False, "error": "verify"}
             if not SYSMSG_BACKUP.exists():
@@ -4042,6 +4116,7 @@ class Api:
             return {"ok": False, "error": "other"}
         with self._lock:
             self._data["chat_colors"] = wanted
+            self._data["chat_screen"] = screen
             self._save()
         return {"ok": True, "changed": changed}
 
@@ -4057,6 +4132,7 @@ class Api:
             return {"ok": False, "error": "other"}
         with self._lock:
             self._data.pop("chat_colors", None)
+            self._data.pop("chat_screen", None)
             self._save()
         return {"ok": True}
 
