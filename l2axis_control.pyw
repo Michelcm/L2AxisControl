@@ -1427,6 +1427,141 @@ def mark_title(names_chances):
     return full if len(full) <= 34 else f"Spoil: {names[0]} +{len(names) - 1}"
 
 
+# Drop and spoil on monsters: two passive skills of the panel's own (in the 59000s, unused by the
+# game) added to each monster's passives in npcgrp.dat, so the target window shows a Spoil and a
+# Drop icon whose tooltip lists what the server's Alt+B Database says the monster gives. Only rows
+# the player has opened there, so every line is the server's own; the text says how many of the
+# monster's items are still unknown. One skill level per different list (monsters that share a
+# list share a level).
+NPCGRP = GAME_DIR / "npcgrp.dat"
+SKILLGRP = GAME_DIR / "skillgrp.dat"
+SKILLNAME = GAME_DIR / "skillname-e.dat"
+INFO_SKILLS = {"spoil": (59011, "icon.skill0254"), "drop": (59012, "icon.etc_pouch_brown_i00")}
+INFO_TEMPLATE = (4416, 1)   # a monster race passive: the skillgrp layout the new skills copy
+INFO_TEXT = {
+    "pt": {"spoil": "Spoil", "drop": "Drop", "each": "{c}% cada, x{a}: {items}.", "complete": "Lista completa.",
+           "partial": "{n} de {t} itens conhecidos; os outros aparecem quando você abrir no Alt+B.",
+           "nototal": "{n} itens conhecidos (abra o card do monstro no Alt+B para saber o total).",
+           "nototal1": "1 item conhecido (abra o card do monstro no Alt+B para saber o total).",
+           "source": "(Alt+B do servidor, {d})"},
+    "en": {"spoil": "Spoil", "drop": "Drop", "each": "{c}% each, x{a}: {items}.", "complete": "Complete list.",
+           "partial": "{n} of {t} items known; the others show once you open them in Alt+B.",
+           "nototal": "{n} items known (open the monster's card in Alt+B for the total).",
+           "nototal1": "1 item known (open the monster's card in Alt+B for the total).",
+           "source": "(server's Alt+B, {d})"},
+    "de": {"spoil": "Spoil", "drop": "Drop", "each": "je {c}%, x{a}: {items}.", "complete": "Vollständige Liste.",
+           "partial": "{n} von {t} Gegenständen bekannt; die anderen erscheinen, wenn du sie in Alt+B öffnest.",
+           "nototal": "{n} Gegenstände bekannt (öffne die Karte des Monsters in Alt+B für die Gesamtzahl).",
+           "nototal1": "1 Gegenstand bekannt (öffne die Karte des Monsters in Alt+B für die Gesamtzahl).",
+           "source": "(Alt+B des Servers, {d})"},
+}
+
+
+def compact_index(n):
+    """An Unreal compact index (sign, 6 bits, then 7 bits per byte)."""
+    v = abs(n)
+    out = bytearray([(0x80 if n < 0 else 0) | (v & 0x3F) | (0x40 if v > 0x3F else 0)])
+    v >>= 6
+    while v:
+        out.append((v & 0x7F) | (0x80 if v > 0x7F else 0))
+        v >>= 7
+    return bytes(out)
+
+
+def npcgrp_props(data):
+    """npcgrp.dat (High Five): npc id -> (start, end, [uints]) of its passive skill list (id, level pairs)."""
+    r = _DatReaderU(data)
+    out = {}
+    for _ in range(r.u32()):
+        nid = r.u32()
+        r.uni(), r.uni()
+        for _ in range(r.u32()):
+            r.uni()
+        for _ in range(r.u32()):
+            r.uni()
+        a = r.p
+        props = [r.u32() for _ in range(r.cntr())]
+        out.setdefault(nid, (a, r.p, props))
+        r.f32()
+        for _ in range(4):
+            for _ in range(r.u32()):
+                r.uni()
+        for _ in range(r.u32()):
+            r.uni()
+            r.f32()
+        for _ in range(2):
+            for _ in range(r.cntr()):
+                r.u32()
+        r.uni()
+        r.u32(), r.f32(), r.f32(), r.f32(), r.u32(), r.u32()
+        for _ in range(r.u32()):
+            r.ascf()
+        r.u32()
+    if data[r.p:r.p + 12] != b"\x0cSafePackage":
+        raise ValueError("unexpected npcgrp layout")
+    return out
+
+
+_GRP_FIELDS = ("sid", "lvl", "icon_type", "op", "mp", "rng", "style", "hit", "magic", "anim", "vis", "icon", "panel",
+               "debuff", "ench", "ench_lvl", "ench_icon", "hp", "rs", "rt", "gauge", "tag")
+
+
+def skillgrp_records(data):
+    """skillgrp.dat (High Five): {(id, level): fields}, and where the records end."""
+    r = _DatReaderU(data)
+    out = {}
+    for _ in range(r.u32()):
+        f = dict(zip(_GRP_FIELDS, (r.u32(), r.u32(), r.u32(), r.u32(), r.u32(), r.u32(), r.u32(), r.f32(), r.u32(),
+                                   r.uni(), r.uni(), r.uni(), r.uni(), r.u32(), r.u32(), r.u32(), r.ascf(),
+                                   r.u32(), r.u32(), r.u32(), r.u32(), r.ascf())))
+        out.setdefault((f["sid"], f["lvl"]), f)
+    if data[r.p:r.p + 12] != b"\x0cSafePackage":
+        raise ValueError("unexpected skillgrp layout")
+    return out, r.p
+
+
+def skillgrp_bytes(f):
+    u = lambda *v: struct.pack(f"<{len(v)}I", *v)
+    return (u(f["sid"], f["lvl"], f["icon_type"], f["op"], f["mp"], f["rng"], f["style"]) + struct.pack("<f", f["hit"])
+            + u(f["magic"]) + dat_unicode(f["anim"]) + dat_unicode(f["vis"]) + dat_unicode(f["icon"]) + dat_unicode(f["panel"])
+            + u(f["debuff"], f["ench"], f["ench_lvl"]) + dat_string(f["ench_icon"]) + u(f["hp"], f["rs"], f["rt"], f["gauge"])
+            + dat_string(f["tag"]))
+
+
+def skillname_records(data):
+    """skillname-e.dat: {(id, level): (name, description)}, and where the records end."""
+    r = _DatReaderU(data)
+    out = {}
+    for _ in range(r.u32()):
+        sid, lvl = r.u32(), r.u32()
+        name, desc = r.ascf(), r.ascf()
+        r.ascf(), r.ascf()
+        out.setdefault((sid, lvl), (name, desc))
+    if data[r.p:r.p + 12] != b"\x0cSafePackage":
+        raise ValueError("unexpected skillname layout")
+    return out, r.p
+
+
+def info_description(rows, total, seen, lang):
+    """The tooltip of a Spoil / Drop icon: [(item name, chance %, min, max)] as the server lists them."""
+    t = INFO_TEXT.get(lang, INFO_TEXT["en"])
+    amt = lambda a, b: f"{min(a, b):g}" if a == b else f"{min(a, b):g}-{max(a, b):g}"
+    pct = lambda c: f"{c:.4f}".rstrip("0").rstrip(".")  # as the Database shows it (8.6284)
+    rows = sorted(rows, key=lambda r: (-r[1], r[0]))
+    if len({round(r[1], 4) for r in rows}) == 1 and len({(r[2], r[3]) for r in rows}) == 1:
+        text = t["each"].format(c=pct(rows[0][1]), a=amt(rows[0][2], rows[0][3]), items=", ".join(r[0] for r in rows))
+    else:
+        text = "; ".join(f"{n} {pct(c)}% x{amt(a, b)}" for n, c, a, b in rows) + "."
+    if total is None:
+        status = t["nototal1"] if len(rows) == 1 else t["nototal"].format(n=len(rows))
+    elif len(rows) >= total:
+        status = t["complete"]
+    else:
+        status = t["partial"].format(n=len(rows), t=total)
+    day = time.strftime("%d/%m/%Y", time.localtime(seen)) if seen else "?"
+    return f"{text} {status} {t['source'].format(d=day)}"
+
+
 def dat_string_at(data, span):
     r = _DatReader(data)
     r.p = span[0]
@@ -1547,6 +1682,18 @@ class _DatReader:
             s = self.d[self.p:self.p + 2 * v].decode("utf-16le", "replace").rstrip("\0")
             self.p += 2 * v
         return s
+
+
+class _DatReaderU(_DatReader):
+    def uni(self):
+        n = self.u32()
+        v = self.d[self.p:self.p + n].decode("utf-16-le")
+        self.p += n
+        return v
+
+    def cntr(self):
+        v, self.p = _compact(self.d, self.p)
+        return v
 
 
 def build_boss_db():
@@ -4520,7 +4667,8 @@ class Api:
         version."""
         written = self._data.get("marks_written", {})
         out = {}
-        for key, path in (("npc", NPCNAME), ("item", ITEMNAME)):
+        for key, path in (("npc", NPCNAME), ("item", ITEMNAME), ("npcgrp", NPCGRP), ("skillgrp", SKILLGRP),
+                          ("skillname", SKILLNAME)):
             bk = game_backup(path)
             if not bk.exists() and file_sha(path) == written.get(key):
                 raise FileNotFoundError("nobackup")  # the game's file has the panel's marks: never keep it as the original
@@ -4564,6 +4712,85 @@ class Api:
         _nid, ch, name = max(sources, key=lambda e: e[1])
         return [name, f"{ch:.3g}"]
 
+    def _mob_info(self):
+        """npc id -> {"spoil": [...], "drop": [...], "card": {"spoil": n, "drop": n} or None, "seen": t}: what the
+        player has opened in Alt+B (the server's own rows), for the Spoil and Drop icons."""
+        with self._srv.lock:
+            db = json.loads(json.dumps(self._srv.db))
+        try:
+            cat = self._item_catalog()  # the game's names, without the panel's marks
+        except (OSError, ValueError, zlib_error()):
+            cat = {}
+        out = {}
+        for iid, it in db["items"].items():
+            name = it.get("name") or cat.get(int(iid), (None,))[0] or f"#{iid}"
+            for key, row in it.get("rows", {}).items():
+                base = key.split("#")[0]
+                npc, kind = base.split(":")[0], base.split(":")[-1]
+                if not npc.isdigit() or kind not in ("spoil", "drop"):
+                    continue
+                e = out.setdefault(int(npc), {"spoil": [], "drop": [], "seen": 0})
+                e[kind].append((name, float(row.get("chance") or 0), row.get("min") or 1, row.get("max") or 1))
+                e["seen"] = max(e["seen"], row.get("seen") or 0)
+        for npc, e in out.items():
+            card = db["mobs"].get(str(npc), {})
+            e["card"] = {"spoil": card["spoils"], "drop": card["drops"]} if "spoils" in card and "drops" in card else None
+        return out
+
+    def _mob_info_plan(self, lang):
+        """The texts of the Spoil / Drop icons: {kind: {description: level}}, {npc: [(skill id, level)]}, and a
+        signature of it all (to tell when Alt+B brought new rows)."""
+        levels = {"spoil": {}, "drop": {}}
+        per_npc = {}
+        for npc, e in sorted(self._mob_info().items()):
+            for kind in ("spoil", "drop"):
+                if not e[kind]:
+                    continue
+                total = e["card"][kind] if e["card"] else None
+                desc = info_description(e[kind], total, e["seen"], lang)
+                lvl = levels[kind].setdefault(desc, len(levels[kind]) + 1)
+                per_npc.setdefault(npc, []).append((INFO_SKILLS[kind][0], lvl))
+        import hashlib
+        sig = hashlib.sha1(json.dumps([lang, sorted(levels["spoil"]), sorted(levels["drop"]),
+                                       sorted(per_npc.items())]).encode()).hexdigest()
+        return levels, per_npc, sig
+
+    def _info_files(self, npc_orig, grp_orig, nm_orig, lang):
+        """npcgrp, skillgrp and skillname with the Spoil / Drop icons (from the game's own files)."""
+        levels, per_npc, sig = self._mob_info_plan(lang)
+        props = npcgrp_props(npc_orig)
+        edits = []
+        for nid, skills in per_npc.items():
+            if nid in props:
+                a, b, ps = props[nid]
+                ps = ps + [v for pair in skills for v in pair]
+                edits.append((a, b, compact_index(len(ps)) + struct.pack(f"<{len(ps)}I", *ps)))
+        npc_new = splice(npc_orig, edits)
+        recs, end = skillgrp_records(grp_orig)
+        template = recs[INFO_TEMPLATE]
+        grp_add = b"".join(skillgrp_bytes({**template, "sid": INFO_SKILLS[k][0], "lvl": lvl, "icon": INFO_SKILLS[k][1]})
+                           for k in ("spoil", "drop") for lvl in levels[k].values())
+        n_new = sum(len(v) for v in levels.values())
+        grp_new = struct.pack("<I", struct.unpack_from("<I", grp_orig, 0)[0] + n_new) + grp_orig[4:end] + grp_add + grp_orig[end:]
+        names, end = skillname_records(nm_orig)
+        t = INFO_TEXT.get(lang, INFO_TEXT["en"])
+        nm_add = b"".join(struct.pack("<II", INFO_SKILLS[k][0], lvl) + dat_string(t[k]) + dat_string(desc)
+                          + dat_string("none") + dat_string("none")
+                          for k in ("spoil", "drop") for desc, lvl in levels[k].items())
+        nm_new = struct.pack("<I", struct.unpack_from("<I", nm_orig, 0)[0] + n_new) + nm_orig[4:end] + nm_add + nm_orig[end:]
+        # read back: the same monsters, the new skills where asked
+        props2 = npcgrp_props(npc_new)
+        if len(props2) != len(props) or any(props2[n][2][-2 * len(sk):] != [v for p in sk for v in p]
+                                            for n, sk in per_npc.items() if n in props):
+            raise ValueError("verify")
+        recs2, _e = skillgrp_records(grp_new)
+        names2, _e = skillname_records(nm_new)
+        if any((INFO_SKILLS[k][0], lvl) not in recs2 or (INFO_SKILLS[k][0], lvl) not in names2
+               for k in ("spoil", "drop") for lvl in levels[k].values()):
+            raise ValueError("verify")
+        mobs = sum(1 for n in per_npc if n in props)
+        return npc_new, grp_new, nm_new, sig, mobs
+
     def mark_search(self, q):
         """Items whose name holds `q`, for the list of marked items: the ones some monster gives
         by spoil first."""
@@ -4604,15 +4831,25 @@ class Api:
                      "onMobs": bool(m.get("onMobs")), "tag": bool(m.get("tag"))}
                     for m in ms]
         applied = self._data.get("marks_applied") if in_game else None
-        return {"ok": True, "marks": full(self._data.get("marks", [])),
+        info_files = all(p.exists() for p in (NPCGRP, SKILLGRP, SKILLNAME))
+        info_in_game = info_files and all(file_sha(p) == written.get(k) for k, p in
+                                          (("npcgrp", NPCGRP), ("skillgrp", SKILLGRP), ("skillname", SKILLNAME)))
+        mob_info = self._mob_info()
+        _lv, plan, sig = self._mob_info_plan(self._text_lang())
+        info = {"ok": info_files, "on": bool(self._data.get("info_on")), "sig": sig,
+                "mobs": len(plan), "complete": sum(1 for e in mob_info.values() if e["card"] and
+                                                   len(e["spoil"]) >= e["card"]["spoil"] and len(e["drop"]) >= e["card"]["drop"]),
+                "applied": self._data.get("info_applied") if info_in_game or not self._data.get("info_applied", {}).get("on") else None}
+        return {"ok": True, "info": info, "marks": full(self._data.get("marks", [])),
                 "tag": self._data.get("marks_tag", MARK_TAG), "color": self._data.get("marks_color", MARK_COLOR),
                 "applied": applied and {"marks": full(applied["marks"]), "tag": applied["tag"], "color": applied["color"]}}
 
-    def apply_marks(self, marks, tag=MARK_TAG, color=MARK_COLOR):
+    def apply_marks(self, marks, tag=MARK_TAG, color=MARK_COLOR, info=None):
         """Write the marked items into the game's files: the monsters that give one by spoil show it
         in their title (in `color`), and the items marked by name get `tag` before it and the top
-        items' name colour. Everything else is the game's own. The game shows it the next time it
-        starts."""
+        items' name colour. Everything else is the game's own. With `info`, each monster with rows opened in Alt+B also
+        gets the Spoil and Drop icons (npcgrp, skillgrp, skillname); without, those files are the game's
+        own. The game shows it the next time it starts."""
         try:
             marks = [{"id": int(m["id"]), "onMobs": bool(m.get("onMobs")), "tag": bool(m.get("tag"))}
                      for m in (marks or [])][:40]
@@ -4657,6 +4894,16 @@ class Api:
                     edits.append((*v["span"], dat_unicode(name)))
                     expect_item[m["id"]] = name
             item_new = splice(bytes(item_data), edits)
+            # Spoil / Drop icons on monsters
+            info = bool(self._data.get("info_on")) if info is None else bool(info)
+            info_sig, info_mobs = None, 0
+            grp_cur, grp_orig = files["npcgrp"]
+            sg_cur, sg_orig = files["skillgrp"]
+            sn_cur, sn_orig = files["skillname"]
+            if info:
+                grp_new, sg_new, sn_new, info_sig, info_mobs = self._info_files(grp_orig, sg_orig, sn_orig, self._text_lang())
+            else:
+                grp_new, sg_new, sn_new = grp_orig, sg_orig, sn_orig
             # read back: still the game's layout, with what was asked for
             try:
                 lay2 = npcname_layout(npc_new)
@@ -4669,6 +4916,11 @@ class Api:
                 return {"ok": False, "error": "verify"}
         except PermissionError:
             return {"ok": False, "error": "locked"}
+        except ValueError as exc:
+            if str(exc) == "verify":
+                return {"ok": False, "error": "verify"}
+            log_error("marks", repr(exc))
+            return {"ok": False, "error": "other"}
         except FileNotFoundError as exc:
             if str(exc) == "nobackup":
                 return {"ok": False, "error": "nobackup"}
@@ -4677,7 +4929,8 @@ class Api:
         except (OSError, ValueError, zlib_error()) as exc:
             log_error("marks", repr(exc))
             return {"ok": False, "error": "other"}
-        for path, new, cur in ((NPCNAME, npc_new, npc_cur), (ITEMNAME, item_new, item_cur)):
+        for path, new, cur in ((NPCNAME, npc_new, npc_cur), (ITEMNAME, item_new, item_cur), (NPCGRP, grp_new, grp_cur),
+                               (SKILLGRP, sg_new, sg_cur), (SKILLNAME, sn_new, sn_cur)):
             if new != cur:
                 err = write_game_dat(path, new)
                 if err:
@@ -4687,11 +4940,14 @@ class Api:
             self._data["marks_tag"] = tag
             self._data["marks_color"] = color.upper()
             self._data["marks_applied"] = {"marks": marks, "tag": tag, "color": color.upper()}
-            self._data["marks_written"] = {"npc": file_sha(NPCNAME), "item": file_sha(ITEMNAME)}
+            self._data["marks_written"] = {"npc": file_sha(NPCNAME), "item": file_sha(ITEMNAME), "npcgrp": file_sha(NPCGRP),
+                                           "skillgrp": file_sha(SKILLGRP), "skillname": file_sha(SKILLNAME)}
+            self._data["info_on"] = info
+            self._data["info_applied"] = {"on": info, "sig": info_sig}
             self._save()
-        return {"ok": True, "mobs": len(expect_npc), "items": len(expect_item)}
+        return {"ok": True, "mobs": len(expect_npc), "items": len(expect_item), "infoMobs": info_mobs}
 
-    def save_marks_draft(self, marks, tag, color):
+    def save_marks_draft(self, marks, tag, color, info=None):
         """Keep the list being set up (not written to the game yet)."""
         try:
             marks = [{"id": int(m["id"]), "onMobs": bool(m.get("onMobs")), "tag": bool(m.get("tag"))} for m in (marks or [])][:40]
@@ -4702,6 +4958,8 @@ class Api:
             self._data["marks_tag"] = re.sub(r"[\x00-\x1f]", "", str(tag or ""))[:8].strip()
             if re.fullmatch(r"#[0-9A-Fa-f]{6}", str(color or "")):
                 self._data["marks_color"] = color.upper()
+            if isinstance(info, bool):
+                self._data["info_on"] = info
             self._save()
         return True
 
