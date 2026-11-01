@@ -1215,8 +1215,8 @@ SHORT_TEXT = {
     42: {"pt": "Você esquivou de $c1", "en": "You evaded $c1", "de": "$c1 ausgewichen"},
     111: {"pt": "Escudo bloqueou", "en": "Shield blocked", "de": "Schild geblockt"},
     1998: {"pt": "Você contra-atacou $c1", "en": "You countered $c1", "de": "$c1 gekontert"},
-    159: {"pt": "Resistiu à magia de $c1", "de": "Magie von $c1 widerstanden"},
-    110: {"pt": "$s1 ativo", "en": "$s1 on", "de": "$s1 aktiv"},
+    159: {"pt": "Resistiu à magia de $c1", "en": "Resisted $c1's magic", "de": "Magie von $c1 widerstanden"},
+    110: {"pt": "$s1 ativo", "en": "$s1 active", "de": "$s1 aktiv"},
     92: {"pt": "$s1 acabou", "en": "$s1 ended", "de": "$s1 vorbei"},
     749: {"pt": "$s1 REMOVIDO", "en": "$s1 REMOVED", "de": "$s1 ENTFERNT"},
     1066: {"pt": "+$s1 HP", "en": "+$s1 HP", "de": "+$s1 HP"},
@@ -1239,6 +1239,21 @@ SHORT_TEXT = {
     48: {"pt": "$s1 em recarga", "en": "$s1 on cooldown", "de": "$s1 lädt nach"},
     22: {"pt": "Alvo fora de alcance", "en": "Target out of range", "de": "Ziel außer Reichweite"},
 }
+TEXT_LANGS = ("pt", "en", "de")   # languages of the short lines and on-screen texts written into the game
+
+
+def sysmsg_text_lang(data, lay):
+    """The language of the panel's short lines and screen texts in the game's file (the one most of
+    them match), or None when there are none."""
+    best, hits = None, 0
+    for lang in TEXT_LANGS:
+        n = sum(1 for i, t in SHORT_TEXT.items() if i in lay and lang in t and dat_string_at(data, lay[i]["msg"]) == t[lang])
+        n += sum(1 for i, t in SCREEN_TEXT.items() if i in lay and dat_string_at(data, lay[i]["text"]) == t.get(lang))
+        if n > hits:
+            best, hits = lang, n
+    return best
+
+
 # window, font, seconds, background, animation: the top of the screen, big letters, 2 s, with the
 # dark band and the game's own animated effect (as its "No-Fly Zone" message).
 SCREEN_LOOK = struct.pack("<5I", 2, 0, 2, 1, 1)
@@ -4332,8 +4347,9 @@ class Api:
             olay = sysmsg_layout(orig)
         except (OSError, ValueError, zlib_error()):
             return {"ok": False}
-        lang = self._data.get("lang", "pt")
         text = lambda d, ly, i, f: dat_string_at(d, ly[i][f]) if i in ly else ""
+        # the language of the texts already in the game's file, else the one chosen for them
+        lang = sysmsg_text_lang(data, lay) or self._text_lang()
         cats = []
         for k in CHAT_KINDS:
             o = next((lay[i]["color"] for i in k["ids"] if i in lay), None)
@@ -4344,10 +4360,9 @@ class Api:
             ob, og, orr = (orig[oo], orig[oo + 1], orig[oo + 2]) if oo is not None else (b, g, r)
             sid, vals = k["sample"]
             original = text(orig, olay, sid, "msg")
-            short = SHORT_TEXT.get(sid, {}).get(lang, original)
             cat = {"key": k["key"], "color": f"#{r:02X}{g:02X}{b:02X}", "colorOrig": f"#{orr:02X}{og:02X}{ob:02X}",
-                   "suggest": k["color"],
-                   "sampleOrig": fill_message(original, vals), "sampleShort": fill_message(short, vals),
+                   "suggest": k["color"], "sampleOrig": fill_message(original, vals),
+                   "sampleShort": {L: fill_message(SHORT_TEXT.get(sid, {}).get(L, original), vals) for L in TEXT_LANGS},
                    "screen": None, "sound": None}
             first = next((i for i in k.get("alert", []) if i in lay), None)
             if first is not None:
@@ -4356,7 +4371,7 @@ class Api:
                 cat["sound"] = "orig" if now == text(orig, olay, first, "sound") else now
                 cat["soundSuggest"] = k["sound"]
                 cat["soundOrig"] = text(orig, olay, first, "sound")
-                cat["screenSample"] = fill_message(SCREEN_TEXT[first].get(lang, SCREEN_TEXT[first]["en"]), vals)
+                cat["screenSample"] = {L: fill_message(SCREEN_TEXT[first].get(L, SCREEN_TEXT[first]["en"]), vals) for L in TEXT_LANGS}
             cats.append(cat)
         short_on = any(i in lay and i in olay and text(data, lay, i, "msg") != text(orig, olay, i, "msg")
                        for i in SHORT_TEXT)
@@ -4366,7 +4381,7 @@ class Api:
                     for k in CHAT_KINDS for i in k.get("alert", []))
         stale = stale or (short_on and any(i in lay and lang in t and text(data, lay, i, "msg") != t[lang]
                                            for i, t in SHORT_TEXT.items()))
-        return {"ok": True, "cats": cats, "short": short_on, "stale": stale, "sounds": GAME_SOUNDS,
+        return {"ok": True, "cats": cats, "short": short_on, "stale": stale, "textLang": lang, "sounds": GAME_SOUNDS,
                 "soundsFound": SOUNDS_DIR.is_dir(), "backup": SYSMSG_BACKUP.exists()}
 
     def play_game_sound(self, name):
@@ -4379,18 +4394,24 @@ class Api:
         threading.Thread(target=lambda: winsound.PlaySound(wav, winsound.SND_MEMORY), daemon=True).start()
         return True
 
-    def apply_chat_colors(self, colors, screen=None, sounds=None, short=None):
+    def _text_lang(self):
+        """The language chosen for the texts written into the game (the panel's, unless another)."""
+        lang = self._data.get("chat_lang") or self._data.get("lang", "pt")
+        return lang if lang in TEXT_LANGS else "en"
+
+    def apply_chat_colors(self, colors, screen=None, sounds=None, short=None, text_lang=None):
         """Write into the game's message file: the chosen colours; for the alert kinds whether
         they also show in big letters at the top of the screen (`screen`: kind -> bool) and their
         sound (`sounds`: kind -> a name of GAME_SOUNDS, or "orig" for the game's own); and whether
-        the common combat lines are short, in the panel's language (`short`). What is turned off
+        the common combat lines are short (`short`), with the short lines and the screen texts in
+        `text_lang` (the panel's language when not given). What is turned off
         gets the game's own text back. A copy of the file as it was before the panel's first
         change is kept, and the new file is read back before it replaces the old one. The game
         shows the changes the next time it starts."""
         wanted = {k: v for k, v in (colors or {}).items() if isinstance(v, str) and re.fullmatch(r"#[0-9A-Fa-f]{6}", v)}
         screen = {k: v for k, v in (screen or {}).items() if isinstance(v, bool)}
         sounds = {k: v for k, v in (sounds or {}).items() if v == "orig" or v in GAME_SOUNDS}
-        lang = self._data.get("lang", "pt")
+        lang = text_lang if text_lang in TEXT_LANGS else self._text_lang()
         try:
             cur = l2_decrypt413(SYSMSG)
             lay = sysmsg_layout(cur)
@@ -4466,6 +4487,8 @@ class Api:
             self._data["chat_sounds"] = sounds
             if isinstance(short, bool):
                 self._data["chat_short"] = short
+            if text_lang in TEXT_LANGS:
+                self._data["chat_lang"] = text_lang
             self._save()
         return {"ok": True, "changed": changed}
 
@@ -4480,7 +4503,7 @@ class Api:
         except OSError:
             return {"ok": False, "error": "other"}
         with self._lock:
-            for k in ("chat_colors", "chat_screen", "chat_sounds", "chat_short"):
+            for k in ("chat_colors", "chat_screen", "chat_sounds", "chat_short", "chat_lang"):
                 self._data.pop(k, None)
             self._save()
         return {"ok": True}
