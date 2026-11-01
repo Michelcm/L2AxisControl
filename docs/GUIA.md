@@ -1,7 +1,7 @@
 # L2Axis Control — guia passo a passo
 
 Este guia é para quem **não é programador**. Vai do download até o uso de cada aba.
-English version: [GUIDE.md](GUIDE.md).
+English version: [GUIDE.md](GUIDE.md) · Versión en español: [GUIA-ES.md](GUIA-ES.md).
 
 **Conteúdo**
 

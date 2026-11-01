@@ -5,7 +5,7 @@ It puts in one place what you usually keep in your head or in a notepad: your ga
 server events, votes, timers and a crafting guide.
 
 **New here and not a programmer?** Read the step-by-step guide:
-**[English guide](docs/GUIDE.md)** · **[Guia em português](docs/GUIA.md)**
+**[English guide](docs/GUIDE.md)** · **[Guia em português](docs/GUIA.md)** · **[Guía en español](docs/GUIA-ES.md)**
 
 > 🇧🇷 **Resumo em português** no fim da página.
 
@@ -57,7 +57,7 @@ it will only be published if the server staff approves it. Without it the Bosses
 
 ## Installation (short version)
 
-Windows 10/11. Full step by step with pictures: **[English](docs/GUIDE.md)** · **[Português](docs/GUIA.md)**.
+Windows 10/11. Full step by step with pictures: **[English](docs/GUIDE.md)** · **[Português](docs/GUIA.md)** · **[Español](docs/GUIA-ES.md)**.
 
 1. **Code → Download ZIP** on this page and extract the folder **inside your L2Axis client folder**, next to `system`.
 2. Double-click **`install.bat`** (it installs Python if needed, the only dependency and creates the Desktop shortcut).

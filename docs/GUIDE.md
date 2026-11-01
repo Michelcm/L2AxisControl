@@ -1,7 +1,7 @@
 # L2Axis Control — step-by-step guide
 
 This guide is for players who are **not programmers**. It goes from downloading the panel to using every tab.
-Versão em português: [GUIA.md](GUIA.md).
+Versão em português: [GUIA.md](GUIA.md) · Versión en español: [GUIA-ES.md](GUIA-ES.md).
 
 **Contents**
 
