@@ -72,7 +72,7 @@ Basics of the window:
 - **Resize:** drag the right edge, the bottom edge or the bottom-right corner.
 - **▲ (compact):** shows only ping, loss and clients. Click again to expand.
 - **_ and ✕:** minimize and close.
-- **Language:** Options tab → Panel → PT-BR / EN / DE.
+- **Language:** Options tab → Panel → PT-BR / EN / DE / ES.
 
 ## 5. Clients: your game windows
 

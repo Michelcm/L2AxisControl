@@ -74,7 +74,7 @@ Básico da janela:
 - **Tamanho:** arraste a borda direita, a de baixo ou o canto inferior direito.
 - **▲ (compacto):** mostra só ping, perda e clientes. Clique de novo para expandir.
 - **_ e ✕:** minimizar e fechar.
-- **Idioma:** aba Opções → Painel → PT-BR / EN / DE.
+- **Idioma:** aba Opções → Painel → PT-BR / EN / DE / ES.
 
 ## 5. Clientes: suas janelas do jogo
 
